@@ -1,0 +1,43 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BusinessEntities.ConsentForms
+{
+    public class MedicalHistoryNew
+    {
+        public int mhnId { get; set; }
+        public int mhn_appId { get; set; }
+        public string mhn_1 { get; set; }
+        public string mhn_2 { get; set; }
+        public string mhn_3 { get; set; }
+        public string mhn_4 { get; set; }
+        public string mhn_5 { get; set; }
+        public string mhn_6 { get; set; }
+        public string mhn_7 { get; set; }
+        public string mhn_8 { get; set; }
+        public string mhn_9 { get; set; }
+        public string mhn_10 { get; set; }
+        public string mhn_11 { get; set; }
+        public string mhn_12 { get; set; }
+        public string mhn_13 { get; set; }
+
+        public string mhn_radio1 { get; set; }
+        public string mhn_radio2 { get; set; }
+        public string mhn_radio3 { get; set; }
+        public string mhn_radio4 { get; set; }
+        public string mhn_radio5 { get; set; }
+        public string mhn_radio6 { get; set; }
+        public string mhn_radio7 { get; set; }
+        public string mhn_radio8 { get; set; }
+        public string mhn_radio9 { get; set; }
+        public string mhn_radio10 { get; set; }
+        public string mhn_radio11 { get; set; }
+        public string mhn_radio12 { get; set; }
+       
+        public string mhn_status { get; set; }
+        public DateTime mhn_date_modified { get; set; }
+    }
+}

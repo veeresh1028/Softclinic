@@ -1,0 +1,108 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Facial Consent Arb Derma";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header" dir="rtl">
+                <h3 class="card-title">الموافقة على علاج الوجه-عربي</h3>
+            </div>
+            <div class="card-body">
+                <div id="FacialConsentArbDerma_add" style="display:none">
+                </div>
+                <div id="FacialConsentArbDerma_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="FacialConsentArbDerma_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetFacialConsentArbDermaInfo();
+        FacialConsentArbDermaPreviousHistory();
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetFacialConsentArbDermaInfo
+    var GetFacialConsentArbDermaInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetFacialConsentArbDermaData", "FacialConsentArbDerma", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditFacialConsentArbDerma();
+                        $("#FacialConsentArbDerma_add").hide();
+                        $("#FacialConsentArbDerma_edit").show();
+
+                    }
+                    else {
+                        $("#FacialConsentArbDerma_add").show();
+                        $("#FacialConsentArbDerma_edit").hide();
+                        AddFacialConsentArbDerma();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load FacialConsentArbDerma
+
+    //#region Add FacialConsentArbDerma
+    function AddFacialConsentArbDerma() {
+        var x = $("#FacialConsentArbDerma_add");
+        x.load("@Url.Action("CreateFacialConsentArbDerma", "FacialConsentArbDerma", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add FacialConsentArbDerma
+
+    // #region Update FacialConsentArbDerma
+    function EditFacialConsentArbDerma() {
+        var x = $("#FacialConsentArbDerma_edit");
+        x.load("@Url.Action("UpdateFacialConsentArbDerma", "FacialConsentArbDerma", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update FacialConsentArbDerma
+
+    // #region Histroy of FacialConsentArbDerma
+    function FacialConsentArbDermaPreviousHistory() {
+        var x = $("#FacialConsentArbDerma_history");
+        x.load("@Url.Action("FacialConsentArbDermaPreviousHistory", "FacialConsentArbDerma", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

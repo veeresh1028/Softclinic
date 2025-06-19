@@ -1,0 +1,107 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Sublime Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Sublime Consent Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="SublimeConsent_add" style="display:none">
+                </div>
+                <div id="SublimeConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="SublimeConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetSublimeConsentInfo();
+        SublimeConsentPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetSublimeConsentInfo
+    var GetSublimeConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetSublimeConsentData", "SublimeConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditSublimeConsent();
+                        $("#SublimeConsent_add").hide();
+                        $("#SublimeConsent_edit").show();
+
+                    }
+                    else {
+                        $("#SublimeConsent_add").show();
+                        $("#SublimeConsent_edit").hide();
+                        AddSublimeConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load SublimeConsent
+
+    //#region Add SublimeConsent
+    function AddSublimeConsent() {
+        var x = $("#SublimeConsent_add");
+        x.load("@Url.Action("CreateSublimeConsent", "SublimeConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add SublimeConsent
+
+    //#region Update SublimeConsent
+    function EditSublimeConsent() {
+        var x = $("#SublimeConsent_edit");
+        x.load("@Url.Action("UpdateSublimeConsent", "SublimeConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update SublimeConsent
+
+    //#region Histroy of SublimeConsent
+    function SublimeConsentPreviousHistory() {
+        var x = $("#SublimeConsent_history");
+        x.load("@Url.Action("SublimeConsentPreviousHistory", "SublimeConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

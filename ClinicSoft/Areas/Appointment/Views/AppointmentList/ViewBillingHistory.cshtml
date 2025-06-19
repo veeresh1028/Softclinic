@@ -1,0 +1,205 @@
+﻿@model BusinessEntities.Patient.PatientBillingInfo
+
+<h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">
+    Patient Invoice Summary <text>-</text>
+    <span class="badge bg-info text-uppercase">@Model.pat_name </span>
+</h5>
+
+<div class="row mt-2">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        @if (Model.invoices_summary.Count > 0)
+        {
+            <div class="panel panel-default mt-2">
+                <div id="pnl_invoices" >
+                    <div class="panel-body ">
+                        <div class="table-responsive" style="min-height:unset;">
+                            <table id="tbl_invoice_summary" class="table table-bordered text-nowrap resize-table" style="width:100%;">
+                                <thead>
+                                    <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8; ">
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Visit ID</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Invoice #</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Date &amp; Time</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Gross</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Discount</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Net</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Net+VAT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (BusinessEntities.Patient.PatientInvoiceSummary dr in Model.invoices_summary)
+                                    {
+                                        <tr>
+                                            <td class="fs-13">
+                                                @dr.inv_appId.ToString() <br />
+                                                <i class="fa fa-calendar-check-o text-dark me-1"></i>
+                                                @dr.app_fdate.ToString("dd-MM-yyyy") <br />
+                                            </td>
+                                            <td class="fs-13">@dr.inv_no</td>
+                                            <td class="fs-13 text-wrap">
+                                                @if (dr.inv_type.ToLower() == "cash")
+                                                {
+                                                    <span class="text-primary">Cash</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-info">@dr.inv_type</span>
+                                                }
+                                            </td>
+                                            <td class="fs-13">
+                                                <i class="fa fa-calendar-check-o text-dark me-1"></i>
+                                                @dr.inv_date.ToString("dd-MM-yyyy") <br />
+                                                <i class="fa fa-clock-o text-dark me-1"></i>
+                                                @dr.inv_date.ToString("HH:mm:ss")
+                                            </td>
+                                            <td class="fs-13 text-wrap">
+                                                @if (dr.inv_status.ToLower() == "paid")
+                                                {
+                                                    <span class="dot-label bg-success me-2 w-2 h-2"></span>
+                                                    <span class="text-success">Paid</span>
+                                                }
+                                                else if (dr.inv_status.ToLower() == "partly paid")
+                                                {
+                                                    <span class="dot-label bg-orange me-2 w-2 h-2"></span>
+                                                    <span class="text-orange">Partly Paid</span>
+                                                }
+                                                else if (dr.inv_status.ToLower() == "unpaid")
+                                                {
+                                                    <span class="dot-label bg-danger me-2 w-2 h-2"></span>
+                                                    <span class="text-danger">Unpaid</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="dot-label bg-dark me-2 w-2 h-2"></span>
+                                                    <span class="text-dark">@dr.inv_status</span>
+                                                }
+                                            </td>
+                                            <td class="fs-13 text-end">@decimal.Parse(dr.inv_total.ToString()).ToString("N2") </td>
+                                            <td class="fs-13 text-end">@decimal.Parse(dr.inv_disc.ToString()).ToString("N2")</td>
+                                            <td class="fs-13 text-end">@decimal.Parse(dr.inv_net.ToString()).ToString("N2")</td>
+                                            <td class="fs-13 text-end">@decimal.Parse(dr.inv_vat.ToString()).ToString("N2")</td>
+                                            <td class="fs-13 text-end">@decimal.Parse(dr.inv_netvat.ToString()).ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="5" class="text-end fs-14 font-weight-semibold">Total:</th>
+                                        <th class="text-end fs-14 font-weight-semibold text-dark"></th>
+                                        <th class="text-end fs-14 font-weight-semibold text-dark"></th>
+                                        <th class="text-end fs-14 font-weight-semibold text-dark"></th>
+                                        <th class="text-end fs-14 font-weight-semibold text-dark"></th>
+                                        <th class="text-end fs-14 font-weight-semibold text-dark"></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                <div class="alert alert-light-info alert-dismissiblefade show" role="alert">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <strong><i class="fa fa-exclamation-circle"></i> Info!&nbsp;</strong> Appointment(s) History not Available!
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        load_invoice_summary();
+    });
+    //#endregion
+
+    var load_invoice_summary = function () {
+    var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+    var table = $('#tbl_invoice_summary').DataTable({
+        lengthChange: true,
+        buttons: [
+            {
+                extend: 'excel',
+                className: 'btn-secondary',
+                title: 'Invoice Summary',
+                action: function (e, dt, node, config) {
+                    $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                    exportLogs("Employee Exported Invoice Summary for patId = @Model.patId to Excel!");
+                }
+            },
+            {
+                extend: 'pdf',
+                className: 'btn-secondary',
+                title: 'Invoice Summary',
+                action: function (e, dt, node, config) {
+                    $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                    exportLogs("Employee Exported Invoice Summary for patId = @Model.patId to PDF!");
+                }
+            },
+            {
+                extend: 'csv',
+                className: 'btn-secondary',
+                title: 'Invoice Summary',
+                action: function (e, dt, node, config) {
+                    $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                    exportLogs("Employee Exported Invoice Summary for patId = @Model.patId to CSV!");
+                }
+            },
+            {
+                extend: 'print',
+                className: 'btn-secondary',
+                title: 'Invoice Summary',
+                action: function (e, dt, node, config) {
+                    $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                    exportLogs("Employee Printed Invoice Summary for patId = @Model.patId!");
+                }
+            }
+        ],
+        order: [[0, 'asc']],
+        language: {
+            searchPlaceholder: 'Search...',
+            sSearch: '<span class="text-primary font-weight-semi-bold">Search</span>',
+            lengthMenu: '_MENU_ ',
+        },
+        footerCallback: function (row, data, start, end, display) {
+            var api = this.api();
+
+            // Remove the formatting to get integer data for summation
+            var intVal = function (i) {
+                return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+            };
+
+            // Footer Total
+            total1 = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+            total2 = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+            total3 = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+            total4 = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+            total5 = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+
+            $(api.column(5).footer()).html(numberRenderer(total1.toFixed(2)));
+            $(api.column(6).footer()).html(numberRenderer(total2.toFixed(2)));
+            $(api.column(7).footer()).html(numberRenderer(total3.toFixed(2)));
+            $(api.column(8).footer()).html(numberRenderer(total4.toFixed(2)));
+            $(api.column(9).footer()).html(numberRenderer(total5.toFixed(2)));
+        }
+    });
+    table.buttons().container().appendTo('#tbl_invoice_summary_wrapper .col-md-6:eq(0)');
+}
+
+
+    //#region On Modal CLose
+    //$('.close-modal').on('click', function (e) {
+    //    e.preventDefault();
+
+    //    $("#audit_appointment_modal").modal("hide");
+    //    $("#update_appointment_modal").show();
+    //});
+    //#endregion
+</script>

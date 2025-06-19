@@ -1,0 +1,1042 @@
+﻿@model BusinessEntities.Invoice.TreatmentItemView
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<style type="text/css">
+    #tbl_treatmentItems_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: auto;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Treatment Items</h5>
+    <button type="button" class="btn-close close-titems-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Treatment_Item_Create" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-4 col-lg-6">
+                <div class="form-group">
+                    <label class="form-label">Item&nbsp;<span class="text-danger">*</span></label>
+                    <select class="form-control select2" id="tit_item" name="tit_item">
+                    </select>
+                    <input type="hidden" id="hi_titId" value="0" />
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-4 col-lg-4">
+                <div class="form-group">
+                    <label class="form-label text-black">Batch&nbsp;<span class="text-danger">&nbsp;*</span></label>
+                    <select class="form-control select2" id="tit_batch" name="tit_batch"></select>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label">Qty / UoM&nbsp;<span class="text-danger">*&nbsp;<label id="lbl_qty" class="fw-bold"></label></span></label>
+                    <div class="input-group">
+                        <input type="text" id="tit_qty" name="tit_qty" class="form-control" maxlength="8" onkeypress="return validateOneDecimalNumeric(this,event);" value="0" />
+                        <div class="input-group-append" style="max-width: 70%; min-width: 50%;">
+                            <select class="form-control select2" id="tit_uom" name="tit_uom"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group">
+                    <label class="form-label">Remarks/Notes</label>
+                    <textarea name="tit_notes" id="tit_notes" class="form-control mb-2" placeholder="Ex : Enter Notes...." rows="4" maxlength="750"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+                <div id="div_item_error"> </div>
+            </div>
+            <label class="form-label text-danger">&nbsp;<span class="text-danger" id="lbl_calculation_error"></span></label>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list">
+                    <button type="submit" class="btn btn-success" id="btnAddTreatmentItem"><i class="fe fe-plus"></i> Add Treatment Item</button>
+                    <button type="button" class="btn btn-outline-dark" id="btn_ResetItem">Reset</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        <i class="fe fe-x"></i> Close
+                    </button>
+                    <label class="text-red" id="error_message"></label>
+                    <input type="hidden" id="hi_ibId" value="0" />
+                    <input type="hidden" id="hi_uom" value="0" />
+                    <input type="hidden" id="hi_uom2" value="0" />
+                    <input type="hidden" id="hi_uom3" value="0" />
+                    <input type="hidden" id="hi_mfactor" value="0" />
+                    <input type="hidden" id="hi_mfactor2" value="" />
+                    <input type="hidden" id="hi_itemId" value="0" />
+                    <input type="hidden" id="hi_ibQty" value="0" />
+                    <input type="hidden" id="hi_ibQty2" value="0" />
+                    <input type="hidden" id="hi_ibQty3" value="0" />
+                    <input type="hidden" id="hi_item_name" value="" />
+                    <input type="hidden" id="hi_item_code" value="" />
+                    <input type="hidden" id="hi_batch" value="" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-8">
+                <label class="form-label mt-1">&nbsp;<span class="text-danger" id="error_msg"></span></label>
+            </div>
+        </div>
+    </form>
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive mt-2">
+                        <table id="tbl_treatmentItems" class="table table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                            <thead>
+                                <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                                    <th class="border-bottom-0 font-weight-semibold text-white">Item Code</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Item Name</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">Batch</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">Batch Expiry</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-end">Qty</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">UoM</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Notes</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $('#tit_batch').select2({
+            dropdownParent: $('#form_Treatment_Item_Create'),
+            placeholder: 'Select Batch',
+            width: '100%'
+        });
+
+        $('#tit_uom').select2({
+            dropdownParent: $('#form_Treatment_Item_Create'),
+            placeholder: 'Select UoM',
+            width: '100%'
+        });
+
+        $("#tit_item").select2({
+            placeholder: 'Select a Item',
+            width: '100%',
+            dropdownParent: $('#form_Treatment_Item_Create'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchItems", "MaterialsConsumption", new { area = "MaterialManagement" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    $('#lbl_message').text('');
+
+                    return {
+                        query: query.term,
+                        branch: "@emr.app_branch",
+                        type: 'withQty'
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        getTreatmentItems();
+
+        validation();
+    });
+    //#endregion
+
+    //#region Validate Text Box with One Decimal and numeric only on Key Press
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : evt.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Item Select Event
+    $('#tit_item').on('select2:select', function (e) {
+        var data = e.params.data;
+
+        if ((data.id).length > 0) {
+            var branchId = @emr.app_branch;
+
+            $.ajax({
+                url: '@Url.Action("GetBatchesDetail", "MaterialsConsumption", new { area = "MaterialManagement" })?Item_code=' + data.id + "&branchId=" + branchId+"&type=withQty",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    if (response.length > 0) {
+                        $('#tit_batch').empty();
+                        $('#tit_batch').append('<option value="">Select Batch</option>');
+                        $('#tit_batch').val('-1');
+                        $('#tit_batch').trigger('change');
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id, (response[j].id === '-1') ? true : false, (response[j].id === '-1') ? true : false);
+
+                            $('#tit_batch').append(newOption).trigger('change');
+                        });
+                    }
+                    else {
+                        $('#tit_batch').empty();
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#select2-tit_item-container').attr("title", $('#hi_item_name').val());
+                }, 100);
+            });
+        }
+    });
+    //#endregion
+
+    //#region Batch Select Event
+    $('#tit_batch').on('select2:select', function (e) {
+        var ibId = $('#tit_batch').val();
+
+        if (ibId > 0) {
+            $.ajax({
+                url: '@Url.Action("ConsumedBatch_Detail", "MaterialsConsumption", new { area = "MaterialManagement" })?ibId=' + ibId,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#tit_uom").empty();
+
+                    if (response.length > 0) {
+                        var item_uom = response[0].ib_uom;
+                        var item_uom2 = response[0].ib_uom2;
+                        var item_uom3 = response[0].ib_uom3;
+                        var newOption = new Option(item_uom, item_uom, true, true);
+
+                        $("#tit_uom").append(newOption).trigger('change');
+
+                        if (item_uom != item_uom2) {
+                            newOption = new Option(item_uom2, item_uom2, true, true);
+                            $("#tit_uom").append(newOption).trigger('change');
+                        }
+
+                        if (item_uom2 != item_uom3) {
+                            newOption = new Option(item_uom3, item_uom3, true, true);
+                            $("#tit_uom").append(newOption).trigger('change');
+                        }
+
+                        $('#tit_uom').val(response[0].ib_uom).trigger('change');
+
+                        $('#hi_ibQty').val(parseFloat(response[0].ib_qty).toFixed(2));
+                        $('#hi_ibQty2').val(parseFloat(response[0].ib_qty2).toFixed(2));
+                        $('#hi_ibQty3').val(parseFloat(response[0].ib_qty3).toFixed(2));
+                        $('#hi_ibId').val(response[0].ibId);
+                        $('#hi_uom').val(response[0].ib_uom);
+                        $('#hi_uom2').val(response[0].ib_uom2);
+                        $('#hi_uom3').val(response[0].ib_uom3);
+                        $('#hi_mfactor').val(response[0].ib_m_factor);
+                        $('#hi_mfactor2').val(response[0].ib_m_factor2);
+                        $('#hi_itemId').val(response[0].itemId);
+                        $('#hi_item_name').val(response[0].item_name);
+                        $('#hi_item_code').val(response[0].ib_item);
+                        $('#hi_batch').val(response[0].ib_batch);
+                        $('#tit_qty').val('0');
+                    }
+                    else {
+                        $('#tit_qty').val('0');
+                        $('#tit_uom').val('-1').trigger('change');
+                        $('#hi_ibQty').val('0');
+                        $('#hi_ibQty2').val('0');
+                        $('#hi_ibQty3').val('0');
+                        $('#hi_uom').val('');
+                        $('#hi_uom2').val('');
+                        $('#hi_uom3').val('');
+                        $('#hi_ibId').val('');
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#select2-item_name-container').attr("title", $('#hi_item_name').val());
+                }, 100);
+            });
+        }
+    });
+    //#endregion
+
+    //#region Adding Item Calculation
+    $("#tit_qty").focusout('input', function () {
+        AddingCalculation();
+    });
+
+    $('#tit_uom').on('select2:select', function (e) {
+        AddingCalculation();
+    });
+
+    var AddingCalculation = function () {
+        $("#lbl_calculation_error").text("");
+        $("#lbl_qty").text("");
+
+        let _qty = $("#tit_qty").val();
+        let _uom = $("#tit_uom").val();
+        let _ibQty = $("#hi_ibQty").val();
+        let _ibQty2 = $("#hi_ibQty2").val();
+        let _ibQty3 = $("#hi_ibQty3").val();
+        let _ibuom = $("#hi_uom").val();
+        let _ibuom2 = $("#hi_uom2").val();
+        let _ibuom3 = $("#hi_uom3").val();
+
+        if (_uom !== undefined && _uom !== null && _uom !== "" && _uom.length > 0) {
+            if (_ibuom === undefined || _ibuom === null || _ibuom === "" ||
+                _ibuom2 === undefined || _ibuom2 === null || _ibuom2 === "" ||
+                _ibuom3 === undefined || _ibuom3 === null || _ibuom3 === "") {
+                $('#tit_batch').parent().addClass('has-error');
+
+                Error_Timeout("tit_batch");
+
+                $("#lbl_qty").text("Batch Qty Not Selected");
+            }
+            else {
+                if (_qty === "" || _qty === null || _qty === undefined) {
+                    _qty = 0;
+                    $("#tit_qty").val("0");
+                }
+
+                if (_ibQty === "" || _ibQty === null || _ibQty === undefined) {
+                    _ibQty = 0;
+                    $("#hi_ibQty").val("0");
+                }
+
+                if (_ibQty2 === "" || _ibQty2 === null || _ibQty2 === undefined) {
+                    _ibQty2 = 0;
+                    $("#hi_ibQty2").val("0");
+                }
+
+                if (_ibQty3 === "" || _ibQty3 === null || _ibQty3 === undefined) {
+                    _ibQty3 = 0;
+                    $("#hi_ibQty3").val("0");
+                }
+
+                if (_uom === _ibuom) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty)) {
+                        $("#lbl_calculation_error").text("Allocated Qty should be less than Batch Qty");
+                        $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom2) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_calculation_error").text("Allocated Qty should be less than Batch Qty");
+                        $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom3) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty3)) {
+                        $("#lbl_calculation_error").text("Allocated Qty should be less than Batch Qty");
+                        $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+            }
+        }
+        else {
+            $('#tit_uom').parent().addClass('has-error');
+
+            Error_Timeout("tit_uom");
+        }
+    }
+    //#endregion
+
+    //#region Adding Validation on Main Form
+    var validation = function () {
+        $("#form_Treatment_Item_Create").validate({
+            focusInvalid: true,
+            rules:
+            {
+                tit_item: {
+                    required: true,
+                },
+                tit_batch: {
+                    required: true,
+                },
+                tit_qty: {
+                    required: true,
+                },
+                tit_uom: {
+                    required: true,
+                }
+            },
+            messages: {
+                tit_item: {
+                    required: "Select Item",
+                },
+                tit_batch: {
+                    required: "Select Batch",
+                },
+                tit_qty: {
+                    required: "Select Qty",
+                },
+                tit_uom: {
+                    required: "Select UOM",
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Load Items in DataTable
+    var getTreatmentItems = function () {
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetTreatmentItems", "TreatmentItems", new { area = "EMR" })?ptId=' + @Model.ptId,
+            success: function (response) {
+                if (response.isAuthorized) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_treatmentItems')) {
+                        table = $('#tbl_treatmentItems').DataTable();
+                        table.clear();
+                        table.rows.add(response.message).draw();
+                    }
+                    else {
+                        BindDataTable(response.message);
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        }).done(function () {
+            resizedt("tbl_treatmentItems");
+        });
+    }
+    //#endregion
+
+    //#region Bind DataTable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_treatmentItems").DataTable({
+            processing: true,
+            paging: false,
+            ordering: false,
+            info: false,
+            "searching": false,
+            "retrieve": true,
+            lengthChange: false,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "tit_item_code" },
+                {
+                    "mData": "tit_item",
+                    "className": "fs-13 td_max_width"
+                },
+                { "mData": "ib_batch" },
+                {
+                    "mData": "ib_edate",
+                    "render": function (ib_edate, type, full, meta) {
+                        if (type === 'display' || type === 'filter') {
+                            moment(ib_edate).format('DD-MM-YYYY');
+                        }
+
+                        return moment(ib_edate).format('YYYY-MM-DD');
+                    }
+                },
+                {
+                    "mData": "tit_qty",
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                { "mData": "tit_uom" },
+                {
+                    "mData": "tit_notes",
+                    "className": "text-wrap text-justify"
+                },
+                {
+                    "mData": "titId",
+                    "className": 'text-center',
+                    "render": function (titId, type, full, meta) {
+                        var tit_status = full.tit_status;
+
+                        if (tit_status === "Unused") {
+                            return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateTreatmentItemStatus(\'' + titId + '\')">' + tit_status + '</button>'
+                        }
+                        else if (tit_status === "Used") {
+                            return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning disabled" style="width: 60px;">' + tit_status + '</button>'
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "mData": "titId",
+                    "className": "fs-13 text-center dt-delete",
+                    "render": function (titId, type, full, meta) {
+                        var status = full.tit_status;
+
+                        if (status === "Unused") {
+                            return '<a onclick="deleteTreatmentItem(\'' + titId + '\')" class=""><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i></a>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                }
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            }
+        });
+
+        table.buttons().container().appendTo('#tbl_treatmentItems_wrapper .col-md-6:eq(0)');
+    }
+    //#endregion
+
+    //#region Update Treatment Item Status
+    var updateTreatmentItemStatus = function (titId) {
+        Swal.fire({
+            title: "Are you sure you want to use this Item ?",
+            text: "P.S: You can't delete this item once used!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                updateFunction(titId, "Used");
+            }
+        });
+    };
+
+    var updateFunction = function (titId, tit_status) {
+        $.ajax({
+            url: "@Url.Action("UpdateTreatmentItemStatus", "TreatmentItems", new { area = "EMR" })?titId=" + titId + "&tit_status=" + tit_status,
+            type: "POST",
+            dataType: "json",
+            success: function (data) {
+                return_value = data.isUpdated;
+
+                if (return_value > 0) {
+                    title = "Success!";
+                    text = "Status Changed Successfully!";
+                    icon = "success";
+                }
+                else if (return_value == -2) {
+                    title = "Warning!";
+                    text = "Some Allocated Qty Excceds The Batches Qty!";
+                    icon = "warning";
+                }
+                else if (return_value == -1) {
+                    title = "Error!";
+                    text = "Allocated Qty Excceds Batch Qty!";
+                    icon = "error";
+
+                }
+                else {
+                    title = "Error!";
+                    text = data.message;
+                    icon = "error";
+                }
+
+                if (title != '' && text != '' && icon != '') {
+                    Swal.fire({
+                        title: title,
+                        text: text,
+                        icon: icon,
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+
+                    getTreatmentItems();
+                }
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    title: "Error!",
+                    text: "Failed to Change Status! Please refresh the Page and Try Again.",
+                    icon: "error",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+    }
+
+    var deleteTreatmentItem = function (titId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Item ?",
+            text: "This item will be deleted permanently!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                deleteFunction(titId, "Deleted");
+            }
+        });
+    };
+
+    var deleteFunction = function (titId, tit_status) {
+        $.ajax({
+            url: "@Url.Action("DeleteTreatmentItem", "TreatmentItems", new { area = "EMR" })?titId=" + titId + "&tit_status=" + tit_status,
+            type: "POST",
+            dataType: "json",
+            success: function (data) {
+                return_value = data.isUpdated;
+
+                if (return_value > 0) {
+                    title = "Success!";
+                    text = "Treatment Item Deleted Successfully!";
+                    icon = "success";
+                }
+                else if (return_value == -2) {
+                    title = "Warning!";
+                    text = "Some Allocated Qty Excceds The Batches Qty!";
+                    icon = "warning";
+                }
+                else if (return_value == -1) {
+                    title = "Error!";
+                    text = "Allocated Qty Excceds Batch Qty!";
+                    icon = "error";
+
+                }
+                else {
+                    title = "Error!";
+                    text = data.message;
+                    icon = "error";
+                }
+
+                if (title != '' && text != '' && icon != '') {
+                    Swal.fire({
+                        title: title,
+                        text: text,
+                        icon: icon,
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+
+                    getTreatmentItems();
+                }
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    title: "Error!",
+                    text: "Failed to Delete! Please refresh the Page and Try Again.",
+                    icon: "error",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Items Table Validation
+    var ItemsValid = function () {
+        let _qty = $('#tit_qty').val().trim();
+        let _uom = $("#tit_uom").val();
+        let _ibQty = $("#hi_ibQty").val();
+        let _ibQty2 = $("#hi_ibQty2").val();
+        let _ibQty3 = $("#hi_ibQty3").val();
+        let _ibuom = $("#hi_uom").val();
+        let _ibuom2 = $("#hi_uom2").val();
+        let _ibuom3 = $("#hi_uom3").val();
+        var count = 0;
+
+        if ($('#tit_item').val() == undefined || $('#tit_item').val() == null || $('#tit_item').val() == '' || $('#tit_item').val().length == 0) {
+            $("#select2-tit_item-container").parent().addClass('error');
+            count++;
+            Error_Timeout("tit_item");
+        }
+
+        if ($('#tit_batch').val() == undefined || $('#tit_batch').val() == null || $('#tit_batch').val() == '' || $('#tit_batch').val().length == 0) {
+            $("#select2-tit_batch-container").parent().addClass('error');
+            count++;
+            Error_Timeout("tit_batch");
+        }
+
+        if (_qty === "" || _qty === null || _qty === undefined) {
+            $("#lbl_calculation_error").text("Qty should be more than 0");
+            $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+            count++;
+            Error_Timeout("tit_qty");
+        }
+        else {
+            $("#lbl_calculation_error").text("");
+            $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+
+        if (_uom !== undefined && _uom !== null && _uom !== "" && _uom.length > 0) {
+            if (_ibuom === undefined || _ibuom === null || _ibuom === "" ||
+                _ibuom2 === undefined || _ibuom2 === null || _ibuom2 === "" ||
+                _ibuom3 === undefined || _ibuom3 === null || _ibuom3 === "") {
+                $('#tit_batch').parent().addClass('has-error');
+                count++;
+                Error_Timeout("tit_batch");
+
+                $("#lbl_qty").text("Batch Qty Not Selected");
+            }
+            else {
+                if (_qty === "" || _qty === null || _qty === undefined) {
+                    _qty = 0;
+                    $("#tit_qty").val("0");
+                }
+
+                if (_ibQty === "" || _ibQty === null || _ibQty === undefined) {
+                    _ibQty = 0;
+                    $("#hi_ibQty").val("0");
+                }
+
+                if (_ibQty2 === "" || _ibQty2 === null || _ibQty2 === undefined) {
+                    _ibQty2 = 0;
+                    $("#hi_ibQty2").val("0");
+                }
+
+                if (_ibQty3 === "" || _ibQty3 === null || _ibQty3 === undefined) {
+                    _ibQty3 = 0;
+                    $("#hi_ibQty3").val("0");
+                }
+
+                if (_uom === _ibuom) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty)) {
+                        $("#lbl_calculation_error").text("Allocated Qty should be less than Batch Qty");
+                        $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                        count++;
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom2) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_calculation_error").text("Allocated Qty should be less than Batch Qty");
+                        $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                        count++;
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom3) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_calculation_error").text("Allocated Qty should be less than Batch Qty");
+                        $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                        count++;
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+            }
+        }
+        else {
+            $('#tit_uom').parent().addClass('has-error');
+            count++;
+            Error_Timeout("tit_uom");
+        }
+
+        if (count == 0) {
+            if (_qty <= 0) {
+                $("#lbl_calculation_error").text("Qty should be more than 0");
+                $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                count++;
+                Error_Timeout("tit_qty");
+            }
+            else {
+                $("#lbl_calculation_error").text("");
+                $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+        }
+
+        if ($('#hi_ibId').val() == 0 || $('#hi_ibId').val() == '' ||
+            $('#hi_uom').val() == '' || $('#hi_uom').val().length == 0 ||
+            $('#hi_mfactor').val() == '' || $('#hi_mfactor').val() == 0 ||
+            $('#hi_mfactor2').val() == '' || $('#hi_mfactor2').val() == 0 ||
+            $('#hi_itemId').val() == '' || $('#hi_itemId').val() == 0 ||
+            $('#hi_batch').val() == '' || $('#hi_batch').val().length == 0
+        ) {
+            $("#select2-tit_item-container").parent().addClass('error');
+            $("#select2-tit_batch-container").parent().addClass('error');
+            count++;
+            Error_Timeout("tit_item");
+            Error_Timeout("tit_batch");
+        }
+
+        if (count > 0)
+            return false;
+        else
+            return true;
+    }
+    //#endregion
+
+    //#region Insert Treatment Items on Button Click
+    $('#btnAddTreatmentItem').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_Treatment_Item_Create').valid() && ItemsValid()) {
+
+            var _item = {
+                "titId": 0,
+                "tit_ptId": "@Model.ptId",
+                "tit_itemId": $("#hi_itemId").val(),
+                "tit_item": $("#hi_item_name").val(),
+                "tit_qty": $("#tit_qty").val(),
+                "tit_uom": $("#tit_uom").val(),
+                "tit_item": $("#hi_item_code").val(),
+                "tit_batch": $("#tit_batch").val(),
+                "tit_notes": $("#tit_notes").val(),
+                "tit_branch": "@emr.app_branch",
+                "tit_doctor": "@emr.app_doctor",
+                "tit_room": "@emr.app_room",
+                "ib_uom": $("#hi_uom").val(),
+                "ib_uom2": $("#hi_uom2").val(),
+                "ib_uom3": $("#hi_uom3").val(),
+                "ib_m_factor": $("#hi_mfactor").val(),
+                "ib_m_factor2": $("#hi_mfactor2").val(),
+                "item_name": $("#hi_item_name").val(),
+                "item_code": $("#hi_item_code").val(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                url: '@Url.Action("InsertTreatmentItem", "TreatmentItems", new { area = "EMR" })',
+                type: "POST",
+                dataType: "json",
+                data: _item,
+                async: false,
+                success: function (data) {
+                    if (data.isSuccess) {
+                        getTreatmentItems();
+
+                        var alertPlaceholder = document.getElementById("div_item_error");
+
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> Treatment Item Inserted Successfully!", "success");
+
+                        clearData();
+
+                        Timeout();
+                    }
+                    else {
+                        $("#div_item_error").html('');
+
+                        var error_message = data.message;
+
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-triangle'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+
+                        $("#div_item_error").html(html);
+
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    AddingCalculation('Qty1');
+
+                    var alertPlaceholder = document.getElementById("div_item_error");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Add Treatment Item!", "danger");
+                    Timeout();
+                }
+            });
+        }
+        else {
+            var alertPlaceholder = document.getElementById("div_item_error");
+            function alert(e, t) {
+                var l = document.createElement("div");
+                l.innerHTML = '<div class="alert alert-light-' + t + ' alert-dismissible" role="alert">' + e +
+                    '<button type="button" class="btn-close text-warning" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+            }
+
+            alert("<i class='fa fa-exclamation-triangle text-warning'></i> Please Validate before submitting!", "warning");
+
+            Timeout();
+        }
+    });
+    //#endregion
+
+    //#region Reset Items Detail Feilds
+    $('#btn_ResetItem').click(function () {
+        clearData();
+    });
+    //#endregion
+
+    //#region Clear Text Boxes Data
+    var clearData = function () {
+        $('#tit_item').val('0').trigger('change');
+        $('#tit_batch').val('-1').trigger('change');
+        $('#error_message').val('');
+        $('#lbl_calculation_error').val('');
+        $('#lbl_qty').val('');
+        $('#lbl_message').val('');
+        $('#tit_notes').val('');
+        $('#tit_qty').val('0');
+        $('#tit_uom').empty();
+        $('#tit_uom').val('0').trigger("change");
+        $('#hi_ibId').val('0');
+        $('#hi_itemId').val('0');
+        $('#hi_item_name').val('');
+        $('#hi_item_code').val('');
+        $('#hi_batch').val('');
+        $('#hi_uom').val('');
+        $('#hi_uom2').val('');
+        $('#hi_uom3').val('');
+    }
+    //#endregion
+
+    //#region UI Controls
+    function resizedt(tbl_name) {
+        setTimeout(function () {
+            var tables = $.fn.dataTable.tables({ visible: true, api: true });
+            if (tables) {
+                $('#' + tbl_name).DataTable().columns.adjust();
+            }
+        }, 450);
+    }
+        //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+</script>

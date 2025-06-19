@@ -1,0 +1,1316 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Invoices - Credit Notes / Sales Return";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="invoices-creditnotes-sales refn">Invoices - Credit Notes / Sales Return</span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+            @*<button class="btn btn-outline-info" type="button" id="btnInv_Verified">
+                <i class="fe fe-check-circle"></i> Verify Invoice
+            </button>*@
+            <button class="btn btn-azure" type="button" id="btn_PostToAccount">
+                <i class="fe fe-plus-circle"></i> 
+                <span data-lang-key="post-to-account">Post To Account</span>
+            </button>
+            <button class="btn btn-secondary" type="button" id="btnCN_Add">
+                <i class="mdi mdi-plus"></i>
+                <span data-lang-key="add-credit-note">&nbsp;Add Credit Note</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-blue"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span>
+                                </label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="departments">Department<small>(s)</small></span></label>
+                                <select class="form-control" id="select_dept" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="doctors">Doctor<small>(s)</small></span></label>
+                                <select class="form-control" id="select_doctor" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="patient-search">Patient<small class="ms-2 text-info">(Search By MRN/EID/Mobile/Name)</small></span></label>
+                                <select class="form-control select2-show-search" id="select_patient"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="invoice-number">Invoice No.</span></label>
+                                <input id="select_inv_no" class="form-control" placeholder="Invoice No." type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="credit-note-number">Credit Note No.</span></label>
+                                <input id="select_cn_no" class="form-control" placeholder="Credit Note No." type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="status">Status<small>(es)</small></span></label>
+                                <select class="form-control select2-show-search" id="select_status" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-1">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_invoices" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="credit-note-CN">Credit Note</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctors">Doctor</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient">Patient</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="gross">Gross</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="disc">Discount</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="deductions">Deductions</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="net">Net</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="credit-note-number">Credit Note No</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="credit-note-date">Credit Note Date</span> </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="invoice-number">Invoice No</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-license">Doctor License</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-name">Doctor Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-department">Doctor Department</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="mrn">MRN</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-name">Patient Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="emirates-id">Emirates ID</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="deductions">Deduction</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="dental-deductions">Dental Deduction</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="lab-deductions">Lab Deduction</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="radiology-deduction">Radiology Deduction</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="maternity-deduction">Maternity Deduction</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="copay">Copay</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="dental-copay">Dental Copay</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="account-status">Account Status</span></th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th colspan="4" class="text-end fs-14 font-weight-semibold" style="text-align: right !important;">
+                                    <span data-lang-key="total">Total:</span></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th colspan="18" class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Patient Details -->
+<div class="modal fade overflow-auto" id="patient_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Details -->
+<!-- Modal Add New Credit Note -->
+<div class="modal fade overflow-auto" id="addnew_cn_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="addnew_cn_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Add New Credit Note -->
+<!-- Modal Credit Note Log -->
+<div class="modal fade overflow-auto" id="credit_note_logs" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="credit-note-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="credit_note_logs_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Credit Note Log -->
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Load Advanced Filters
+            load_filters();
+
+            // Load Credit Notes
+            get_credit_notes();
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Credit Notes
+        var get_credit_notes = function () {
+
+            var _data = {
+                "branch_ids": $('#select_branch').val().toString(),
+                "dept_ids": $('#select_dept').val().toString(),
+                "doc_ids": $('#select_doctor').val().toString(),
+                "patient": $('#select_patient').val(),
+                "date_from": $('#select_date_from').val(),
+                "date_to": $('#select_date_to').val(),
+                "inv_no": $('#select_inv_no').val(),
+                "cn_no": $('#select_cn_no').val(),
+                "statuses": $('#select_status').val().toString()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetCreditNotes", "CreditNote", new { area = "Invoice" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    $('#progress-loader').hide();
+                    //#region Load Datatable
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_invoices')) {
+                        table = $('#tbl_invoices').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        bind_datatable(response);
+                    }
+
+                    setTimeout(function () {
+                        $('#tbl_invoices').DataTable().columns.adjust().draw();
+                    }, 450);
+                    //#endregion
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+        // Bind Datatable
+        var bind_datatable = function (response) {
+            var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_invoices").DataTable({
+                processing: true,
+                "deferRender": true,
+                "pageLength": 50,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "invcId" },
+                    { "mData": "invc_no" },
+                    { "mData": "doctor_name" },
+                    { "mData": "patId" },
+                    { "mData": "invc_total" },
+                    { "mData": "invc_disc" },
+                    { "mData": "invc_deductions" },
+                    { "mData": "invc_net" },
+                    { "mData": "invc_vat" },
+                    { "mData": "invc_status" },
+                    { "mData": "invcId" },
+
+                    { "mData": "invc_no" },
+                    { "mData": "invc_date" },
+                    { "mData": "inv_no" },
+                    { "mData": "emp_license" },
+                    { "mData": "doctor_name" },
+                    { "mData": "emp_dept_name" },
+                    { "mData": "pat_code" },
+                    { "mData": "pat_name" },
+                    { "mData": "pat_emirateid" },
+                    { "mData": "invc_tded" },
+                    { "mData": "invc_dded" },
+                    { "mData": "invc_lded" },
+                    { "mData": "invc_rded" },
+                    { "mData": "invc_mded" },
+                    { "mData": "invc_copay" },
+                    { "mData": "invc_dcopay" },
+                    { "mData": "invc_status" },
+                    { "mData": "invc_status2" },
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "aTargets": [1],
+                        "className": 'text-center',
+                        "render": function (data, type, full, meta) {
+                            var html = "<span class='font-weight-semibold1 text-info'>" + data + "</span><br/>" +
+                                "<i class='fe fe-calendar text-dark'></i> <b class='text-dark me-1'>" + moment(full.invc_date).format("DD-MM-YYYY") + "</b><br/>" +
+                                "<span class='font-weight-semibold1 text-danger'>" + full.inv_no + "</span>";
+
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [2],
+                        "className": 'text-center',
+                        "render": function (data, type, full, meta) {
+                            var html = "<span class='font-weight-semibold1 text-info'>" + data + "</span><br/>" +
+                                "<b class='text-dark me-1'>" + full.emp_license + "</b><br/>" +
+                                "<span class='text-info'><small>" + full.emp_dept_name + " </small></span>";
+
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [3],
+                        "render": function (data, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var gender = full.pat_gender;
+                            var emid = full.pat_emirateid;
+
+                            if (emid == "") {
+                                emid = "999-9999-9999999-9";
+                            }
+
+
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a> ';
+                            }
+                            else {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span></a> ';
+                            }
+
+                            pat_det += '<br/><span class="btn-indigo btn-sm">' + full.pat_code + '</span>'
+                            // Check EMID Expiry
+                            if (emid != null && emid != "" && emid != undefined) {
+
+                                let id_card_edate = moment(full.id_card_edate);
+                                if (id_card_edate.isValid()) {
+                                    let today = moment();
+                                    if (id_card_edate.diff(today, 'days') <= 0) {
+                                        pat_det += ' <div class="badge bg-danger-transparent font-weight-semibold mt-2" style="margin-left:5px;font-size: 0.9em">' + emid + '<span class="tag-addon"><i class="fa fa-exclamation-circle" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;"></i></span></div>';
+                                    }
+                                    else {
+                                        pat_det += '<span class="badge bg-primary-transparent text-dark ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span>';
+                                    }
+                                }
+                            }
+
+                            return pat_det;
+                        }
+                    },
+                    {
+                        "aTargets": [4],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [5],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [6],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": function (data, type, full, meta) {
+                            var html =  "<small>Deductions    : </small> " + numberRenderer1(full.invc_tded.toFixed(2))  + "<br/>" +
+                                        "<small>Dental Ded.   : </small> " + numberRenderer1(full.invc_dded.toFixed(2)) + "<br/>" +
+                                        "<small>Lab Deduction : </small> " + numberRenderer1(full.invc_lded.toFixed(2)) + "<br/>" +
+                                        "<small>Radiology Ded.: </small> " + numberRenderer1(full.invc_rded.toFixed(2)) + "<br/>" +
+                                        "<small>Maternity Ded.: </small> " + numberRenderer1(full.invc_mded.toFixed(2)) + "<br/>" +
+                                        "<small>Copay Amount  : </small> " + numberRenderer1(full.invc_copay.toFixed(2)) + "<br/>" +
+                                        "<small>Dental Copay  : </small> " + numberRenderer1(full.invc_dcopay.toFixed(2)) + "<br/>" +
+                                        "<small>---------------</small> " + "<br/>" +
+                                        "<small>Total Deduct. :</small> " + numberRenderer1(data.toFixed(2)) ;
+
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [7],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [8],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [9],
+                        "className": 'text-center',
+                        "render": function (data, type, full, meta) {
+                            var html = "";
+
+                            if (data == "Unpaid") {
+                                html += "<span class='dot-label bg-info me-2 w-2 h-2'></span><span class='text-info'>Unpaid</span><br/>";
+                            }
+                            else if (data == "Paid") {
+                                html += "<span class='dot-label bg-success me-2 w-2 h-2'></span><span class='text-success'>Paid</span><br/>";
+                            }
+                            else if (data == "Partly Paid") {
+                                html += "<span class='dot-label bg-warning me-2 w-2 h-2'></span><span class='text-warning'>Partly Paid</span><br/>";
+                            }
+                            else if (data == "Deleted") {
+                                html += "<span class='dot-label bg-danger me-2 w-2 h-2'></span><span class='text-danger'>Deleted</span><br/>";
+                            }
+                            else {
+                                html += "<span class='dot-label bg-dark me-2 w-2 h-2'></span><span class='text-dark'>" + data + "</span><br/>";
+                            }
+
+
+                            if (full.invc_status2 == "Not-Verified") {
+                                html += "<span class='text-danger ms-2'><i class='fe fe-minus-circle me-2'></i>Not-Verified</span>";
+                            }
+                            else if (full.invc_status2 == "Posted") {
+                                html += "<span class='text-success ms-2'><i class='fe fe-plus-circle me-2'></i>Posted</span>";
+                            }
+                            else if (full.invc_status2 == "Verified") {
+                                html += "<span class='text-primary ms-2'><i class='fe fe-check-circle me-2'></i>Verified</span>";
+                            }
+                            else {
+                                html += "<span class='text-dark ms-2'><i class='fe fe-help-circle me-2'></i>" + full.invc_status + "</span>";
+                            }
+
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [10],
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (invcId, type, full, meta) {
+                            var invc_status = full.invc_status;
+                            var invc_status2 = full.invc_status2;
+                            var patId = full.patId;
+
+                            var more = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (invc_status != "Deleted" && invc_status2 != "Verified" && invc_status2 != "Posted") {
+                                more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="deleteCN(\'' + invcId + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="printCN(\'' + invcId + '\')"><i class="fe fe-printer text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Print</a>';
+                            }
+
+
+                            more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)"  onclick="logCN(\'' + invcId + '\')"><i class="fe fe-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058"></i>&nbsp;Logs</a>' +
+                                '</div>' +
+                                '</div>';
+
+
+                            return more;
+                        }
+                    },
+                    {
+                        "aTargets": [11],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [12],
+                        "visible": false,
+                        "render": function (data) {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "aTargets": [13],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [14],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [15],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [16],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [17],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [18],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [19],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [20],
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [21],
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [22],
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [23],
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [24],
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [25],
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [26],
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [27],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [28],
+                        "visible": false
+                    },
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[1, 'asc']],
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Credit Notes',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [11, 12, 13, 4, 5, 20, 21, 22, 23, 24, 25, 26, 7, 8, 14, 15, 16, 17, 18, 19, 27, 28]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Credit Notes to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Credit Notes',
+                        footer: 'true',
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL',
+                        exportOptions: {
+                            columns: [11, 12, 13, 4, 5, 20, 21, 22, 23, 24, 25, 26, 7, 8, 14, 15, 16, 17, 18, 19, 27, 28]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Credit Notes to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Credit Notes',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [11, 12, 13, 4, 5, 20, 21, 22, 23, 24, 25, 26, 7, 8, 14, 15, 16, 17, 18, 19, 27, 28]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Credit Notes to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Credit Notes',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [11, 12, 13, 4, 5, 20, 21, 22, 23, 24, 25, 26, 7, 8, 14, 15, 16, 17, 18, 19, 27, 28]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Credit Notes!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Invoice </span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+
+                    total_inv_total = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(4).footer()).html(numberRenderer1(total_inv_total.toFixed(2)));
+
+                    total_inv_disc = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(numberRenderer1(total_inv_disc.toFixed(2)));
+
+                    total_deduction = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(numberRenderer1(total_deduction.toFixed(2)));
+
+                    total_inv_net = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer1(total_inv_net.toFixed(2)));
+
+                    total_inv_vat = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(numberRenderer1(total_inv_vat.toFixed(2)));
+
+                    //Hidden Colums
+                    total_ded = api.column(20).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(20).footer()).html(numberRenderer1(total_ded.toFixed(2)));
+
+                    total_dded = api.column(21).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(21).footer()).html(numberRenderer1(total_dded.toFixed(2)));
+
+                    total_lded = api.column(22).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(22).footer()).html(numberRenderer1(total_lded.toFixed(2)));
+
+                    total_rded = api.column(23).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(23).footer()).html(numberRenderer1(total_rded.toFixed(2)));
+
+                    total_mded = api.column(24).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(24).footer()).html(numberRenderer1(total_mded.toFixed(2)));
+
+                    total_copay = api.column(25).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(25).footer()).html(numberRenderer1(total_copay.toFixed(2)));
+
+                    total_dcopay = api.column(26).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(26).footer()).html(numberRenderer1(total_dcopay.toFixed(2)));
+                },
+                rowCallback: function (row, data, index) {
+                    if (data.inv_status === "Deleted" || data.invc_status2 === "Posted") {
+                        $('td:eq(0)', row).find("input[type='checkbox']").remove();
+                    }
+                },
+            });
+            table.buttons().container().appendTo('#tbl_invoices_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region View Patient Details
+        var patientDetails = function (patId, pat_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PatientDetail", "Patient", new { area = "Patient" })?patId=" + patId + "&pat_name=" + pat_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#patient_details_body").html(response);
+                    $("#patient_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Dropdown Bindings
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_departments();
+            load_doctors();
+            load_patients();
+            load_status();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "Invoice", new { area = "Invoice" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+                pageLoad = false;
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+
+        // Load Departments
+        var load_departments = function () {
+            $('#select_dept').SumoSelect({
+                placeholder: 'Select Department(s)',
+                captionFormat: '{0} Department(s) Selected',
+                captionFormatAllSelected: 'All {0} Department(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "Invoice", new { area = "Invoice" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_dept').html('');
+                    $('#select_dept')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_dept')[0].sumo.add(response[j].id, response[j].text);
+                    });
+
+                    $('#select_dept')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+
+        // Load Doctors
+        var load_doctors = function () {
+            $("#select_doctor").SumoSelect({
+                placeholder: 'Select Doctor(s)',
+                captionFormat: '{0} Doctor(s) Selected',
+                captionFormatAllSelected: 'All {0} Doctors selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_doctor').html('');
+            $('#select_doctor')[0].sumo.reload();
+        }
+
+        // On Departments select
+        $('#select_dept').on('change', function (e) {
+            if ($(this).val() != "" && $('#select_branch').val() != "") {
+
+                var _data = {
+                    "Departments": $('#select_dept').val(),
+                    "Branches": $('#select_branch').val(),
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetDoctorsByDepartment", "Invoice", new { area = "Invoice" })',
+                    dataType: 'JSON',
+                    data: _data,
+                    success: function (response) {
+
+                        $('#select_doctor').html('');
+                        $('#select_doctor')[0].sumo.reload();
+
+                        $.each(response, function (j) {
+                            $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                        });
+
+                        $('#select_doctor')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_doctor').html('');
+                $('#select_doctor')[0].sumo.reload();
+            }
+        });
+
+        // Load Patients
+        var load_patients = function () {
+            $('#select_patient').select2({
+                placeholder: 'Search Patient',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("SearchPatients", "AdvanceLoyaltyRefund", new { area = "Appointment" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 1
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+
+        // Load Status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                captionFormat: '{0} Status(es) Selected',
+                captionFormatAllSelected: 'All {0} Status(es) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+
+            $('#select_status')[0].sumo.add("Unpaid", "Unpaid");
+            $('#select_status')[0].sumo.add("Partly Paid", "Partly Paid");
+            $('#select_status')[0].sumo.add("Paid", "Paid");
+            $('#select_status')[0].sumo.add("Deleted", "Deleted");
+
+
+            $('#select_status')[0].sumo.reload();
+
+
+        }
+        //#endregion
+
+        //#region Search Credit Notes
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if (($("#select_dept").val() != null && $("#select_dept").val() != 0 && $("#select_dept").val() != "" && $("#select_dept").val() != undefined) ||
+                ($("#select_doctor").val() != null && $("#select_doctor").val() != 0 && $("#select_doctor").val() != "" && $("#select_doctor").val() != undefined) ||
+                ($("#select_inv_no").val() != null && $("#select_inv_no").val() != 0 && $("#select_inv_no").val() != "" && $("#select_inv_no").val() != undefined) ||
+                ($("#select_cn_no").val() != null && $("#select_cn_no").val() != 0 && $("#select_cn_no").val() != "" && $("#select_cn_no").val() != undefined) ||
+                ($("#select_patient").val() != null && $("#select_patient").val() != 0 && $("#select_patient").val() != "" && $("#select_patient").val() != undefined) ||
+                ($("#select_type").val() != null && $("#select_type").val() != 0 && $("#select_type").val() != "" && $("#select_type").val() != undefined) ||
+                ($("#select_status").val() != null && $("#select_status").val() != 0 && $("#select_status").val() != "" && $("#select_status").val() != undefined) ||
+                ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) ||
+                ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+
+                let isValid = true;
+
+                let inv_frm = moment($("#select_date_from").val());
+                let inv_to = moment($("#select_date_to").val());
+
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!inv_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Credit Note From"
+                        });
+                    }
+                }
+
+                // Check if Date To is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!inv_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Credit Note To"
+                        });
+                    }
+                }
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) &&
+                    ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (inv_frm.isValid() && inv_to.isValid()) {
+                        if (inv_to.diff(inv_frm, 'days') <= 0) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Credit Note From Date should be less than To Date!"
+                            });
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    get_credit_notes();
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Search by Either of the following filters : Department(s) / Doctor(s) / Credit Note Date / Invoice No. / Credit Note No. / Patient / Credit Note Status(es)",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region New Receipt
+        $("#btnCN_Add").click(function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NewCreditNote", "CreditNote", new { area = "Invoice" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#addnew_cn_modal_body").html(response);
+                    $("#addnew_cn_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        });
+        //#endregion
+
+        //#region View Credit Note Logs
+        var logCN = function(invcId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreditNotAuditLog", "CreditNote", new { area = "Invoice" })?invcId=" + invcId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#credit_note_logs_body").html(response);
+                    $("#credit_note_logs").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Delete Credit Note
+        var deleteCN = function (invcId) {
+            Swal.fire({
+            title: "Are you sure you want to delete this Credit Note?",
+            html: "This action will delete this Credit Note and Will reflect the calculation in your invoice and receipts!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteCreditNote", "CreditNote", new { area = "Invoice" })?invcId=' + invcId ,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.isSuccess) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Credit Note is Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    get_credit_notes();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Delete the Credit Note!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete this Credit Note!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Credit Note! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Post Advance / Refund Payments To Account
+        $('#btn_PostToAccount').click(function () {
+            var table = $("#tbl_invoices").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            if (rows.length > 0) {
+                Swal.fire({
+                    title: "Are you sure you want to Post ?",
+                    text: "This action will post the selected Payment(s) to chart of account!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _Ids = "";
+                        $.each(rows, function (index, rowId) {
+                            var _data = table.row(rowId).data();
+                            if (index == 0) {
+                                _Ids = _data.invcId;
+                            }
+                            else {
+                                _Ids += "," + _data.invcId;
+                            }
+                        });
+                        if (_Ids === null || _Ids === undefined || _Ids.length <= 0) {
+                            Swal.fire({
+                                title: "Alert!",
+                                text: "Row Selection Error. Please Refresh Page And Try Again!",
+                                icon: "info",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                        else {
+                            PostToAccount(_Ids);
+                        }
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select at least one Payemnt to post!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+
+        var PostToAccount = function (pinvId) {
+            $.ajax({
+                url: "@Url.Action("PostCreditNoteToAccount", "CreditNote", new { area = "Invoice" })?data=" + pinvId,
+                type: "POST",
+                dataType: "JSON",
+                success: function (data) {
+                    if (data.isUpdated) {
+                        Swal.fire({
+                            title: "Success!",
+                            text: "Posted Successfully!!",
+                            icon: "success",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                        });
+                        get_credit_notes();
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Error!",
+                            text: data.message,
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    Swal.fire({
+                        title: "Error!",
+                        text: "Failed to Post to Account! Please refresh the Page and Try Again.",
+                        icon: "error",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                    })
+                }
+            });
+        };
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region Print Cash Invoice
+        var printCN = function (invcId) {
+            window.open("@Url.Action("PrintCreditNote", "CreditNote", new { area = "Invoice" })?invcId=" + invcId, "Credit Note Print");
+        }
+        //#endregion
+    </script>
+}

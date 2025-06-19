@@ -1,0 +1,342 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class='badge bg-warning'>Alert</span>
+                        <span class="text-info" style="font-size:smaller"> please update the diagnosis before submit the controll medicine.</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+                    </div>
+                </div>
+                <div id="drugpresc_add" >
+
+                </div>
+
+                <div class="table-responsive mt-3">
+                    <table id="tbl_drugpresc" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Generic</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Brand</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Dosage</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Strength</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Use <br />(Units)</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Frequency<br /> Value</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Frequency</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Duration</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Quantity</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Route for Admin</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Instructions</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+    //#region Page Load
+        $(function () {
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            AddControlledPrescription();
+            GetControlledPrescription();
+
+        });
+    //#endregion Page Load
+
+    //#region Add Controlled Drug Prescription
+        function AddControlledPrescription() {
+            var x = $("#drugpresc_add");
+            x.load("@Url.Action("CreatePrescriptionControlled", "Prescription", new { area = "EMR" })", function () {
+                $("#drugpresc_add").show();
+            });
+        }
+    //#endregion Add Controlled Drug Prescription
+
+    //#region Load Controlled Drug Prescription
+        var GetControlledPrescription = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetControlledDrugPrescription", "Prescription", new { area = "EMR" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_drugpresc')) {
+                            table = $('#tbl_drugpresc').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt();
+            });
+        }
+    //#endregion Load Prescription
+
+  
+    //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_drugpresc").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "preId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+
+                    {
+                        "mData": "preId",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "item_code",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "item_name",
+                        "className": 'text-justify text-wrap',
+
+                    },
+                    {
+                        "mData": "item_brand",
+                        "className": 'text-justify text-wrap',
+
+                    },
+                    {
+                        "mData": "item_dosage",
+                        "className": 'text-justify text-wrap',
+
+                    },{
+                        "mData": "item_strength",
+                        "className": 'text-left',
+
+                    },{
+                        "mData": "pre_temp3",
+                        "className": 'text-left',
+
+                    },{
+                        "mData": "pre_temp4",
+                        "className": 'text-left',
+
+                    },{
+                        "mData": "pre_temp5",
+                        "className": 'text-left',
+
+                    },{
+                        "mData": "pre_duration",
+                        "className": 'text-left',
+
+                    },{
+                        "mData": "pre_qty_type",
+                        "className": 'text-left',
+
+                    },{
+                        "mData": "ra_code_desc",
+                        "className": 'text-left',
+
+                    },{
+                        "mData": "pre_instr",
+                        "className": 'text-justify text-wrap',
+
+                    },
+
+                    {
+                        "mData": "preId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (preId, type, full, meta) {
+                            var status = full.pre_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="EditControlledPrescription(' + preId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="EditControlledPrescription(' + preId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditControlledPrescription(' + preId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                                return ''
+                                            }
+                                    }
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "preId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (preId, type, full, meta) {
+                            var status = full.pre_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteControlledPrescription(' + preId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="DeleteControlledPrescription(' + preId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+                                        }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteControlledPrescription(' + preId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Prescription</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Controlled Drug Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Controlled Drug Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Controlled Drug Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Controlled Drug Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_drugpresc_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    </script>
+}

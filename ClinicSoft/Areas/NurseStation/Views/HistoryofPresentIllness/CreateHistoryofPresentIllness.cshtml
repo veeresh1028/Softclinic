@@ -1,0 +1,273 @@
+﻿@model BusinessEntities.NurseStation.HistoryofPresentIllness
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_Add_HPI" class="needs-validation" autocomplete="off">
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group">
+                <label class="form-label">Location&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_loc, new { @class = "form-control", @placeholder = "Enter Location", maxlength = "100" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label">Quality&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_qua, new { @class = "form-control", @placeholder = "Enter Quality", maxlength = "100" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label">Severity&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_sev, new { @class = "form-control", @placeholder = "Enter Severity", maxlength = "100" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Duration&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_dur, new { @class = "form-control", @placeholder = "Enter Duration", maxlength = "10", })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group">
+                <label class="form-label">Timing&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_tim, new { @class = "form-control", @placeholder = "Enter Timing", maxlength = "10" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label">Context&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_con, new { @class = "form-control", @placeholder = "Enter Context", maxlength = "100" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label">Modifying Factor&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_mod, new { @class = "form-control", @placeholder = "Enter Modifying Factor", maxlength = "10" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label">Symptoms&nbsp;</label>
+                @Html.TextBoxFor(m => m.hpi_sym, new { @class = "form-control", @placeholder = "Enter Symptoms", maxlength = "100" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Others&nbsp;<span class="text-danger">*</span></label>
+                @Html.TextAreaFor(m => m.hpi_other, new { @class = "form-control", @placeholder = "Enter Others", maxlength = "500" })
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-success" id="btn_Insert">Add</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_Reset">Reset</button>
+                <button type="submit" class="btn btn-outline-danger me-1" id="btn_Close_Add" style="display:none">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Partial View Onload
+        $(function () {
+
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                $("#btn_Insert").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" === "NoLock") {
+                    $("#btn_Insert").show();
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Insert").show();
+                    }
+                    else {
+                        $("#btn_Insert").hide();
+                    }
+                    
+                }
+            }
+            $('#btn_Close_Add').click(function () {
+                $('#hpi_add').hide();
+            });
+            validate();
+
+        });
+    //#endregion Partial View Onload
+
+    //#region Reset
+        $('#btn_Reset').on('click', function (e) {
+            e.preventDefault();
+            clearControls();
+        });
+    //#endregion Reset
+
+    //#region Clear Controls
+        var clearControls = function () {
+            $("#hpi_loc").val("");
+            $("#hpi_qua").val("");
+            $("#hpi_sev").val("");
+            $("#hpi_dur").val("");
+            $("#hpi_tim").val("");
+            $("#hpi_con").val("");
+            $("#hpi_mod").val("");
+            $("#hpi_sym").val("");
+            $("#hpi_other").val("");
+        }
+    //#endregion Clear Controls
+
+    //#region Validation Initialization
+        var validate = function () {
+            $('#hpi_other').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                    return false;
+            });
+            
+            $("#form_Add_HPI").validate({
+                rules: {
+                    hpi_other: {
+                        required: true
+                    },
+
+                },
+                messages: {
+                    hpi_other: {
+                        required: "Please Enter Location!"
+                    },
+
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                    error_timeout(elem.attr("id"));
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+
+        }
+    //#endregion Validation Initialization
+
+    //#region Insert Button Click
+        $('#btn_Insert').on('click', function (e) {
+            e.preventDefault();
+            if ($("#form_Add_HPI").valid()) {
+                $('#btn_Insert').removeClass("btn btn-success");
+                $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert').html("Saving the Record....");
+                    var _dataInsert = {
+                    "hpiId": 0,
+                    "hpi_appId": @emr.appId,
+                    "hpi_loc": $("#hpi_loc").val(),
+                    "hpi_qua": $("#hpi_qua").val(),
+                    "hpi_sev": $("#hpi_sev").val(),
+                    "hpi_dur": $("#hpi_dur").val(),
+                    "hpi_tim": $("#hpi_tim").val(),
+                    "hpi_con": $("#hpi_con").val(),
+                    "hpi_mod": $("#hpi_mod").val(),
+                    "hpi_sym": $("#hpi_sym").val(),
+                    "hpi_other": $("#hpi_other").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertHistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert').addClass("btn btn-success");
+                        $('#btn_Insert').html("Add");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> History of Present Illness Added Successfully!", "success");
+                                clearControls();
+                                Timeout();
+                                GetHPI();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. History of Present Illness Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert').addClass("btn btn-success");
+                        $('#btn_Insert').html("Add");
+                        Timeout();
+                    }
+                });
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+     //#endregion Insert Button Click
+</script>

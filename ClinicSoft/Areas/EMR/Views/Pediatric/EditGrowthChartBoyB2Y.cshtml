@@ -1,0 +1,369 @@
+﻿@using System.Configuration;
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.EMR.LaserMarking
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_EditGrowthBoyB2Y" class="needs-validation" name="GrowthChartBoyB2Y" >
+
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.lfmId)
+    @Html.HiddenFor(m => m.lfm_appId)
+    @Html.HiddenFor(m => m.lfmId, new { @id = "ulfmId", @value = "@Model.lfmId" })
+
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-7">
+            <div class="form-group mb-3">
+                <input id="ucolor_picker" type="text">
+                <button id="ueraser_button" class="btn bg-dark-transparent btn-icon btn-svg" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="red" class="bi bi-eraser-fill" viewBox="0 0 16 16">
+                        <path d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm.66 11.34L3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z" />
+                    </svg>
+                </button>
+                <button id="uundo_button" class="btn bg-dark-transparent btn-icon btn-svg" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-counterclockwise" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z" />
+                        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z" />
+                    </svg>
+                </button>
+                <div class="content" name="example">
+                    <canvas id="uimageCanvas" width="578" height="650"></canvas>
+                </div>
+
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-5">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Notes&nbsp;<span class="text-danger">*</span></label>
+                <div id="unote">
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-sm btn-warning" id="btn_Update_GrowthBoyB2Y">Save Changes</button>
+                <button type="submit" class="btn btn-sm btn-outline-danger" id="btn_Delete_GrowthBoyB2Y">Delete</button>
+                <button type="submit" class="btn btn-sm btn-outline-light" id="btn_Print_GrowthBoyB2Y" onclick="PrintGrowthChartBoyB2Y(@Model.lfmId)">
+                    <i class="fa fa-print">&nbsp;&nbsp;</i>Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+</form>
+
+<script>
+    //#region Page Load
+        $(function () {
+
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                $("#btn_Update_GrowthBoyB2Y,#btn_Delete_GrowthBoyB2Y").show();
+            } else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Update_GrowthBoyB2Y,#btn_Delete_GrowthBoyB2Y").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Update_GrowthBoyB2Y,#btn_Delete_GrowthBoyB2Y").show();
+                    }
+                    else {
+                        $("#btn_Update_GrowthBoyB2Y,#btn_Delete_GrowthBoyB2Y").hide();
+                    }
+                }
+            }
+            $('#ucolor_picker').spectrum({
+                type: "flat",
+                showInput: true,
+                preferredFormat: "hex",
+                color: '#0061da'
+            });
+            LoadimageExisting();
+            uquill = new Quill('#unote', {
+                 modules: {
+                     toolbar:
+                         [[{
+                             'header': [1, 2, 3, 4, 5, 6, false]
+                         }],
+                             ['bold', 'italic', 'underline', 'strike'],
+                     [{
+                         'list': 'ordered'
+                     }, {
+                         'list': 'bullet'
+                     }]]
+                 },
+                 theme: 'snow',
+                 placeholder: 'Write your Notes here.....',
+             });
+             var realHTML = $('<textarea />').html("@Model.lfm_doc2").text();
+            uquill.root.innerHTML = realHTML;
+
+        });
+
+    //#endregion Page Load
+
+    //#region drawing
+    var canvas = document.getElementById('uimageCanvas');
+    var ctx = canvas.getContext('2d');
+
+    //#region Load an image
+    var LoadimageExisting = function () {
+        var image = new Image();
+        if ("@Model.lfm_doc" != "") {
+            image.src = "@Model.lfm_doc";
+        }
+        else {
+            image.src = "@ConfigurationManager.AppSettings["ClinicSoftEndPoint"].ToString()"+'/images/Growth_Charts/Boys/boys_below_2years.png';
+        }
+        image.onload = function () {
+            // Draw the image onto the canvas
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        };
+    }
+    var isErasing = false;
+    //#region Erasing
+    $('#ueraser_button').on('click', function (e) {
+        isErasing = !isErasing;
+
+    });
+    //#endregion Erasing
+
+
+
+    // Add drawing functionality
+    var isDrawing = false;
+    var lastX, lastY;
+
+    canvas.addEventListener('mousedown', function (e) {
+        isDrawing = true;
+        lastX = e.clientX - canvas.getBoundingClientRect().left;
+        lastY = e.clientY - canvas.getBoundingClientRect().top;
+    });
+
+    canvas.addEventListener('mousemove', function (e) {
+        if (isErasing) {
+            var x = e.clientX - canvas.getBoundingClientRect().left;
+            var y = e.clientY - canvas.getBoundingClientRect().top;
+
+            // Set the eraser color to match the canvas background color
+            ctx.strokeStyle = '#ffffff'; // White color to "erase"
+            ctx.lineWidth = 10; // Adjust the width as needed
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        } else if (!isDrawing) {
+            return;
+        }
+
+        if (!isDrawing) return;
+
+        var x = e.clientX - canvas.getBoundingClientRect().left;
+        var y = e.clientY - canvas.getBoundingClientRect().top;
+
+        ctx.strokeStyle = $("#ucolor_picker").val(); // Set the stroke color
+        ctx.lineWidth = 2;      // Set the line width
+
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        lastX = x;
+        lastY = y;
+        isDrawing = true;
+        drawingHistory.push(canvas.toDataURL());
+    });
+
+    canvas.addEventListener('mouseup', function () {
+        isDrawing = false;
+    });
+
+
+    var drawingHistory = [];
+
+    //#region Undo
+    $('#uundo_button').on('click', function (e) {
+        if (drawingHistory.length > 0) {
+            var lastState = drawingHistory.pop();
+            var img = new Image();
+            img.onload = function () {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = lastState;
+        }
+
+    });
+    //#endregion Undo
+
+     //#region Update  Button Click
+        $('#btn_Update_GrowthBoyB2Y').on('click', function (e) {
+             e.preventDefault();
+            var isvalid = true;
+
+            if (uquill.getText().trim().length == 0) {
+                $("#unote").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#unote"));
+                isvalid = false;
+            }
+
+            /*if (isDrawing) {*/
+            if (isvalid) {
+                $('#btn_Update_GrowthBoyB2Y').removeClass("btn btn-sm btn-success");
+                $('#btn_Update_GrowthBoyB2Y').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+                $('#btn_Update_GrowthBoyB2Y').html("Updating the Record....");
+
+                var canvas = $("#uimageCanvas").get(0);
+                var imgData = canvas.toDataURL();
+
+                var chartname = "@emr.patId" + "_" +"GrowthChartBoy_Below2Year"+"_"+"@emr.appId";
+                var _dataInsert = {
+                    "lfmId": @Model.lfmId,
+                    "lfm_appId": @emr.appId,
+                    "lfm_patId": "@emr.patId",
+                    "lfm_doc": chartname,
+                    "image": imgData,
+                    "lfm_doc2": uquill.root.innerHTML,
+                    "lfm_form": "GrowthBoyBelow2Y",
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UploadGrowthChartBoyB2Y", "Pediatric", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#btn_Update_GrowthBoyB2Y').removeClass("btn btn-sm btn-warning btn-loaders btn-icon");
+                        $('#btn_Update_GrowthBoyB2Y').addClass("btn btn-sm btn-warning");
+                        $('#btn_Update_GrowthBoyB2Y').html("Save Changes");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Growth Chart Boy Below 2Year Updated Successfully!", "success");
+                                Timeout();
+                                GetGrowthChartBoyB2Y();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. Growth Chart Boy Below 2Year Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Update_GrowthBoyB2Y').removeClass("btn btn-sm btn-warning btn-loaders btn-icon");
+                        $('#btn_Update_GrowthBoyB2Y').addClass("btn btn-sm btn-warning");
+                        $('#btn_Update_GrowthBoyB2Y').html("Save Changes");
+                        Timeout();
+                    }
+                });
+            }
+        });
+    //#endregion Update  Button Click
+
+
+    //#region Delete Click
+        $('#btn_Delete_GrowthBoyB2Y').on('click', function (e) {
+            e.preventDefault();
+            $('#btn_Delete_GrowthBoyB2Y').removeClass("btn btn-sm btn-success");
+            $('#btn_Delete_GrowthBoyB2Y').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+            $('#btn_Delete_GrowthBoyB2Y').html("Deleting the Record....");
+
+                $.ajax({
+                    url: '@Url.Action("DeleteGrowthChartBoyB2Y", "Pediatric", new { area = "EMR" })?lfmId=' + @Model.lfmId,
+                    type: "POST",
+                    dataType: 'JSON',
+                    success: function (data) {
+                        $('#btn_Delete_GrowthBoyB2Y').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                        $('#btn_Delete_GrowthBoyB2Y').addClass("btn btn-sm btn-warning");
+                        $('#btn_Delete_GrowthBoyB2Y').html("Delete");
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Growth Chart Boy Below 2Year Deleted Successfully!", "success");
+                                GetGrowthChartBoyB2Y();
+                                Timeout();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Error!.. Failed to Delete..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            var alertPlaceholder = document.getElementById("Alert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> You do not have Enough Privileges to Delete this Designation!", "Access Denied!");
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Delete_GrowthBoyB2Y').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                        $('#btn_Delete_GrowthBoyB2Y').addClass("btn btn-sm btn-Delete");
+                        $('#btn_Delete_GrowthBoyB2Y').html("Delete");
+                        Timeout();
+                    }
+                })
+        });
+    //#endregion Delete Click
+
+</script>
+
+

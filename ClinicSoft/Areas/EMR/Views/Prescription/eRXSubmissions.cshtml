@@ -1,0 +1,297 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-sm-12 col-md-6 col-lg-12">
+                        <div>
+                            <h4 class="page-title mb-0 text-primary">
+                                e-Rx Submissions
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_erx" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">File Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">eRx ReferenceNo</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Message</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Cancel</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Print</th>
+                               
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+    //#region Page Load
+        $(function () {
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            GeterxSubmissions();
+
+        });
+    //#endregion Page Load
+
+
+    //#region Load erx Submissions
+        var GeterxSubmissions = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GeterxSubmissions", "Prescription", new { area = "EMR" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_erx')) {
+                            table = $('#tbl_erx').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt();
+            });
+        }
+    //#endregion Load Prescription
+
+   
+    //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_erx").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "erxId",
+                        "orderable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "erxId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "erx_date",
+                        "render": function (erx_date, type, full, meta) {
+                          return moment(erx_date).format('DD-MM-YYYY HH:mm:ss');
+                            
+                        }
+                    },
+                    
+                    {
+                        "mData": "erx_filename",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "erx_ReferenceNo",
+                        "className": 'text-justify text-wrap',
+
+                    },
+                    {
+                        "mData": "erx_ErrorMessage",
+                        "className": 'text-justify text-wrap',
+
+                    },
+                    
+                    {
+                        "mData": "erxId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (erxId, type, full, meta) {
+                            var status = full.pre_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="EditerxSubmissions(' + erxId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="EditerxSubmissions(' + erxId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditerxSubmissions(' + erxId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                                return ''
+                                            }
+                                    }
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "erxId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (erxId, type, full, meta) {
+                            var status = full.pre_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteerxSubmissions(' + erxId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="DeleteerxSubmissions(' + erxId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+                                        }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteerxSubmissions(' + erxId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[1, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Prescription</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'erx Submissions',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'erx Submissions',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'erx Submissions',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'erx Submissions',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13]
+                        }
+                    },
+                    
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_erx_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+   
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    </script>
+}

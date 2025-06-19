@@ -1,0 +1,557 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Daily Enquiries Detailed Reports (By Soure)";
+    ViewBag.ds_active = "background: none !important; color: #664dc9 !important;";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="daily-enquiries-source">Daily Enquiries Detailed Report (By Source)</span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i>
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @if (TempData["InfoMessage"] != null)
+    {
+        <div class="col-12 d-flex justify-content-center">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Information!&nbsp;</strong><i class="fa fa-info-circle"></i> @TempData["InfoMessage"]
+            </div>
+        </div>
+    }
+    else if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong><i class="fa fa-ban"></i> @TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+        <div class="mt-2" id="DailySourceReportAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span>
+                                </label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span>
+                                </label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_from_daily_source" class="form-control" placeholder="Select Enquiry Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span>
+                                </label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_to_daily_source" class="form-control" placeholder="Select Enquiry Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_daily_report_source" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Daily Enquiry Detailed Report By Source Toast -->
+    <div class="text-wrap">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="DailySourceReportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto">
+                                <span data-lang-key="daily-enquiries-report">Daily Enquiries (Source)</span></strong>
+                            <small><span data-lang-key="just-now">Just Now</span></small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body" id="toastBody">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Daily Source Detailed Report History Details -->
+<div class="modal fade overflow-auto" id="daily_source_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="daily_source_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Daily Source Detailed Report History Details -->
+@section myScripts{
+    <script>
+        //#region Page Load & Initialization
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Daily Report By Source
+            GetDailyReportBySource(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_branches();
+
+            $('#date_from_daily_source').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#date_from_daily_source").bootstrapdatepicker("setDate", "today");
+
+            $('#date_to_daily_source').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#date_to_daily_source").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#date_from_daily_source').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#date_to_daily_source').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Daily Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#date_from_daily_source").val() != null && $("#date_from_daily_source").val() != 0 && $("#date_from_daily_source").val() != "") &&
+                    ($("#date_to_daily_source").val() != null && $("#date_to_daily_source").val() != 0 && $("#date_to_daily_source").val() != "")) {
+                    let isValid = true;
+                    let daily_frm = moment($("#date_from_daily_source").val());
+                    let daily_to = moment($("#date_to_daily_source").val());
+
+                    // Check if Date From is a valid Date
+                    if ($("#date_from_daily_source").val() != null && $("#date_from_daily_source").val() != 0 && $("#date_from_daily_source").val() != "" && $("#date_from_daily_source").val() != undefined) {
+                        if (!daily_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#date_to_daily_source").val() != null && $("#date_to_daily_source").val() != 0 && $("#date_to_daily_source").val() != "" && $("#date_to_daily_source").val() != undefined) {
+                        if (!daily_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#date_from_daily_source").val() != null && $("#date_from_daily_source").val() != 0 && $("#date_from_daily_source").val() != "" && $("#date_from_daily_source").val() != undefined) && ($("#date_to_daily_source").val() != null && $("#date_to_daily_source").val() != 0 && $("#date_to_daily_source").val() != "" && $("#date_to_daily_source").val() != undefined)) {
+                        if (daily_frm.isValid() && daily_to.isValid()) {
+                            if (daily_to.diff(daily_frm, 'days') <= 0) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("date_from_daily_source");
+                                index.push("date_to_daily_source");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetDailyReportBySource(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "From Date & To Date is required to filter record(s)!",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Report!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Daily Source Report Data
+        var GetDailyReportBySource = function (search_type) {
+
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "date_from"     : $('#date_from_daily_source').val(),
+                "date_to"       : $('#date_to_daily_source').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDailyReportsBySource", "Reports", new { area = "Marketing" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#DailySourceReportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+
+                        var arr = JSON.parse(response);
+                        var dataObjData = arr.report;
+                        var dataObjCol = [{ title: "Date", data: "Date" }];
+
+                        $.each(arr.by_sources, function (key, value) {
+                            var _col = { title: value, data: value, className: "text-center" }
+                            dataObjCol.push(_col);
+                        });
+
+                        //#region Load Datatable
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_daily_report_source')) {
+                            table = $('#tbl_daily_report_source').DataTable();
+                            table.clear().destroy();
+                            $('#tbl_daily_report_source').empty();
+                            BindDataTable(dataObjCol, dataObjData);
+                        }
+                        else {
+                            BindDataTable(dataObjCol, dataObjData);
+                        }
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var count_total;
+                        var etime = new Date().getTime() - this.start_time;
+
+                        if (dataObjData.length > 0) {
+                            count_total = dataObjData.length;
+                            $('#toastBody').html('');
+                            $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Filtered </b> <b class="text-primary" id="report_count">' + count_total.toLocaleString() + ' </b> record(s) in about <b id="etime">' + etime +'</b> ms');
+                            $('#DailySourceReportToast').show();
+                        }
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                setTimeout(function () {
+                    $('#DailySourceReportToast').fadeOut('fast');
+                }, 5000);
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (dataObjCol, dataObjData) {
+            var table = $("#tbl_daily_report_source").DataTable({
+                "columns": dataObjCol,
+                "data": dataObjData,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "className": "text-dark",
+                        "render": function (data, type, row, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(data).format("DD-MM-YYYY");
+                            }
+                            return moment(data).format("YYYY-MM-DD");
+                        }
+                    },
+                ],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                order: [[0, 'desc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Date</span>',
+                    lengthMenu: '_MENU_',
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Daily Enquiries Detailed Report By Source',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Daily Enquiries Detailed Report (By Source) to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Daily Enquiries Detailed Report By Source',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Daily Enquiries Detailed Report (By Source) to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Daily Enquiries Detailed Report By Source',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Daily Enquiries Detailed Report (By Source) to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Daily Enquiries Detailed Report By Source',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Daily Enquiries Detailed Report (By Source)!");
+                        }
+                    }
+                ],
+            });
+            table.buttons().container().appendTo('#tbl_daily_report_source_wrapper .col-md-6:eq(0)');
+            $('#tbl_daily_report_source_wrapper thead tr th').each(function () { $(this).addClass('text-white bg-primary border-bottom-0 font-weight-semibold') });
+        }
+        //#endregion
+
+        //#region Get Daily Report History By Source
+        var dailySourceHistory = function (fdate, source) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDailySourceHistory", "Reports", new { area = "Marketing" })?app_fdate=" + fdate + "&app_source_name=" + source,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#daily_source_details_body").html(response);
+                    $("#daily_source_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region UI Functions
+        // Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        // Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        // Remove Error Class
+        function error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+    </script>
+}

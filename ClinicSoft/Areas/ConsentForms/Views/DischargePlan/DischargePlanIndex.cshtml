@@ -1,0 +1,115 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "DischargePlanIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Discharge Plan Of Care</h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargePlan_add" style="display:none">
+                </div>
+                <div id="DischargePlan_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargePlan_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetDischargePlanInfo();
+            DischargePlanPreviousHistory();
+
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetDischargePlanInfo
+        var GetDischargePlanInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDischargePlanData", "DischargePlan", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditDischargePlan();
+                            $("#DischargePlan_add").hide();
+                            $("#DischargePlan_edit").show();
+
+                        }
+                        else {
+                            $("#DischargePlan_add").show();
+                            $("#DischargePlan_edit").hide();
+                            AddDischargePlan();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load DischargePlan
+
+        //#region Add DischargePlan
+        function AddDischargePlan() {
+            var x = $("#DischargePlan_add");
+            x.load("@Url.Action("CreateDischargePlan", "DischargePlan", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add DischargePlan
+
+        //#region Update DischargePlan
+        function EditDischargePlan() {
+            var x = $("#DischargePlan_edit");
+            x.load("@Url.Action("UpdateDischargePlan", "DischargePlan", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update DischargePlan
+
+          //#region Histroy of DischargePlan
+        function DischargePlanPreviousHistory() {
+            var x = $("#DischargePlan_history");
+            x.load("@Url.Action("DischargePlanPreviousHistory", "DischargePlan", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of DischargePlan
+
+
+    </script>
+@*}*@
+

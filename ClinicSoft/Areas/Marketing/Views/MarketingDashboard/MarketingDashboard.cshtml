@@ -1,0 +1,764 @@
+﻿@model IEnumerable<BusinessEntities.Marketing.Marketing>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Marketing - Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="enquiry">Enquiry Details - Graphical Report (Managed By / By Source / By Status)</span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i><span data-lang-key="advance-filter">Advanced Filters</span> 
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <spna data-lang-key="branches">Branch<small>(es)</small></spna></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_from_sum" class="form-control" placeholder="Select Enquiry Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_to_sum" class="form-control" placeholder="Select Enquiry Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i>
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div id="progress-loader" style="display:none;">
+            <div class="progress progress-sm mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-5 justify-content-center">
+    <div class="col-xl-3 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-body border-1 border-primary br-5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people card-custom-icon header-icon" viewBox="0 0 16 16">
+                    <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8Zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022ZM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816ZM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                </svg>
+                <p class="mb-1 text-primary"><span data-lang-key="total-leads">Total Leads</span></p>
+                <h2 class="mb-1 font-weight-bold" id="leads">0</h2>
+                <span class="mb-1 text-muted"><span class="text-success" data-lang-key="just-now"><i class="fa fa-caret-up me-1"></i> </span > just now</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-body border-1 border-primary br-5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat card-custom-icon header-icon" viewBox="0 0 16 16">
+                    <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z" />
+                    <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z" />
+                </svg>
+                <p class="mb-1 text-primary"><span data-lang-key="total-follow-ups">Total Follow Ups</span></p>
+                <h2 class="mb-1 font-weight-bold" id="follow_ups">0</h2>
+                <span class="mb-1 text-muted"><span class="text-success"><i class="fa fa-caret-up me-1"></i> </span> just now</span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-5">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="enquiry-details">Enquiry Details (Managed By)</span> 
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chartjs-wrapper-demo">
+                    <div id="managedby_chart" class="h-300 mh-300"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="enquiry-details-source">Enquiry Details (By Source)</span> 
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chartjs-wrapper-demo">
+                    <div id="source_chart" class="h-300 mh-300"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="appointment-by-status">Appointment Details (By Status)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div>
+                    <canvas id="status_chart" class="h-500"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="enquiry-details-month">Enquiry Details (By Month)</span> 
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chartjs-wrapper-demo">
+                    <canvas id="month_chart" class="h-300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="enquiry-details-days">Enquiry Details (By Days)</span> 
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chartjs-wrapper-demo">
+                    <canvas id="day_chart" class="h-300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Marketing Dashboard Report Toast -->
+    <div class="text-wrap">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="DashboardReportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto">
+                                <span data-lang-key="dashboard-report">Dashboard Report</span></strong>
+                            <small><span data-lang-key="just-now">Just Now</span></small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body" id="toastBody">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script src="~/assets/plugins/chart/chart.bundle.js"></script>
+    <script src="~/assets/plugins/chart/utils.js"></script>
+    <script src="~/assets/js/apexcharts.js"></script>
+    <script>
+        //#region Page Load & Initialization
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Dashboard Report
+            GetDashboardReports(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_branches();
+
+            $('#date_from_sum').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate:'today'
+            });
+            $("#date_from_sum").bootstrapdatepicker("setDate", "today");
+
+            $('#date_to_sum').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate: 'tomorrow'
+            });
+            $("#date_to_sum").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#date_from_sum').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 17)
+                        return false;
+                }
+            });
+
+            $('#date_to_sum').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 17)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Dashboard Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "") &&
+                    ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "")) {
+                    let isValid = true;
+                    let daily_frm = moment($("#date_from_sum").val());
+                    let daily_to = moment($("#date_to_sum").val());
+
+                    // Check if Date From is a valid Date
+                    if ($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "" && $("#date_from_sum").val() != undefined) {
+                        if (!daily_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "" && $("#date_to_sum").val() != undefined) {
+                        if (!daily_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "" && $("#date_from_sum").val() != undefined) && ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "" && $("#date_to_sum").val() != undefined)) {
+                        if (daily_frm.isValid() && daily_to.isValid()) {
+                            date_to_sum
+                            if (daily_to.diff(daily_frm, 'days') <= 0) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("date_from_sum");
+                                index.push("date_to_sum");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetDashboardReports(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "From Date & To Date is required to filter record(s)!",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Reports!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Get Dashboard Reports
+        var GetDashboardReports = function (search_type) {
+            var empId;
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                empId = 0;
+            }
+            else
+            {
+                empId = @empId.ToString();
+            }
+
+            var _data = {
+                "search_type"   : search_type,
+                "empId"         : empId,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "date_from"     : $('#date_from_sum').val(),
+                "date_to"       : $('#date_to_sum').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDashboardReports", "MarketingDashboard", new { area = "Marketing" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report(s)..</b> Please wait!');
+                    $('#DashboardReportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+
+                        bindWidgets(response.dbCount);
+                        bindManagedBy(response.mbList);
+                        bindBySource(response.sourceList);
+                        bindStatuswise(response.statusList);
+                        bindDaywise(response.dayList);
+                        bindMonthwise(response.monthList);
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Filtered </b> record(s) in about <b id="etime">' + etime + '</b> ms');
+                        $('#DashboardReportToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#DashboardReportToast').fadeOut('fast');
+                }, 5000);
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind Widgets
+        var bindWidgets = function (response) {
+            $('#leads').empty('');
+            $('#leads').html(response.total_enquiries);
+
+            $('#follow_ups').empty('');
+            $('#follow_ups').html(response.total_followups);
+        }
+        //#endregion
+
+        //#region Bind Managed By Chart
+        var bindManagedBy = function (response) {
+            $('#managedby_chart').empty('');
+
+            var _labels = response.map(function (value) {
+                return value.app_madeby_name;
+            });
+
+            var _values = response.map(function (value) {
+                return value.total;
+            });
+
+            var _data = {
+                series: [{
+                    data: _values,
+                    name:'Total'
+                }],
+                colors: ['#664dc9', '#fa057a'],
+                chart: {
+                    type: 'bar',
+                    height: 300
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: true,
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                xaxis: {
+                    categories: _labels,
+                },
+                legend: {
+                    show: false,
+                },
+                tooltip: {
+                    enabled: true,
+                    y: {
+                        formatter: function (value) {
+                            return value;
+                        }
+                    }
+                }
+            };
+            var mbChart = new ApexCharts(document.querySelector("#managedby_chart"), _data);
+            mbChart.render();
+        }
+        //#endregion
+
+        //#region Bind By Source Chart
+        var bindBySource = function (response) {
+            $('#source_chart').empty('');
+
+            var _labels = response.map(function (value) {
+                return value.app_source_name;
+            });
+
+            var _values = response.map(function (value) {
+                return value.total;
+            });
+
+            var _data = {
+                series: [{
+                    data: _values,
+                    name: 'Total'
+                }],
+                colors: ['#664dc9', '#fa057a'],
+                chart: {
+                    type: 'bar',
+                    height: 300
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: true,
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                xaxis: {
+                    categories: _labels,
+                },
+                legend: {
+                    show: false,
+                },
+                tooltip: {
+                    enabled: true,
+                    y: {
+                        formatter: function (value) {
+                            return value;
+                        }
+                    }
+                }
+            };
+            var mbChart = new ApexCharts(document.querySelector("#source_chart"), _data);
+            mbChart.render();
+        }
+        //#endregion
+
+        //#region Bind Status Chart
+        var statusChart = document.getElementById('status_chart').getContext('2d');
+        var bindStatuswise = function (response) {
+            $('#status_chart').empty('');
+
+            var _labels = response.map(function (value) {
+                return value.app_status;
+            });
+
+            var _values = response.map(function (value) {
+                return value.total;
+            });
+
+            var gradient = statusChart.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, '#44c4fa');
+            gradient.addColorStop(1, '#664dc9');
+            new Chart(statusChart, {
+                type: 'bar',
+                data: {
+                    labels: _labels,
+                    datasets: [{
+                        label: '',
+                        data: _values,
+                        backgroundColor: gradient
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    legend: {
+                        display: false,
+                        labels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 10,
+                                max: 1000
+                            }
+                        }],
+                        xAxes: [{
+                            barPercentage: 0.6,
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 11
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Days Chart
+        var bindDaywise = function (response) {
+            $('#day_chart').empty('');
+
+            var _labels = response.map(function (value) {
+                return value.day_name;
+            });
+
+            var _values = response.map(function (value) {
+                return value.total;
+            });
+
+            var dayChart = document.getElementById('day_chart');
+
+            var gradient1 = statusChart.createLinearGradient(0, 350, 0, 0);
+            gradient1.addColorStop(0, 'rgba(102, 77, 201,0)');
+            gradient1.addColorStop(1, 'rgba(102, 77, 201,.5)');
+
+            new Chart(dayChart, {
+                type: 'line',
+                data: {
+                    labels: _labels,
+                    datasets: [{
+                        data: _values,
+                        borderColor: '#664dc9',
+                        borderWidth: 1,
+                        backgroundColor: gradient1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false,
+                        labels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 10,
+                                max: 80
+                            }
+                        }],
+                        xAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 11
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Month Chart
+        var bindMonthwise = function (response) {
+            $('#month_chart').empty('');
+
+            var _labels = response.map(function (value) {
+                return value.month_name;
+            });
+
+            var _values = response.map(function (value) {
+                return value.total;
+            });
+
+            var gradient2 = statusChart.createLinearGradient(0, 280, 0, 0);
+            gradient2.addColorStop(0, 'rgba(91, 115, 232,0)');
+            gradient2.addColorStop(1, 'rgba(91, 115, 232,.5)');
+
+            var monthChart = document.getElementById('month_chart');
+
+            new Chart(monthChart, {
+                type: 'line',
+                data: {
+                    labels: _labels,
+                    datasets: [{
+                        data: _values,
+                        borderColor: '#664dc9',
+                        borderWidth: 1,
+                        backgroundColor: gradient2
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false,
+                        labels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 10,
+                                max: 80
+                            }
+                        }],
+                        xAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 11
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+        //#endregion
+    </script>
+}

@@ -1,0 +1,299 @@
+﻿@model BusinessEntities.Documentation.CoderDiagnosis
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    ViewBag.Title = "Create Coder Diagnosis";
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_AddCoderDiagnosis" class="needs-validation" >
+    @Html.AntiForgeryToken()
+
+    <div class="row">
+        <div class="col-sm-6 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Coder Diagnosis&nbsp;<span class="text-danger">*</span></label>
+                @Html.DropDownListFor(m => m.cod_diagnosis, new List<SelectListItem> { }, "Search Diagnosis", new { @class = "form-select  mb-2 select2", @id = "cod_diagnosis" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-1">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Year&nbsp;</label>
+                @Html.TextBoxFor(m => m.cod_year, new { @class = "form-control", @placeholder = "Enter Year", @id = "cod_year" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Notes&nbsp;</label>
+                @Html.TextAreaFor(m => m.cod_notes, new { @class = "form-control", @placeholder = "Enter Notes", @row = "6", @id = "cod_notes" })
+            </div>
+        </div>
+        <div class="col-sm-2 col-md-2 col-lg-2 d-none">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Add To Favorite&nbsp;</label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left mb-2">
+                    <label class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" name="chkyes" value="1">
+                        <span class="custom-control-label"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+            <div id="errorCreate"></div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-success" id="btn_Insert_coddiagnosis">Add Diagnosis</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_Reset_coddiagnosis">Reset</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_coddiagnosis" style="display:none">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Partial View Onload
+    $(function () {
+        $("#btn_Insert_coddiagnosis").show();
+
+        load_coderdiagnosis();
+
+        validate();
+    });
+    //#endregion
+
+    //#region Load Coder Diagnosis
+    var load_coderdiagnosis = function () {
+        $("#cod_diagnosis").select2({
+            placeholder: 'Select Diagnosis',
+            width: '100%',
+            minimumInputLength: 3,
+            minimumResultsForSearch: '',
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            dropdownParent: $('#form_AddCoderDiagnosis'),
+            ajax: {
+                url: '@Url.Action("GetDiagnosis", "CoderDiagnosis", new { area = "Documentation" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                        type: $("input[name='check_fav']:checked").val()
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+    };
+    //#endregion
+
+    //#region Reset Controls
+    $('#btn_Reset_coddiagnosis').on('click', function (e) {
+        e.preventDefault();
+
+        clearControls();
+    });
+    //#endregion
+
+    //#region Clear Controls
+    var clearControls = function () {
+        $("#cod_notes").val("");
+        $("#cod_year").val("0");
+        $("#cod_diagnosis").val("").trigger("change");
+        $("input[name='check_fav']:checkbox").prop('checked', false);
+        $("input[name='chkyes']:checkbox").prop('checked', false);
+    }
+    //#endregion
+
+    //#region Validation Initialization
+    var validate = function () {
+        $("#form_AddCoderDiagnosis").validate({
+            rules: {
+                cod_diagnosis: {
+                    required: true
+                },
+                cod_year: {
+                    required: true
+                }
+            },
+            messages: {
+                cod_diagnosis: {
+                    required: "Please Select Diagnosis!"
+                },
+                cod_year: {
+                    required: "Please Enter Year!"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $("#cod_year").on('input', function () {
+            var disc = $(this).val();
+
+            if (/^\d{5}$/.test(disc)) {
+            } else if (disc.length > 5) {
+                $(this).val(disc.slice(0, 5));
+            } else if (/^\d+$/.test(disc)) {
+            } else {
+                $(this).val("");
+            }
+        });
+
+        $('#cod_year').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (/^\d$/.test(String.fromCharCode(charCode)) && inputValue.length < 5) {
+            } else {
+                e.preventDefault();
+            }
+        });
+
+        $("#cod_year").trigger('input');
+    }
+    //#endregion
+
+    //#region Insert Button Click
+    $('#btn_Insert_coddiagnosis').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_AddCoderDiagnosis").valid()) {
+            $('#btn_Insert_coddiagnosis').removeClass("btn btn-success");
+            $('#btn_Insert_coddiagnosis').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Insert_coddiagnosis').html("Saving the Record....");
+
+            var chkyes = $("input[name='chkyes']:checked").val();
+
+            var _dataInsert = {
+                "codId": 0,
+                "cod_appId": @emr.appId,
+                "cod_diagnosis": $("#cod_diagnosis").val(),
+                "cod_notes": $("#cod_notes").val(),
+                "cod_year": $("#cod_year").val(),
+                "cod_type": "Secondary",
+                "chkyes": chkyes,
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertCoderDiagnosis", "CoderDiagnosis", new { area = "Documentation" })",
+                dataType: 'json',
+                data: _dataInsert,
+                success: function (data) {
+                    $('#btn_Insert_coddiagnosis').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_coddiagnosis').addClass("btn btn-success");
+                    $('#btn_Insert_coddiagnosis').html("Add Diagnosis");
+
+                    if (data.isSuccess) {
+                        var alertPlaceholder = document.getElementById("errorCreate");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> Coder Diagnosis Added Successfully!", "success");
+
+                        clearControls();
+
+                        Timeout();
+
+                        getCoderDiagnosis();
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Validation Error! Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+
+                        $("#errorCreate").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert_coddiagnosis').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_coddiagnosis').addClass("btn btn-success");
+                    $('#btn_Insert_coddiagnosis').html("Add Diagnosis");
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

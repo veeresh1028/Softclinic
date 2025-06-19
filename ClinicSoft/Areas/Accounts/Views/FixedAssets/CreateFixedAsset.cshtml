@@ -1,0 +1,1021 @@
+﻿
+@model BusinessEntities.Accounts.Accounting.FixedAssets
+
+<style type="text/css">
+    #sizeCJ {
+        max-width: 1000px;
+    }
+
+    #tbl_list_entries_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Create Fixed Asset</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-group" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_AddFixedAsset" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.fa_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2" })
+                </div>
+            </div>
+            <div class="col-sm-3 col-md-3 col-lg-4">
+                <div class="form-group">
+                    <label class="form-label text-black">Group&nbsp;<span class="text-danger">*</span>   <a id="btnAddStockGroup" style="cursor: pointer"><i class="fa fa-plus text-success"></i></a></label>
+                    @Html.DropDownListFor(m => m.fa_item_group, new List<SelectListItem>
+   { }, "Select Group", new { @class = "form-control select2" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Item &nbsp;<span class="text-danger">*&nbsp;<label id="lbl_message" class="fw-bold"></label></span>  <a id="btnCreateItem" style="cursor: pointer"><i class="fa fa-plus text-success"></i></a></label>
+                    @Html.DropDownListFor(m => m.fa_item, new List<SelectListItem> { }, "Please Select", new { @class = "form-select select2", @title = "Fixed Asset" })
+
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-0">
+                    <label class="form-label text-black" title="">Purchase Date&nbsp;<span class="text-danger">*</span> </label>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBoxFor(model => model.fa_pdate, new { @class = "form-control", @placeholder = "Select Purchase Date", maxlength = "18" })
+                </div>
+            </div>
+
+            <div class="col-sm-3 col-md-3 col-lg-4">
+                <div class="form-group">
+                    <label class="form-label text-black">Supplier Name&nbsp;<span class="text-danger">*</span>  <a id="btnAddSupplier" style="cursor: pointer"><i class="fa fa-plus text-success"></i></a></label>
+                    @*<select id="pur_supplier" class="form-control select2 mb-4"></select>*@
+                    @Html.DropDownListFor(m => m.fa_supplier, new List<SelectListItem>
+                       { }, "Select Supplier", new { @class = "form-control select2" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Location&nbsp;</label>
+                    @Html.TextBoxFor(m => m.fa_loc, new { @class = "form-control", @placeholder = "Ex: Store Room", @maxlength = "100" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Purchase Price&nbsp;<span class="text-danger">*</span></label>
+                    <input type="text" id="fa_net" class="form-control text-end" value="0" oninput="validate(this,100000000)" />
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">VAT %&nbsp;<span class="text-danger">*</span></label>
+                    <select class="form-control" id="fa_vat_per">
+                        <option value="0">0 %</option>
+                        <option value="5">5 %</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">VAT</label>
+                    <input type="text" id="fa_vat" class="form-control text-end" readonly="readonly" value="0" />
+                    <span class="text-danger" id="fa_vat_error"></span>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">Net + VAT&nbsp;<span class="text-danger">*</span></label>
+                    <input type="text" id="fa_price" class="form-control text-end" readonly="readonly" value="0" />
+                    <span class="text-danger" id="lbl_netvat_error"></span>
+                </div>
+            </div>
+
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Residual Value&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.fa_residual_value, new { @class = "form-control text-end", @placeholder = "0.00", @oninput = "validate(this,1000000)" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Method&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.fa_method, new List<SelectListItem>
+                    {   new SelectListItem{ Value="Straight Line", Text="Straight Line"},
+                        new SelectListItem{ Value="Declining Balance", Text="Declining Balance"}
+                    }, "Select Method", new { @class = "form-select select2 mb-4" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4 d-none" id="divDepre_per">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Depreciation Percentage (Monthly)&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.fa_depreciation_per, new { @class = "form-control text-end", @placeholder = "0.00", @oninput = "validate(this,100)" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4 d-none" id="divLife_spain">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Useful Life Span (Months)</label>
+                    @Html.TextBoxFor(m => m.fa_life_span, new { @class = "form-control text-end", @placeholder = "0", @oninput = "validate(this,240)" })
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorCreate_fa"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert">Create</button>
+                    <button type="button" class="btn btn-outline-danger me-1 close-group" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+
+    //#region Page Load
+    $(function () {
+        $("#fa_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddFixedAsset'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $('#fa_item_group').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_AddFixedAsset'),
+            width: '100%'
+        });
+
+        $('#fa_supplier').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_AddFixedAsset'),
+            placeholder: 'Select Supplier',
+            width: '100%'
+        });
+
+        $("#fa_method").select2({
+            placeholder: 'Select Method',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddFixedAsset'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#fa_vat_per").select2({
+            placeholder: 'VAT Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddFixedAsset'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+
+        // Get the current date
+        var currentDate = new Date();
+        // Get last year date
+        var lastYearDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
+
+        $('#fa_pdate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: lastYearDate,
+            endDate: currentDate
+        });
+
+        $("#fa_pdate").bootstrapdatepicker("setDate", "today")
+        $("#select2-fa_item-container").removeAttr('title');
+
+        setTimeout(function () {
+            loadGroup();
+            GetSupplier();
+        }, 500);
+        validation();
+    });
+    //#endregion
+
+    //#region Item VAT Calculation
+
+    $("#fa_vat_per").on('change', function () {
+        AddingCalculation();
+    });
+    $("#fa_net").on('change', function () {
+        var _net = $("#fa_net").val();
+        if (_net === '') {
+            $("#fa_net").val("0");
+        }
+        AddingCalculation();
+    });
+    $("#fa_residual_value").on('change', function () {
+        var _net = $("#fa_residual_value").val();
+        if (_net === '') {
+            $("#fa_residual_value").val("0");
+        }
+    });
+    var AddingCalculation = function () {
+        $("#lbl_netvat_error").text("");
+        let _vat_per = $("#fa_vat_per").val();
+        let _price = $("#fa_net").val();
+        let netAmount = 0;
+        let vatAmount = 0;
+        let netvatAmount = 0;
+
+        netAmount = parseFloat(_price);
+
+        if (_vat_per > 0) {
+            vatAmount = (parseFloat(netAmount) * parseFloat(_vat_per)) / 100;
+            netvatAmount = (parseFloat(vatAmount)).toFixed(2);
+        }
+        netvatAmount = parseFloat(netAmount) + parseFloat(netvatAmount);
+
+        if (netAmount < 0) {
+            $("#lbl_netvat_error").text("Invalid Input");
+            $("#fa_net").attr("style", "border:1px solid red;color:red;");
+        }
+        else {
+            $("#lbl_net_error").text("");
+            $("#fa_net").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+        if (vatAmount < 0) {
+            $("#lbl_netvat_error").text("Invalid Input");
+            $("#fa_vat_per").attr("style", "border:1px solid red;color:red;");
+        }
+        else {
+            $("#lbl_netvat_error").text("");
+            $("#fa_vat_per").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+        if (netvatAmount < 0) {
+            $("#lbl_netvat_error").text("Invalid Input");
+            $("#fa_price").attr("style", "border:1px solid red;color:red;");
+        }
+        else {
+            $("#lbl_netvat_error").text("");
+            $("#fa_price").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+
+        $("#fa_net").val(parseFloat(netAmount).toFixed(2));
+        $("#fa_vat").val(parseFloat(vatAmount).toFixed(2));
+        $("#fa_price").val(parseFloat(netvatAmount).toFixed(2));
+    }
+
+    //#endregion
+
+    //#region Load Item Group on Branch Change
+    $('#fa_item_group').on('select2:select', function (e) {
+        $('#fa_item').empty();
+    });
+    //#endregion
+
+    //#region Load Item Group and Supplier on Branch Change
+    $('#fa_branch').on('select2:select', function (e) {
+        $('#fa_item_group').empty();
+        $('#fa_item').empty();
+        $('#fa_supplier').empty();
+        loadGroup();
+        GetSupplier();
+    });
+
+    var loadGroup = function() {
+
+        var branchId = $('#fa_branch').val();
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetItemGroup", "CentralStore", new { area = "MaterialManagement" })?branchId=' + branchId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === 1) ? true : false, (parseInt(response[j].Value) === 1) ? true : false);
+                            $('#fa_item_group').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        }
+    }
+
+    var GetSupplier = function () {
+        $('#lbl_message').text('');
+        $('#fa_supplier').empty();
+        var branchId = $('#fa_branch').val();
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetSupplierByBranches", "PurchaseOrders", new { area = "MaterialManagement" })?branchId=' + branchId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === 0) ? true : false, (parseInt(response[j].Value) === 0) ? true : false);
+                            $('#fa_supplier').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        }
+    };
+
+    //#endregion
+
+    //#region Get Items
+    $("#fa_item").select2({
+        placeholder: 'Select a Item',
+        width: '100%',
+        dropdownParent: $('#form_AddFixedAsset'),
+        minimumInputLength: 3,
+        escapeMarkup: function (markup) {
+            return markup;
+        },
+        ajax: {
+            url: '@Url.Action("SearchItems", "FixedAssets", new { area = "Accounts" })',
+            dataType: 'json',
+            delay: 250,
+            data: function (query) {
+                $('#lbl_message').text('');
+                if ($('#fa_branch').val() != null && $('#fa_branch').val() != undefined && $('#fa_branch').val() != "") {
+                    if ($('#fa_item_group').val() != null && $('#fa_item_group').val() != undefined && $('#fa_item_group').val() != "") {
+                        return {
+                            query: query.term,
+                            branch: $('#fa_branch').val(),
+                            groupId: $('#fa_item_group').val(),
+                        };
+                    }
+                    else {
+                        $('#lbl_message').text('Select Item Group First');
+                        return {
+                            query: '',
+                            branch: 0,
+                            groupId: 0
+                        }
+                    }
+                }
+                else {
+                    $('#lbl_message').text('Select Branch Name First');
+                    return {
+                        query: '',
+                        branch: 0,
+                        groupId: 0,
+                    }
+                }
+            },
+            processResults: function (data) {
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+        title: ''
+    });
+    //#endregion
+
+    //#region Fixed Asset Method Change Event
+    $('#fa_method').on('select2:select', function (e) {
+        var _method = $('#fa_method').val();
+        if (_method === "Straight Line") {
+            $('#divDepre_per').addClass('d-none');
+            $('#divLife_spain').removeClass('d-none');
+        }
+        else if (_method == "Declining Balance") {
+            $('#divLife_spain').addClass('d-none');
+            $('#divDepre_per').removeClass('d-none');
+        } else {
+            $('#divDepre_per').addClass('d-none');
+            $('#divLife_spain').addClass('d-none');
+        }
+    });
+
+    //#endregion
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion
+
+    //#region Adding Validation on Fields
+    var validation = function () {
+        $("#form_AddFixedAsset").validate({
+            focusInvalid: true,
+            rules:
+            {
+                fa_branch: {
+                    required: true
+                },
+                fa_item_group: {
+                    required: true
+                },
+                fa_item: {
+                    required: true
+                },
+                fa_supplier: {
+                    required: true
+                },
+                fa_pdate: {
+                    required: true
+                },
+                fa_price: {
+                    required: true
+                },
+                fa_residual_value: {
+                    required: true
+                },
+                fa_method: {
+                    required: true
+                },
+                ft_amount: {
+                    required: true
+                },
+                fa_life_span: {
+                    required: function () {
+                        var fa_method = $('#fa_method').val();
+                        if (fa_method === "Straight Line")
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                fa_depreciation_per: {
+                    required: function () {
+                        var fa_method = $('#fa_method').val();
+                        if (fa_method === "Declining Balance")
+                            return true;
+                        else
+                            return false;
+                    }
+                }
+            },
+            messages: {
+                fa_branch: {
+                    required: "Select Branch"
+                },
+                fa_item_group: {
+                    required: "Select Item Group"
+                },
+                fa_item: {
+                    required: "Select Item"
+                },
+                fa_supplier: {
+                    required: "Select Supplier"
+                },
+                fa_pdate: {
+                    required: "Select Purchase Date"
+                },
+                fa_price: {
+                    required: "Enter Purchase Price"
+                },
+                fa_residual_value: {
+                    required: "Enter Residual Value"
+                },
+                fa_method: {
+                    required: "Select Depreciation"
+                },
+                fa_life_span: {
+                    required: "Enter Asset Life Span in Months"
+                },
+                fa_depreciation_per: {
+                    required: "Enter Monthly Depreciation in Percentage"
+                }
+
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#fa_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_item_group').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_item').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_pdate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#fa_method').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_net').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_vat').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_price').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_net').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#fa_vat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#fa_price').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#fa_residual_value').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_residual_value').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#fa_depreciation_per').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_depreciation_per').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#fa_life_span').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#fa_life_span').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+    }
+    //#endregion
+
+    //#region Insert Fixed Asset on Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_AddFixedAsset').valid()) {
+            let error_message = "";
+
+            if ($('#fa_price').val() === undefined || $('#fa_price').val() === null || parseFloat($('#fa_price').val()) <= 0) {
+                error_message = "Purchase Price Shoud Be More Than 0 !";
+            }
+            if ($('#fa_residual_value').val() === undefined || $('#fa_residual_value').val() === null || parseFloat($('#fa_residual_value').val()) <= 0) {
+                error_message += "<br> Residual Value of Asset Should Be More Than 0 !";
+            }
+
+            if ($('#fa_residual_value').val() !== undefined && $('#fa_residual_value').val() !== null && parseFloat($('#fa_residual_value').val()) > 0 &&
+                $('#fa_price').val() !== undefined && $('#fa_price').val() !== null && parseFloat($('#fa_price').val()) > 0) {
+                if (parseFloat($('#fa_residual_value').val()) > parseFloat($('#fa_price').val())) {
+                    error_message += "<br> Residual Value of Asset Should Be Less Than Purchase Value";
+                }
+            }
+
+            if ($('#fa_method').val() === "Straight Line") {
+                if ($('#fa_life_span').val() === undefined || $('#fa_life_span').val() === null || parseFloat($('#fa_life_span').val()) <= 0) {
+                    error_message += "<br> Useful Life Span of Asset Should Be More Than 0 Months!";
+                }
+                $('#fa_depreciation_per').val("0.00");
+            }
+
+            if ($('#fa_method').val() === "Declining Balance") {
+                if ($('#fa_depreciation_per').val() === undefined || $('#fa_depreciation_per').val() === null || parseFloat($('#fa_depreciation_per').val()) <= 0) {
+                    error_message += "<br> Monthly Depreciation Should Be More Than 0% !";
+                }
+                $('#fa_life_span').val("0.00");
+            }
+
+            if (error_message === "") {
+                Swal.fire({
+                    title: "Save",
+                    text: "Are you sure you want to Create Fixed Asset!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _dataInsert = {
+                            "faId": 0,
+                            "fa_refno": "",
+                            "fa_branch": $('#fa_branch').val(),
+                            "fa_item_group": $('#fa_item_group').val(),
+                            "fa_item": $('#fa_item').val(),
+                            "fa_supplier": $('#fa_supplier').val(),
+                            "fa_pdate": $('#fa_pdate').val().trim(),
+                            "fa_net": $('#fa_net').val().trim(),
+                            "fa_vat": $('#fa_vat').val().trim(),
+                            "fa_vat_type": $('#fa_vat_per').val().trim(),
+                            "fa_price": $('#fa_price').val().trim(),
+                            "fa_residual_value": $('#fa_residual_value').val().trim(),
+                            "fa_loc": $('#fa_loc').val().trim(),
+                            "fa_method": $('#fa_method').val(),
+                            "fa_depreciation_per": parseFloat($('#fa_depreciation_per').val().trim()).toFixed(3),
+                            "fa_life_span": $('#fa_life_span').val().trim(),
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("InsertFixedAsset", "FixedAssets", new { area = "Accounts" })",
+                            dataType: "json",
+                            data: _dataInsert,
+                            beforeSend: function () {
+                                $('#btn_Insert').removeClass("btn btn-success");
+                                $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Insert').html("Creating....");
+                            },
+                            success: function (data) {
+                                $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Insert').addClass("btn btn-success");
+                                $('#btn_Insert').html("Insert");
+
+                                if (data.isInserted > 0) {
+                                    GetFixedAssets();
+
+                                    alert("<i class='fe fe-check-circle text-white'></i> Fixed Asset Created Successfully!", "success");
+
+                                    $('#add_fixedasset_modal').modal('toggle');
+
+                                    Timeout();
+                                }
+                                else {
+                                    $("#errorCreate_fa").html('');
+
+                                    if (data.message == "Error While Inserting Fixed Asset!" || data.message == "Fixed Asset Already Exists!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+
+                                        $("#errorCreate_fa").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+
+                                        html += "</ul></div></div>";
+
+                                        $("#errorCreate_fa").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Insert').addClass("btn btn-success");
+                                $('#btn_Insert').html("Insert");
+
+                                alert("<i class='fe fe-x-circle text-white'></i> Failed to Create Fixed Asset!", "danger");
+                                $('#add_fixedasset_modal').modal('toggle');
+                                Timeout();
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+
+                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                    "<div class='alert alert-light-warning' role='alert'>" +
+                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                    "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+
+                $("#errorCreate_fa").html(html);
+            }
+
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Create Stock Group
+    $('#btnAddStockGroup').on('click', function (e) {
+        e.preventDefault();
+        $("#spinner2").show();
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreateStockGroups", "StockGroups", new { area = "MaterialManagement" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#add_fixedasset_modal').modal('hide');
+                $('#StockGroup_modal').attr("data-modal-from", "create-fixed-asset");
+
+                $("#StockGroup_body").html(data);
+                $('#StockGroup_modal').modal('show');
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                $("#spinner2").hide();
+            },
+            complete: function () {
+                // Hide spinner when request is complete
+                $("#spinner2").hide();
+            }
+        });
+    });
+
+    $('#StockGroup_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("newGroupId") != null) {
+            var newGroupId = localStorage.getItem("newGroupId");
+
+            set_stock_group(newGroupId);
+
+            localStorage.removeItem("newGroupId");
+        }
+    });
+
+    var set_stock_group = function (newGroupId) {
+        var branchId = $('#item_branch').val();
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetItemGroup", "CentralStore", new { area = "MaterialManagement" })?branchId=' + branchId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === newGroupId) ? true : false, (parseInt(response[j].Value) === newGroupId) ? true : false);
+                            $('#item_category').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            }).done(function () {
+                $('#item_category').val(newGroupId).trigger('change');
+            });
+        }
+    }
+    //#endregion
+
+    //#region Create Supplier
+    $('#btnAddSupplier').on('click', function (e) {
+        e.preventDefault();
+        $("#spinner2").show();
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreateSupplier", "Supplier", new { area = "MaterialManagement" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#add_fixedasset_modal').modal('hide');
+                $('#Supplier_modal').attr("data-modal-from", "create-fixed-asset");
+
+                $("#Supplier_body").html(data);
+                $('#Supplier_modal').modal('show');
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                $("#spinner2").hide();
+            },
+            complete: function () {
+                // Hide spinner when request is complete
+                $("#spinner2").hide();
+            }
+        });
+    });
+
+    $('#Supplier_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("newSupplierId") != null) {
+            var supplierId = localStorage.getItem("newSupplierId");
+
+            set_supplier(supplierId);
+
+            localStorage.removeItem("newSupplierId");
+        }
+    });
+
+    var set_supplier = function (supplierId) {
+        var branchId = $('#pur_branch').val();
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetSupplierByBranches", "PurchaseOrders", new { area = "MaterialManagement" })?branchId=' + branchId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === supplierId) ? true : false, (parseInt(response[j].Value) === supplierId) ? true : false);
+                            $('#pur_supplier').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            }).done(function () {
+                $('#pur_supplier').val(supplierId).trigger('change');
+            });
+        }
+    }
+    //#endregion
+
+    //#region Create Stock Items
+    $('#btnCreateItem').on('click', function (e) {
+        e.preventDefault();
+        $("#spinner2").show();
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreateItem", "CentralStore", new { area = "MaterialManagement" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#add_fixedasset_modal').modal('hide');
+                $('#items_modal').attr("data-modal-from", "create-fixed-asset");
+
+                $("#Items_body").html(data);
+                $('#items_modal').modal('show');
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                $("#spinner2").hide();
+            },
+            complete: function () {
+                // Hide spinner when request is complete
+                $("#spinner2").hide();
+            }
+        });
+    });
+
+    $('#items_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("newItemId") != null) {
+            var supplierId = localStorage.getItem("newItemId");
+
+            localStorage.removeItem("newItemId");
+        }
+    });
+
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alter Holder
+    var alertPlaceholder = document.getElementById("FixedAssetsAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

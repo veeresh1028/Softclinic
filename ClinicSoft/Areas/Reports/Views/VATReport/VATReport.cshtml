@@ -1,0 +1,711 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "VAT Reports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">VAT Report</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-transparent"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch</label>
+                                <select class="form-control" id="select_branch">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">VAT Type</label>
+                                <select class="form-control" id="select_type">
+                                    <option value="">Any</option>
+                                    <option value="0">0 %</option>
+                                    <option value="5">5 %</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date From</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select From Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date To</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select To Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xl-6 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Taxable Person Details</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="">
+                                    <span class="font-weight-semibold w-50">TRN </span>
+                                </td>
+                                <td class="" id="trn"></td>
+                            </tr>
+                            <tr>
+                                <td class="">
+                                    <span class="font-weight-semibold w-50">Taxable Person Name (English) </span>
+                                </td>
+                                <td class="" id="taxPerson"></td>
+                            </tr>
+                            <tr>
+                                <td class="">
+                                    <span class="font-weight-semibold w-50">Taxable Person Address </span>
+                                </td>
+                                <td class="" id="taxAdd"></td>
+                            </tr>
+                            <tr>
+                                <td class="">
+                                    <span class="font-weight-semibold w-50">VAT Return Period<span class="text-dark">*</span> </span>
+                                </td>
+                                <td class="" id="returnPeriod"></td>
+                            </tr>
+                            <tr>
+                                <td class="">
+                                    <span class="font-weight-semibold w-50">VAT Return Due Date</span>
+                                </td>
+                                <td class="" id="duePeriod"></td>
+                            </tr>
+                            <tr>
+                                <td class="">
+                                    <span class="font-weight-semibold w-50">Tax Year End<span class="text-dark">*</span> </span>
+                                </td>
+                                <td class="" id="taxYear"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">VAT On Sales & All Other Outputs</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive mt-4">
+                    <table class="table table-bordered border text-nowrap mb-0">
+                        <thead>
+                            <tr>
+                                <th class="wd-20p font-weight-bold text-center">UAE</th>
+                                <th class="tx-center font-weight-bold">AMOUNT</th>
+                                <th class="tx-right font-weight-bold">VAT AMOUNT</th>
+                                <th class="tx-right font-weight-bold">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="text-center" id="sales_date"></td>
+                                <td class="tx-center text-end" id="sales_amt"></td>
+                                <td class="tx-right text-end" id="sales_vat" onclick="viewInvoiceDetail()"></td>
+                                <td class="tx-right text-end" id="sales_total"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Export</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive mt-4" style=" min-height: 100px;">
+                    <table class="table table-bordered border text-nowrap mb-0">
+                        <thead>
+                            <tr>
+                                <th class="wd-20p font-weight-bold text-center"></th>
+                                <th class="tx-center font-weight-bold">AMOUNT</th>
+                                <th class="tx-right font-weight-bold">SALES + EXPORT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="text-center" id="sales_date1"></td>
+                                <td class="tx-center text-end">0.00</td>
+                                <td class="tx-right text-end">0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Import</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive mt-4" style=" min-height: 100px;">
+                    <table class="table table-bordered border text-nowrap mb-0">
+                        <thead>
+                            <tr>
+                                <th class="wd-20p font-weight-bold text-center"></th>
+                                <th class="tx-center font-weight-bold">AMOUNT</th>
+                                <th class="tx-right font-weight-bold">VAT AMOUNT</th>
+                                <th class="tx-right font-weight-bold">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="text-center" id="sales_date3"></td>
+                                <td class="tx-center text-end">0.00</td>
+                                <td class="tx-center text-end">0.00</td>
+                                <td class="tx-right text-end">0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">VAT On Purchases &amp; All Other Inputs</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive mt-4" style=" min-height: 100px;">
+                    <table class="table table-bordered border text-nowrap mb-0">
+                        <thead>
+                            <tr>
+                                <th class="wd-20p font-weight-bold text-center"></th>
+                                <th class="tx-center font-weight-bold">AMOUNT</th>
+                                <th class="tx-right font-weight-bold">VAT AMOUNT</th>
+                                <th class="tx-right font-weight-bold">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="text-center" id="sales_date2"></td>
+                                <td class="tx-center text-end" id="pinv_net">0.00</td>
+                                <td class="tx-right text-end" id="pinv_vat">0.00</td>
+                                <td class="tx-right text-end" id="pinv_net_vat">0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Import</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive mt-4" style=" min-height: 100px;">
+                    <table class="table table-bordered border text-nowrap mb-0">
+                        <thead>
+                            <tr>
+                                <th class="wd-20p font-weight-bold text-center"></th>
+                                <th class="tx-center font-weight-bold">PUR NET + EXP NET</th>
+                                <th class="tx-right font-weight-bold">PUR VAT + EXP VAT</th>
+                                <th class="tx-right font-weight-bold">PUR TTL + EXP TTL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="text-center"></td>
+                                <td class="tx-center text-end" id="purchase_net">0.00</td>
+                                <td class="tx-center text-end" id="purchase_vat">0.00</td>
+                                <td class="tx-right text-end" id="purchase_net_vat">0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-12 col-lg-12 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Net VAT Due
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive mt-4" style=" min-height: 100px;">
+                    <table class="table table-bordered border text-nowrap mb-0">
+                        <thead>
+                            <tr>
+                                <th class="tx-center font-weight-bold">Description</th>
+                                <th class="tx-right font-weight-bold">AMOUNT</th>
+                                <th class="tx-right font-weight-bold">VAT AMOUNT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="tx-center">Total Value of due Tax for the Period</td>
+                                <td class="tx-center text-end" id="total_value_due_tax">0.00</td>
+                                <td class="tx-right text-end" id="total_value_vat_due_tax">0.00</td>
+                            </tr>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="tx-center">Total Value of Recoverable Tax for the period</td>
+                                <td class="tx-center text-end" id="total_recoverable_tax">0.00</td>
+                                <td class="tx-right text-end" id="total_recoverable_vat_tax">0.00</td>
+                            </tr>
+                            <tr class="text-info font-weight-semibold">
+                                <td class="tx-center">Reverse Charge Provisions</td>
+                                <td class="tx-center text-end" id="purchase_vat">0.00</td>
+                                <td class="tx-right text-end" id="purchase_net_vat">0.00</td>
+                            </tr>
+                            <tr class="text-info font-weight-semibold text-danger">
+                                <td class="tx-center">Payable Tax for the Period</td>
+                                <td class="tx-center text-end"></td>
+                                <td class="tx-right text-end" id="final_vat">0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="text-wrap d-none" id="toastVAT">
+    <div class="toast-main p-5">
+        <div class="demo-static-toast">
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="vatToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header text-dark">
+                        <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                        <strong class="me-auto">VAT Report</strong>
+                        <small>Just Now</small>
+                        <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="toast-body" id="toastBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@* View Sales Invoice popup Model *@
+<div class="modal fade overflow-auto" id="saleinvoicevat_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="saleinvoicevat_body">
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script type="text/javascript">
+
+        //#region Page Load & Initialization
+        $(function () {
+            $('#select_type').SumoSelect({
+                placeholder: 'Select Type',
+                captionFormat: '{0} Type Selected',
+                captionFormatAllSelected: 'All {0} Types selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Report Data
+            GetVATReport();
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch',
+                captionFormat: '{0} Branch Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                if ("@emp_designation.ToString()" === "Super Administrator")
+                {
+                    $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    });
+                }
+                else
+                {
+                    $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Report Click
+        $("#btnSearch").click(function (e){
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                let isValid = true;
+                let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!date_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date!"
+                        });
+                    }
+                }
+                // Check if Date From is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!date_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date!"
+                        });
+                    }
+                }
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (date_frm.isValid() && date_to.isValid()) {
+                        if (date_to.diff(date_frm, 'days') <= 0) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error!",
+                                message: "Report From Date Filter should be less than To Date Filter!"
+                            });
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    GetVATReport();
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter VAT Report!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region VAT Report
+        var GetVATReport = function () {
+
+            var empId = "";
+
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                empId = 0;
+            }
+            else {
+                empId = @empId.ToString();
+            }
+
+            var _data = {
+                "empId": empId,
+                "select_type": $('#select_type').val().toString(),
+                "select_branch" : $('#select_branch').val().toString(),
+                "date_from"     : $('#select_date_from').val(),
+                "date_to"     : $('#select_date_to').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetVATReport", "VATReport", new { area = "Reports" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#toastVAT').removeClass("d-none");
+                    $('#vatToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+
+                        //#region Load Report Details
+                        vatDetails(response.taxableComapnyDetails);
+                        vatSales(response.vatSales);
+                        purchaseSales(response.purchaseSales);
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                        $('#vatToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#vatToast').fadeOut('fast');
+                    $('#toastVAT').addClass("d-none");
+                }, 5000);
+            });
+        }
+        //#endregion
+
+        //#region Bind AJAX Responses
+        var vatDetails = function (response) {
+            $('#trn').html(response[0].set_vat_regno);
+            $('#taxPerson').html(response[0].set_company);
+            $('#taxAdd').html(response[0].set_address);
+            $('#returnPeriod').html("" + response[0].vat_returned_period + "");
+            $('#duePeriod').html("" + response[0].vat_returned_due_date +"");
+            $('#taxYear').html(response[0].set_taxyear_enddate);
+        }
+
+        var inv_vat;
+
+        var vatSales = function (response) {
+            $('#sales_date').html(response[0].sales_date);
+            $('#sales_date1').html(response[0].sales_date);
+            $('#sales_date2').html(response[0].sales_date);
+            $('#sales_date3').html(response[0].sales_date);
+
+            $('#sales_amt').html(response[0].inv_net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#sales_vat').html(response[0].inv_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#sales_total').html(response[0].inv_net_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+            $('#total_value_due_tax').html(response[0].inv_net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+            inv_vat = response[0].inv_vat;
+        }
+
+        var purchaseSales = function (response) {
+            $('#pinv_net').html(response[0].pinv_net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#total_recoverable_tax').html(response[0].pinv_net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#total_recoverable_vat_tax').html(response[0].pinv_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#purchase_net').html(response[0].pinv_net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#total_value_vat_due_tax').html(inv_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#pinv_vat').html(response[0].pinv_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#purchase_vat').html(response[0].pinv_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#pinv_net_vat').html(response[0].pinv_net_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#purchase_net_vat').html(response[0].pinv_net_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+            var net_vat;
+
+            net_vat = parseFloat(inv_vat + response[0].pinv_vat);
+            $('#final_vat').html(net_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        }
+        //#endregion
+
+        //#region Sales Invoice VAT Detail View
+        var viewInvoiceDetail = function () {
+            debugger;
+            var _data = {
+                "select_branch": $('#select_branch').val().toString(),
+                "date_from": $('#select_date_from').val(),
+                "date_to": $('#select_date_to').val()
+            }
+
+            $("#spinner2").show();
+            if ($('#select_type').val().toString() !== "0") {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("SalesInvoiceVATDetail", "VATReport", new { area = "Reports" })",
+                    data: _data,
+                    success: function (data) {
+                        $("#saleinvoicevat_body").html(data);
+                        $("#saleinvoicevat_modal").modal("show");
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        $("#spinner2").hide();
+                    },
+                    complete: function () {
+                        $("#spinner2").hide();
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "There is no vat invoices available!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+
+        };
+        //#endregion
+
+    </script>
+}

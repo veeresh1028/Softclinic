@@ -1,0 +1,375 @@
+﻿@model BusinessEntities.Accounts.Accounting.AccountGroup
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update Account Group</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_EditGroup" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        @Html.HiddenFor(m => m.agId)
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ag_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uag_branch" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Period&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ag_period, new SelectList(Model.PeriodList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uag_period" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Type&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ag_type, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Text="Assets", Value = "Assets" },
+                        new SelectListItem{ Text="Liabilities", Value = "Liabilities" },
+                        new SelectListItem{ Text="Income", Value = "Income" },
+                        new SelectListItem{ Text="Expenses", Value = "Expenses" },
+                        new SelectListItem{ Text="Equity", Value = "Equity" }
+                    }, "Select Gender", new { @class = "form-select select2", @id = "uag_type" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Code&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ag_code, new { @class = "form-control disabled text-danger", @placeholder = "AS1", @maxlength = "25", @readonly = "readonly", @id = "uag_code" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Group&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ag_group, new { @class = "form-control", @placeholder = "Ex : Fixed Assets", @maxlength = "25", @id = "uag_group" })
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorUpdate"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    var edit_type;
+    var edit_code;
+
+    //#region Page Load
+    $(function () {
+        $("#uag_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditGroup'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#uag_period").select2({
+            placeholder: 'Select Period',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditGroup'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#uag_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditGroup'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        validation();
+
+        edit_type = $("#uag_type").val();
+        edit_code = $("#uag_code").val();
+    });
+    //#endregion
+
+    //#region Adding Validation on Fields
+    var validation = function () {
+        $("#form_EditGroup").validate({
+            focusInvalid: true,
+            rules:
+            {
+                uag_branch: {
+                    required: true
+                },
+                uag_period: {
+                    required: true
+                },
+                uag_type: {
+                    required: true
+                },
+                uag_group: {
+                    required: true,
+                    maxlength:25
+                }
+            },
+            messages: {
+                uag_branch: {
+                    required: "Select Branch"
+                },
+                uag_period: {
+                    required: "Select Period"
+                },
+                uag_type: {
+                    required: "Select Type"
+                },
+                uag_group: {
+                    required: "Enter Group name",
+                    maxlength: "Enter No More than 25 characters"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#uag_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uag_period').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uag_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region On Branch Select
+    $('#uag_branch').on('select2:select', function (e) {
+        load_ag_code_edit();
+    });
+    //#endregion
+
+    //#region On Account Type Select
+    $('#uag_type').on('select2:select', function (e) {
+        load_ag_code_edit();
+    });
+    //#endregion
+
+    //#region On Account Period Select
+    $('#uag_period').on('select2:select', function (e) {
+        load_ag_code_edit();
+    });
+    //#endregion
+
+    //#region Load Account Code Based on Branch, Period & Type
+    var load_ag_code_edit = function () {
+        if ($("#uag_branch").val() != "" && $("#uag_period").val() != "" && $('#uag_type').val() != "") {
+
+            var _data = {
+                "ag_branch": $('#uag_branch').val(),
+                "ag_type": $('#uag_type').val(),
+                "ag_period": $('#uag_period').val()
+            }
+
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetAccountGroupCode", "AccountGroups", new { area = "Accounts" })',
+                dataType: 'json',
+                data: _data,
+                success: function (response) {
+                    $("#uag_code").val("");
+
+                    if (edit_type != $("#uag_type").val()) {
+                        $("#uag_code").val(response.ag_code);
+                    }
+                    else {
+                        $("#uag_code").val(edit_code)
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        else {
+            $('#uag_code').val("").trigger("change");
+        }
+    }
+    //#endregion
+
+    //#region Update Account Group on Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_EditGroup').valid()) {
+
+            var _dataUpdate = {
+                "agId"      : $('#agId').val(),
+                "ag_group"  : $('#uag_group').val().trim(),
+                "ag_branch" : $('#uag_branch').val(),
+                "ag_period" : $('#uag_period').val(),
+                "ag_type"   : $('#uag_type').val(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateAccountGroup", "AccountGroups", new { area = "Accounts" })",
+                dataType: "json",
+                data: _dataUpdate,
+                beforeSend: function () {
+                    $('#btn_Update').removeClass("btn btn-warning");
+                    $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').html("Saving....");
+                },
+                success: function (data) {
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    if (data.isUpdated > 0 ) {
+                        getAccountGroups();
+
+                        alert("<i class='fe fe-check-circle text-white'></i> Account Group Updated Successfully!", "success");
+
+                        $("#uag_group").val("");
+
+                        $('#edit_group_modal').modal('toggle');
+
+                        Timeout();
+                    }
+                    else {
+                        $("#errorUpdate").html('');
+
+                        if (data.message == "Account Group already exists!" || data.message == "Error While Updating Account Group!" || data.message == "Account Group has Transactions Associated!") {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+                            $("#errorUpdate").html(html);
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+
+                            html += "</ul></div></div>";
+
+                            $("#errorUpdate").html(html);
+                        }
+
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Account Group! " + xhr.statusText , "danger");
+                    $('#edit_group_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alter Holder
+    var alertPlaceholder = document.getElementById("AccountGroupAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

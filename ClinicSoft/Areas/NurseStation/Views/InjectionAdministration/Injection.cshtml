@@ -1,0 +1,579 @@
+﻿@model BusinessEntities.NurseStation.InjectionAdministration
+@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<style>
+    .form-control-sm {
+        margin-left: 0.5em;
+        display: inline-block;
+        width: auto;
+    }
+</style>
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-6 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 col-lg-12">
+                        <div>
+                            <h4 class="page-title mb-0 text-primary">
+                                Injection Administration
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div id="Injection_add" >
+
+                </div>
+                <div id="Injection_edit">
+                </div>
+                <div>
+                    <h4 class="page-title mb-0 text-primary">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_InjectionAdministration" class="table table-striped table-bordered text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatment Medication, Dosage, Route, Site</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Remarks</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_PreInjectionAdministration" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatment Medication, Dosage, Route, Site</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Remarks</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            AddInjectionAdministration();
+            GetInjectionAdministration();
+            GetPreviousInjectionAdministration();
+
+        });
+
+    //#endregion Page Load
+
+    //#region Load InjectionAdministration
+        var GetInjectionAdministration = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllInjectionAdministration", "InjectionAdministration", new { area = "NurseStation" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_InjectionAdministration')) {
+                            table = $('#tbl_InjectionAdministration').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableInjection(response);
+                        }
+
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+            .done(function () {
+                resizedt();
+            });
+        }
+    //#endregion Load InjectionAdministration
+
+
+    //#region Load PreviousInjectionAdministration
+        var GetPreviousInjectionAdministration = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreInjectionAdministration", "InjectionAdministration", new { area = "NurseStation" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_PreInjectionAdministration')) {
+                            table = $('#tbl_PreInjectionAdministration').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                            $("#Injection_add").show();
+                            $("#Injection_edit").hide();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableP(response);
+                        }
+
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load PreviousInjectionAdministration
+
+     //#region Bind Datatable
+     var BindDataTableInjection = function (response) {
+         var table = $("#tbl_InjectionAdministration").DataTable({
+             fixedHeader: {
+                 header: true,
+                 footer: true
+             },
+             processing: true,
+             "deferRender": true,
+             "pageLength": 100,
+             "retrieve": true,
+             lengthChange: true,
+             "aaData": response,
+             "aoColumns": [
+                 {
+                     "mData": "mrfId",
+                     "orderable": false,
+                     "searchable": false,
+                     "className": "text-center",
+                     "render": function (data, type, row, meta) {
+                         let _index = (meta.row) + 1;
+                         if (_index >= 10) {
+                             return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                         }
+                         else {
+                             return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                         }
+                     }
+                 },
+                 {
+                     "mData": "umrf_5",
+                     "className": "text-left",
+                     "render": function (data, type, row, meta) {
+                         if (type === 'display' || type === 'filter') {
+                             return moment(data).format("DD-MM-YYYY");
+                         }
+                         return moment(data).format("YYYY-MM-DD");
+                     }
+                 },
+                 {
+                     "mData": "mrf_3",
+                     "className": 'text-justify text-wrap'
+                 },
+                 {
+                     "mData": "mrf_1",
+                     "className": 'text-justify text-wrap'
+                 },
+                 {
+                     "mData": "mrf_2",
+                     "className": 'text-justify text-wrap'
+                 },
+                 {
+                     "mData": "mrfId",
+                     "className": 'btn-edit text-center',
+                     "orderable": false,
+                     "searchable": false,
+                     "render": function (mrfId, type, full, meta) {
+                         var status = full.mrf_status;
+                         if (status === "Active") {
+                             if ("@emp_designation.ToString()" === "Super Administrator") {
+                                 return '<button type="button"  onclick="EditInjectionAdministration(' + mrfId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                             }
+                             else {
+                                 if ("@emr.set_emr_lock" == "NoLock") {
+                                     return '<button type="button"  onclick="EditInjectionAdministration(' + mrfId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+
+
+                                 }
+                                 else {
+                                     if ("@emr.app_ae_date" >= "@emr.today") {
+                                         return '<button type="button"  onclick="EditInjectionAdministration(' + mrfId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                     }
+                                     else {
+                                             return ''
+                                         }
+                                 }
+                             }
+                         }
+                         else {
+                             return ''
+                         }
+                     }
+                 },
+                 {
+                     "mData": "mrfId",
+                     "className": 'btn-delete text-center',
+                     "orderable": false,
+                     "searchable": false,
+                     "render": function (mrfId, type, full, meta) {
+                         var status = full.mrf_status;
+                         if (status === "Active") {
+                             if ("@emp_designation.ToString()" === "Super Administrator") {
+                                 return '<button type="button" onclick="DeleteInjectionAdministration(' + mrfId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                             }
+                             else {
+                                 if ("@emr.set_emr_lock" == "NoLock") {
+                                     return '<button type="button" onclick="DeleteInjectionAdministration(' + mrfId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+
+                                     }
+                                 else {
+                                     if ("@emr.app_ae_date" >= "@emr.today") {
+                                         return '<button type="button" onclick="DeleteInjectionAdministration(' + mrfId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                     }
+                                     else {
+                                         return ''
+                                         }
+                                 }
+                             }
+
+                         }
+                         else {
+                             return ''
+                         }
+                     }
+                 }
+             ],
+             order: [[0, 'asc']],
+             language: {
+                 searchPlaceholder: 'Search...',
+                 sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                 lengthMenu: '_MENU_',
+                 scrollX: "100%",
+             },
+             scrollX: true,
+             scrollY: 500,
+             scrollCollapse: true,
+             buttons: [
+                 {
+                     extend: 'excel',
+                     title: 'Injection Administration',
+                     footer: 'true',
+                     exportOptions: {
+                         columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                     }
+                 },
+                 {
+                     extend: 'pdf',
+                     title: 'Injection Administration',
+                     footer: 'true',
+                     exportOptions: {
+                         columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                     }
+                 },
+                 {
+                     extend: 'csv',
+                     title: 'Injection Administration',
+                     footer: 'true',
+                     exportOptions: {
+                         columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                     }
+                 },
+                 {
+                     extend: 'print',
+                     title: 'Injection Administration',
+                     footer: 'true',
+                     exportOptions: {
+                         columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                     }
+                 }
+             ]
+         });
+         table.buttons().container().appendTo('#tbl_InjectionAdministration_wrapper .col-md-6:eq(0)');
+     };
+ //#endregion Bind Datatable
+
+   //#region Previous Bind Datatable
+        var BindDataTableP = function (response) {
+            var table = $("#tbl_PreInjectionAdministration").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "mrfId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data, type, row, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(data).format("DD-MM-YYYY");
+                            }
+                            return moment(data).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "umrf_5",
+                        "className": "text-left",
+                        "render": function (data, type, row, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(data).format("DD-MM-YYYY");
+                            }
+                            return moment(data).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "mrf_3",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "mrf_1",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "mrf_2",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "mrfId",
+                        "className": 'btn-view text-center',
+                        "visible":false,
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (mrfId, type, full, meta) {
+                            var Action = '';
+                                //View Details
+                            Action += '<a id=btn_View_InjectionAdministration onclick="PrintInjectionAdministration(' + full.mrfId + ')" ><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3C457D" class="fa fa-copy" viewBox="0 0 16 16">< path d = "M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z" /><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" /></svg ></a> ';
+
+                                return Action;
+                            }
+                    },
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous  InjectionAdministration DHA',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous  InjectionAdministration DHA',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous  InjectionAdministration DHA',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous  InjectionAdministration DHA',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_PreInjection_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add InjectionAdministration
+        function AddInjectionAdministration() {
+            var x = $("#Injection_add");
+            x.load("@Url.Action("CreateInjectionAdministration", "InjectionAdministration", new { area = "NurseStation" })", function () {
+            });
+        }
+    //#endregion Add InjectionAdministration
+
+    //#region Edit VitalSigns
+        function EditInjectionAdministration(mrfId) {
+            $('#Injection_add').hide();
+            var x = $("#Injection_edit");
+            x.load("@Url.Action("EditInjectionAdministration", "InjectionAdministration", new { area = "NurseStation" })?mrfId=" + mrfId , function () {
+                $("#Injection_edit").show();
+        });
+    }
+    //#endregion Edit VitalSigns
+
+    
+    //#region Print InjectionAdministration
+        function PrintInjectionAdministration(mrfId) {
+            window.open("@Url.Action("PrintInjectionAdministration", "InjectionAdministration", new { area = "NurseStation" })?mrfId=" + mrfId)
+        }
+    //#endregion Print InjectionAdministration
+
+     //#region Delete VitalSigns
+     var DeleteInjectionAdministration = function (mrfId) {
+         Swal.fire({
+             title: "Are you sure you want to delete this Vital Signs ?",
+             text: "The selected Vital Signs will be deleted!",
+             icon: "question",
+             showCancelButton: !0,
+             confirmButtonText: 'Yes! I Confirm',
+             cancelButtonText: 'No! Cancel Please',
+             confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+         }).then(function (t) {
+             if (t.value) {
+                 $.ajax({
+                     url: '@Url.Action("DeleteInjectionAdministration", "InjectionAdministration", new { area = "NurseStation" })?mrfId=' + mrfId ,
+                     type: "POST",
+                     dataType: 'JSON',
+                     success: function (data) {
+                         if (data.isAuthorized) {
+                             if (data.success) {
+                                 Swal.fire({
+                                     title: "Success!",
+                                     text: data.message,
+                                     icon: "success",
+                                     showCancelButton: 0,
+                                     confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                 });
+                                 GetInjectionAdministration();
+                             }
+                             else {
+                                 Swal.fire({
+                                     title: "Error!",
+                                     text: "You Can't Change the status! Already exist an active Vital Signs",
+                                     icon: "error",
+                                     showCancelButton: 0,
+                                     confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                 });
+                             }
+                         }
+                         else {
+                             Swal.fire({
+                                 title: "Access Denied!",
+                                 text: "You do not have Enough Privileges to Delete this Vital Signs!",
+                                 icon: "error",
+                                 showCancelButton: 0,
+                                 confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                             });
+                         }
+
+                     },
+                     error: function (xhr) {
+                         Swal.fire({
+                             title: "Error!",
+                             text: "Failed to Delete Vital Signs! Please Refresh The Page & Try Again.",
+                             icon: "error",
+                             showCancelButton: 0,
+                             confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                         });
+                         GetVitalSigns();
+                     }
+                 });
+             }
+         });
+     }
+ //#endregion Delete VitalSigns
+
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+
+    </script>
+}

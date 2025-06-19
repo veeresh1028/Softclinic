@@ -1,0 +1,220 @@
+﻿@model BusinessEntities.EMR.GeneralPrescription
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_AddPrescription" class="needs-validation" >
+    @Html.AntiForgeryToken()
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">
+                    Prescription&nbsp;<span class="text-danger">*</span>
+                </label>
+                <div class="ql-wrapper ql-wrapper-demo mt-2">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="gpre_desc"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+            <div id="createAlert"></div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-success" id="btn_Insert_Prescription" style="display:none">Add Prescription</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_Reset_Prescription">Reset</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    var quill;
+
+    'use strict';
+
+    //#region Page Load
+    $(function () {
+        if ("@emp_designation.ToString()" === "Super Administrator") {
+            $("#btn_Insert_Prescription").show();
+        }
+        else {
+            if ("@emr.set_emr_lock" == "NoLock") {
+                $("#btn_Insert_Prescription").show();
+            }
+            else {
+                if ("@emr.app_ae_date" >= "@emr.today") {
+                    $("#btn_Insert_Prescription").show();
+                }
+                else {
+                    $("#btn_Insert_Prescription").hide();
+                }
+            }
+        }
+
+        var icons = Quill.import('ui/icons');
+
+        icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+        icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+        icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+        icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+        icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+        icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+        var toolbarOptions = [
+            [{
+                'header': [1, 2, 3, 4, 5, 6, false]
+            }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{
+                'list': 'ordered'
+            }, {
+                'list': 'bullet'
+            }]
+        ];
+
+        quill = new Quill('#gpre_desc', {
+            modules: {
+                toolbar: toolbarOptions
+            },
+            theme: 'snow'
+        });
+
+        var realHTML = $('<textarea />').html("@Model.gpre_desc").text();
+
+        quill.root.innerHTML = realHTML;kds
+    });
+    //#endregion
+
+    //#region Insert Prescription Button Click
+    $('#btn_Insert_Prescription').on('click', function (e) {
+        e.preventDefault();
+
+        var isvalid = true;
+
+        if (quill.getText().trim().length == 0) {
+            $("#gpre_desc").attr("style", "border:1px solid red;");
+
+            error_timeout_quill($("#gpre_desc"));
+
+            isvalid = false;
+        }
+
+        if ($("#form_AddPrescription").valid()) {
+            if (isvalid) {
+                $('#btn_Insert_Prescription').removeClass("btn btn-success");
+                $('#btn_Insert_Prescription').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Prescription').html("Saving the Record....");
+
+                var _dataInsert = {
+                    "gpreId": 0,
+                    "gpre_appId": @emr.appId,
+                    "gpre_desc": quill.root.innerHTML,
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertGeneralPrescription", "Prescription", new { area = "EMR" })",
+                    dataType: "json",
+                    async: false,
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#btn_Insert_Prescription').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_Prescription').addClass("btn btn-success");
+                        $('#btn_Insert_Prescription').html("Add Prescription");
+
+                        var alertPlaceholder = document.getElementById("createAlert");
+
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+
+                        if (data.isInserted) {
+                            alert("<i class='fe fe-check-circle text-white'></i> General Prescription Created Successfully!", "success");
+
+                            clearControls();
+
+                            Timeout();
+
+                            getPrescriptions();
+
+                            getPreviousPrescriptions();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error! Please validate before you submit the form!&nbsp;</strong><br/><ul>";
+
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+
+                            html += "</ul></div></div>";
+
+                            $("#createAlert").html(html);
+
+                            Timeout();
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Insert_Prescription').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_Prescription').addClass("btn btn-success");
+                        $('#btn_Insert_Prescription').html("Add Prescription");
+                        console.log(xhr);
+                    }
+                });
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Reset Click
+    $('#btn_Reset_Prescription').on('click', function (e) {
+        e.preventDefault();
+
+        clearControls();
+    });
+    //#endregion
+
+    //#region Clear Controls
+    var clearControls = function () {
+        quill.root.innerHTML = "";
+    }
+    //#endregion
+</script>

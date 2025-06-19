@@ -1,0 +1,438 @@
+﻿@model IEnumerable<BusinessEntities.Masters.Vaccinations>
+@{
+    ViewBag.Title = "Vaccinations";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary" data-lang-key="vaccinations">Vaccinations</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <a data-bs-toggle="modal" data-bs-target="#vaccination_modal" class="btn btn-secondary" onclick="addVaccination()" data-lang-key="add-vaccinations"><i class="mdi mdi-plus"></i>&nbsp;Add Vaccination</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="VaccinationAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_vaccinations" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="code">Code</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="name">Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="edit">Edit</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="delete">Delete</span></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Vaccination Modal -->
+<div class="modal fade" id="vaccination_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="vaccination_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Vaccination Modal -->
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            GetVaccinations();
+
+            // Focus Search On Opening Select2
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+        });
+        //#endregion
+
+        //#region  Load Vaccinations
+        var GetVaccinations = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllVaccinations", "Vaccinations", new { area = "Masters" })",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_vaccinations')) {
+                            table = $('#tbl_vaccinations').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_vaccinations").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "vId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    { "mData": "v_code" },
+                    { "mData": "v_name" },
+                    {
+                        "className": 'text-center',
+                        "mData": "vId",
+                        "render": function (vId, type, full, meta) {
+                            var visible = full.actionvisible;
+                            var v_status = full.v_status;
+
+                            if (visible === "True") {
+                                if (v_status === "Active") {
+                                    return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateStatus(\'' + vId + '\',\' Active \')">Active</button>'
+                                }
+                                else if (v_status === "Inactive") {
+                                    return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateStatus(\'' + vId + '\',\'Inactive\')">Inactive</button>'
+                                }
+                                else if (v_status === "Deleted") {
+                                    return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateStatus(\'' + vId + '\',\'Deleted\')">Deleted</button>'
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    },
+                    {
+                        "mData": "vId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (vId, type, full, meta) {
+                            var status = full.v_status;
+                            var visible = full.actionvisible;
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" data-bs-toggle="modal" data-bs-target="#vaccination_modal" onclick="editVaccination(' + vId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "vId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (vId, type, full, meta) {
+                            var status = full.v_status;
+                            var visible = full.actionvisible;
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" onclick="deleteVaccination(' + vId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Name / Code / Status</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%"
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Vaccinations to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Vaccinations to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Vaccinations to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Vaccinations!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_vaccinations_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Add Vaccination
+        function addVaccination() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateVaccinations", "Vaccinations", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#vaccination_modal_body").html(data);
+                    $("#vaccination_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Vaccination : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Vaccination
+        function editVaccination(vId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditVaccinations", "Vaccinations", new { area = "Masters" })?vId=" + vId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#vaccination_modal_body").html(data);
+                    $("#vaccination_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Vaccination : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Update Status
+        var updateStatus = function (vId, v_status) {
+            v_status = (v_status == "Deleted" || v_status == "Inactive") ? "Active" : "Inactive"
+
+            Swal.fire({
+                title: "Are you sure you want to change status ?",
+                text: "This action will change the status of the selected Vaccination!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("UpdateVaccinationStatus", "Vaccinations", new { area="Masters"})?vId=" + vId + "&v_status=" + v_status,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetVaccinations();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to change Vaccination Status!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Update Vaccination Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            })
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Vaccination
+        var deleteVaccination = function (vId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Vaccination ?",
+                text: "This action will delete the selected vaccination!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteVaccination", "Vaccinations", new { area = "Masters" })?vId=' + vId +'&v_status=Deleted',
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetVaccinations();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete Vaccinations!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Vaccination! Please Refresh the Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region UI / UX Functions
+        var alertPlaceholder = document.getElementById("VaccinationAlert");
+        function alert(e, t) {
+            var l = document.createElement("div");
+            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+        }
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

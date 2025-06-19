@@ -1,0 +1,1655 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Advance / Loyalty / Refunds | Receipts";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span class="text-info" data-lang-key="advances">Advance</span>&nbsp;- <span class="text-success me-2" data-lang-key="loyalty">Loyalty</span>- <span class="text-danger me-2" data-lang-key="refn">Refund</span>|<span data-lang-key="for-invoices">For Invoices</span> 
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+            <button class="btn btn-azure" type="button" id="btnRec_PostToAccount">
+                <i class="fe fe-plus-circle"></i> 
+                <span data-lang-key="post-to-account">Post To Account</span>
+            </button>
+            <button class="btn btn-secondary" type="button" id="btnRec_Add">
+                <i class="mdi mdi-plus"></i>
+                <span data-lang-key="add-advance-loyalty-refund">&nbsp;Add Advance/Loyalty/Refund</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-blue"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="receipt-code">Receipt Code</span></label>
+                                <input id="select_rec_code" class="form-control" placeholder="Receipt Code" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="type">Type<small>(s)</small></span></label>
+                                <select class="form-control select2-show-search" id="select_type" multiple="multiple"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select Receipt Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select Receipt Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="patient-search">Patient<small class="ms-2 text-info">(Search By MRN/EID/Mobile/Name)</small></span></small></label>
+                                <select class="form-control select2-show-search" id="select_patient"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="doctors">Doctor<small>(s)</small></span></label>
+                                <select class="form-control" id="select_doctor" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="cheque-from-date">Cheque From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_chq_date_from" class="form-control" placeholder="Select Cheque Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="cheque-to-date">Cheque To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_chq_date_to" class="form-control" placeholder="Select Cheque Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="status">Status<small>(es)</small></span></label>
+                                <select class="form-control select2-show-search" id="select_status" multiple="multiple"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-1">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="AdvanceReceiptAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row mb-lg-3 mb-sm-2">
+                    <div class="col-md-12">
+                        <small>
+                            <span class="text-info">
+                                C.C / Chr. - <strong>Credit Card &amp; Bank Charge</strong> | Chq. Info - <strong>Cheque Information</strong>  | B.T - <strong>Bank Transfer</strong> |
+                                Self. - <strong>Selfology</strong> | G&amp;A - <strong>Group-n Add</strong> | L.A - <strong>Loyalty Value</strong>
+                            </span>
+                        </small>
+                    </div>
+                </div>
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_receipts" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-invoice-info">Receipt &amp; Invoice Info</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-doctor-info">Patient/Doctor Info</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white d-none">
+                                    <span data-lang-key="doctors">Doctor</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white d-none">
+                                    <span data-lang-key="type">Type/Reference</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cash">Cash</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Credit Card & Bank Charges">
+                                    C.C / Chr.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Cheque">
+                                    <span data-lang-key="cheque-info">Chq. Info</span></span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Bank Transfer">B.T</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="tabby">Tabby</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Selfology">
+                                    <span data-lang-key="self">Self.</span></span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="spotify">Spotify</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cobon">Cobon</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Group-n Add">G&amp;A</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="stripe">Stripe</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Loyalty Amount">L.A</span></th>
+
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="tamara">Tamara</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Docmate Balance" data-lang-key="d.bal">D Bal.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Insta Balance" data-lang-key="i.bal">I Bal.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="other">Other</span></th>
+
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="total">Total:</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="allocated">Allocated</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="balance">Balance</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-code">Receipt Code</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="date">Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="branch-name">Branch Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="generated-by">Generated By</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="mrn">MRN</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-patient-name">Receipt For(Patient Name)</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="emirates-id">Emirates ID</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="id-expiry-date">ID Expiration Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="gender">Gender</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-class">Patient Class</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="active-status">Active Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="verification-status">Verification Status</span></th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th colspan="4" class="text-end fs-14 font-weight-semibold" style="text-align: right !important;">
+                                    <span data-lang-key="total">Total:</span></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th colspan="12" class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Patient Details -->
+<div class="modal fade overflow-auto" id="patient_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="advance-loyalty-refund-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Details -->
+<!-- Modal Add New Receipt -->
+<div class="modal fade overflow-auto" id="addnew_advance_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="addnew_advance_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Add New Receipt -->
+<!-- Modal Edit Receipt -->
+<div class="modal fade overflow-auto" id="edit_receipt_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="edit_receipt_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Edit Receipt -->
+<!-- Modal Documents -->
+<div class="modal fade overflow-auto" id="receipt_documents" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="patient">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="receipt_documents_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Documents -->
+<!-- Modal Invoice Log Details -->
+<div class="modal fade overflow-auto" id="receipt_log" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="receipt_log_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Invoice Log Details -->
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Toggle Sidebar
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            // Load Advanced Filters
+            load_filters();
+
+            // Load Receipts
+            load_receipts();
+        });
+        //#endregion
+
+        //#region Dropdown Bindings
+        // Initialize All Items
+        var load_filters = function () {
+            load_doctors();
+            load_branches();
+            load_types();
+            load_patients();
+            load_status();
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_chq_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+
+            $('#select_chq_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+
+            $('#select_chq_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_chq_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+            
+            var _data = {
+                "Departments": null,
+                "Branches": $('#select_branch').val(),
+            }
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("GetDoctorsByDepartment", "AppointmentList", new { area = "Appointment" })',
+                dataType: 'JSON',
+                data: _data,
+                success: function (response) {
+                    $('#select_doctor').html('');
+                    $('#select_doctor')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" === "Doctor") {
+                        $('#select_doctor')[0].sumo.add(@empId.ToString(), "@emp_name.ToString()");
+                        $('#select_doctor')[0].sumo.selectItem(["@empId.ToString()"]);
+                    }
+                    else {
+                        $.each(response, function (j) {
+                            $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#select_doctor')[0].sumo.selectItem([response[j].id]);
+                        });
+                    }
+                    $('#select_doctor')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        var load_doctors = function () {
+            $("#select_doctor").SumoSelect({
+                placeholder: 'Select Doctor(s)',
+                captionFormat: '{0} Doctor(s) Selected',
+                captionFormatAllSelected: 'All {0} Doctors selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $('#select_doctor').html('');
+            $('#select_doctor')[0].sumo.reload();
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "Invoice", new { area = "Invoice" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+                pageLoad = false;
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+
+        // Load Types
+        var load_types = function () {
+            $('#select_type').SumoSelect({
+                placeholder: 'Select Type(s)',
+                captionFormat: '{0} Type(s) Selected',
+                captionFormatAllSelected: 'All {0} Type(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_type').html('');
+            $('#select_type')[0].sumo.reload();
+
+            $('#select_type')[0].sumo.add("Advance", "Advance");
+            $('#select_type')[0].sumo.add("Refund", "Refund");
+            $('#select_type')[0].sumo.add("Invoice Refund", "Invoice Refund");
+            $('#select_type')[0].sumo.add("Loyalty", "Loyalty");
+
+            $('#select_type')[0].sumo.reload();
+        }
+
+        // Load Patients
+        var load_patients = function () {
+
+            $('#select_patient').select2({
+                placeholder: 'Search Patient',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("GetPatients", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 0
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+
+        // Load Status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                captionFormat: '{0} Status(es) Selected',
+                captionFormatAllSelected: 'All {0} Status(es) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+
+            $('#select_status')[0].sumo.add("Submitted", "Submitted");
+            $('#select_status')[0].sumo.add("Bounced", "Bounced");
+            $('#select_status')[0].sumo.add("Cleared", "Cleared");
+            $('#select_status')[0].sumo.add("Deleted", "Deleted");
+
+            $('#select_status')[0].sumo.reload();
+        }
+        //#endregion
+
+        //#region Search Advance / Loyalty / Refunds | Receipts
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if (($("#select_type").val() != null && $("#select_type").val() != 0 && $("#select_type").val() != "" && $("#select_type").val() != undefined) ||
+                ($("#select_rec_code").val() != null && $("#select_rec_code").val() != 0 && $("#select_rec_code").val() != "" && $("#select_rec_code").val() != undefined) ||
+                ($("#select_patient").val() != null && $("#select_patient").val() != 0 && $("#select_patient").val() != "" && $("#select_patient").val() != undefined) ||
+                ($("#select_status").val() != null && $("#select_status").val() != 0 && $("#select_status").val() != "" && $("#select_status").val() != undefined) ||
+                ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) ||
+                ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) ||
+                ($("#select_chq_date_from").val() != null && $("#select_chq_date_from").val() != 0 && $("#select_chq_date_from").val() != "" && $("#select_chq_date_from").val() != undefined) ||
+                ($("#select_chq_date_to").val() != null && $("#select_chq_date_to").val() != 0 && $("#select_chq_date_to").val() != "" && $("#select_chq_date_to").val() != undefined)) {
+
+                let isValid = true;
+
+                let rec_dt_frm = moment($("#select_date_from").val());
+                let rec_dt_to = moment($("#select_date_to").val());
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!rec_dt_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Receipt From"
+                        });
+                    }
+                }
+
+                // Check if Date To is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!rec_dt_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Receipt To"
+                        });
+                    }
+                }
+
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) &&
+                    ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (rec_dt_frm.isValid() && rec_dt_to.isValid()) {
+                        if (rec_dt_to.diff(rec_dt_frm, 'days') <= -1) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Receipts From Date should be less than To Date!"
+                            });
+                        }
+                    }
+                }
+
+                let rec_chq_frm = moment($("#select_chq_date_from").val());
+                let rec_chq_to = moment($("#select_chq_date_to").val());
+
+                // Check if Date From is a valid Date
+                if ($("#select_chq_date_from").val() != null && $("#select_chq_date_from").val() != 0 && $("#select_chq_date_from").val() != "" && $("#select_chq_date_from").val() != undefined) {
+                    if (!rec_chq_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Cheque From"
+                        });
+                    }
+                }
+
+                // Check if Date To is a valid Date
+                if ($("#select_chq_date_to").val() != null && $("#select_chq_date_to").val() != 0 && $("#select_chq_date_to").val() != "" && $("#select_chq_date_to").val() != undefined) {
+                    if (!rec_chq_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Cheque To"
+                        });
+                    }
+                }
+
+                // Check if Date Range is valid
+                if (($("#select_chq_date_from").val() != null && $("#select_chq_date_from").val() != 0 && $("#select_chq_date_from").val() != "" && $("#select_chq_date_from").val() != undefined) &&
+                    ($("#select_chq_date_to").val() != null && $("#select_chq_date_to").val() != 0 && $("#select_chq_date_to").val() != "" && $("#select_chq_date_to").val() != undefined)) {
+                    if (rec_chq_frm.isValid() && rec_chq_to.isValid()) {
+                        if (rec_chq_to.diff(rec_chq_frm, 'days') <= 0) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_chq_date_from");
+                            index.push("select_chq_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Cheque From Date should be less than To Date!"
+                            });
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    load_receipts();
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Search by Either of the following filters : Type(s) /  Receipt Date / Receipt Code / Cheque Date /  Patient / Status(es)",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Receipts
+        var load_receipts = function () {
+
+            var _data = {
+                "branch_ids": $('#select_branch').val().toString(),
+                "type_ids": $('#select_type').val().toString(),
+                "patient": $('#select_patient').val(),
+                "doctor": $('#select_doctor').val().toString(),
+                "rec_code": $('#select_rec_code').val().toString(),
+                "rec_statuses": $('#select_status').val().toString(),
+                "rec_date_from": $('#select_date_from').val(),
+                "rec_date_to": $('#select_date_to').val(),
+                "chq_date_from": $('#select_chq_date_from').val(),
+                "chq_date_to": $('#select_chq_date_to').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAdvanceLoyaltyRefund", "AdvanceLoyaltyRefund", new { area = "Invoice" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    $('#progress-loader').hide();
+
+                    //#region Load Datatable
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_receipts')) {
+                        table = $('#tbl_receipts').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        bind_DataTable(response);
+                    }
+
+                    setTimeout(function () {
+                        $('#tbl_receipts').DataTable().columns.adjust().draw();
+                    }, 450);
+                    //#endregion
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+
+        // Bind Datatable
+        var bind_DataTable = function (response) {
+            var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_receipts").DataTable({
+                processing: true,
+                "deferRender": true,
+                "pageLength": 50,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "recId" },
+                    { "mData": "recId" },
+                    { "mData": "patId" },
+                    { "mData": "rec_doctor_name" },
+                    { "mData": "rec_type" },
+                    { "mData": "rec_cash" },
+                    { "mData": "rec_cc" },
+                    { "mData": "rec_chq" },
+                    { "mData": "rec_bt" },
+                    { "mData": "rec_tabby" },
+                    { "mData": "rec_self" },
+                    { "mData": "rec_spoti" },
+                    { "mData": "rec_cob" },
+                    { "mData": "rec_group" },
+                    { "mData": "rec_stripe" },
+                    { "mData": "rec_loy_value" },
+                    { "mData": "rec_tamara" },
+                    { "mData": "rec_extra_pay1" },
+                    { "mData": "rec_extra_pay2" },
+                    { "mData": "rec_extra_pay3" },
+                    { "mData": "rec_total" },
+                    { "mData": "rec_total_allocated" },
+                    { "mData": "rec_balance" },
+                    { "mData": "recId" },
+                    //Hidden
+                    { "mData": "rec_code" },
+                    { "mData": "rec_date" },
+                    { "mData": "rec_branch_name" },
+                    { "mData": "rec_madeby_name" },
+                    { "mData": "pat_code" },
+                    { "mData": "pat_name" },
+                    { "mData": "pat_emirateid" },
+                    { "mData": "id_card_edate" },
+                    { "mData": "pat_gender" },
+                    { "mData": "pat_class" },
+                    { "mData": "rec_status" },
+                    { "mData": "rec_status2" },
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "aTargets": [1],
+                        "className": 'text-center',
+                        "render": function (data, type, full, meta) {
+                            var _status = "";
+                            var _status_ = "";
+
+                            if (full.rec_status !== 'Deleted') {
+                                if (full.rec_payment_status === 'Not-Allocated') {
+                                    _status = "<span class='text-danger font-weight-semibold text-capitalize fs-14'>Not Allocated</span>";
+                                }
+                                else if (full.rec_payment_status === 'Fully Allocated') {
+                                    _status = "<span class='text-success font-weight-semibold text-capitalize fs-14'>Fully Allocated</span>";
+                                }
+                                else if (full.rec_payment_status === 'Partly Allocated') {
+                                    _status = "<span class='text-warning font-weight-semibold text-capitalize fs-14'>Partly Allocated</span>";
+                                }
+
+                                if (full.rec_status2 === 'Pending') {
+                                    _status += "<span class='text-info font-weight-semibold text-capitalize fs-14'> / Pending</span><br/>";
+                                }
+                                else if (full.rec_status2 === 'Posted') {
+                                    _status += "<span class='text-success font-weight-semibold text-capitalize fs-14'> / Posted</span><br/>";
+                                }
+
+                            }
+                            else {
+                                _status = "<span class='text-danger font-weight-semibold text-capitalize fs-14'><span class='dot-label bg-danger me-2 w-2 h-2'></span>Deleted</span><br/>";
+                            }
+
+                            var html = "<span class='text-primary font-weight-semibold  fs-14'>" + full.rec_code + "</span><br/>" +
+                                _status + "<span class='text-info'>" + full.rec_branch_name + "</span><br/>";
+
+                            if (full.rec_type === 'Advance') {
+                                _status_ = "<span class='text-info font-weight-semibold text-capitalize fs-14'>Advance</span><br/>";
+                            }
+                            else if (full.rec_type === 'Loyalty') {
+                                _status_ = "<span class='text-orange font-weight-semibold text-capitalize fs-14'>Loyalty</span><br/>";
+                            }
+                            else if (full.rec_type === 'Refund') {
+                                _status_ = "<span class='text-danger font-weight-semibold text-capitalize fs-14'>Refund</span><br/>" +
+                                    "<span class='text-dark font-weight-semibold text-capitalize fs-14'>" + full.rec_refund_ag_adv_code + "</span>";
+                            }
+                            else if (full.rec_type === 'Inv Refund') {
+                                _status_ = "<span class='text-danger font-weight-semibold text-capitalize fs-14'>Invoice Refund</span><br/>" +
+                                    "<span class='text-dark font-weight-semibold text-capitalize fs-14'>" + full.rec_refund_ag_adv_code + "</span>";
+                            }
+                            else {
+                                _status_ = "<span class='text-dark font-weight-semibold text-capitalize fs-14'>" + full.rec_type + "</span><br/>";
+                            }                          
+
+                            html += full.rec_madeby_name + "<br/><i class='fe fe-calendar text-dark'></i> <b class='text-dark me-1'>" + moment(full.rec_date).format("DD-MM-YYYY") + "</b>";
+                            html += "<br/>" + _status_;
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [2],
+                        "className": 'text-center',
+                        "render": function (data, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var gender = full.pat_gender;
+                            var emid = full.pat_emirateid;
+
+                            if (emid == "") {
+                                emid = "999-9999-9999999-9";
+                            }
+
+
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 ms-2">' + full.pat_name.substring(0, 15) + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 ms-2">' + full.pat_name.substring(0, 15) + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 ms-2">' + full.pat_name.substring(0, 15) + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a> ';
+                            }
+                            else {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 ms-2">' + full.pat_name.substring(0, 15) + '</span></a> ';
+                            }
+
+                            pat_det += '</br> ' + full.pat_code + '</br>'
+                            // Check EMID Expiry
+                            if (emid != null && emid != "" && emid != undefined) {
+
+                                let id_card_edate = moment(full.id_card_edate);
+                                if (id_card_edate.isValid()) {
+                                    let today = moment();
+                                    if (id_card_edate.diff(today, 'days') <= 0) {
+                                        pat_det += ' <div class="badge bg-danger-transparent font-weight-semibold mt-2 ms-2" style="font-size: 0.9em">' + emid + '<span class="tag-addon"><i class="fa fa-exclamation-circle" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;"></i></span></div>';
+                                    }
+                                    else {
+                                        pat_det += '<span class="badge bg-primary-transparent text-dark font-weight-bold ms-2" style="font-size: 0.9em;">' + emid + '</span>';
+                                    }
+                                }
+                            }
+                            var app_info = '<span class="font-weight-semibold text-capitalize fs-14" style="color:' + full.emp_color + '"> ' + full.emp_name + '</span></br>' +
+                                '<div class="tag tag-secondary font-weight-semibold ms-2 mt-2">' + full.emp_dept_name + '<span class="tag-addon"><i class="fe fe-activity"></i></span></div></br><div class="tag tag-default border-dark text-dark font-weight-semibold ms-2 mt-2">' + full.emp_license + '</div><br/>';
+
+
+                            var html = pat_det + "<hr style='margin-top: 0.5rem;margin-bottom: 0.5rem;border-top: 1px solid #142d9d;'>" + app_info;
+                                                        
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [3],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [4],
+                        "className": 'text-center',
+                        "render": function (data, type, full, meta) {
+                            var _status = "";
+                            if (full.rec_type === 'Advance') {
+                                _status = "<span class='text-info font-weight-semibold text-capitalize fs-14'>Advance</span><br/>";
+                            }
+                            else if (full.rec_type === 'Loyalty') {
+                                _status = "<span class='text-orange font-weight-semibold text-capitalize fs-14'>Loyalty</span><br/>";
+                            }
+                            else if (full.rec_type === 'Refund') {
+                                _status = "<span class='text-danger font-weight-semibold text-capitalize fs-14'>Refund</span><br/>" +
+                                    "<span class='text-dark font-weight-semibold text-capitalize fs-14'>" + full.rec_refund_ag_adv_code + "</span>";
+                            }
+                            else if (full.rec_type === 'Inv Refund') {
+                                _status = "<span class='text-danger font-weight-semibold text-capitalize fs-14'>Invoice Refund</span><br/>" +
+                                    "<span class='text-dark font-weight-semibold text-capitalize fs-14'>" + full.rec_refund_ag_adv_code + "</span>";
+                            }
+                            else {
+                                _status = "<span class='text-dark font-weight-semibold text-capitalize fs-14'>" + full.rec_type +"</span><br/>";
+                            }
+
+                            return _status;
+                        },
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [5],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [6],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": function (data, type, full, meta) {
+                            var html = numberRenderer1(data.toFixed(2)) + "<br/>" +
+                                        "(" + (full.rec_cc_charges2) + "%" + ")";
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [7],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": function (data, type, full, meta) {
+                            var html = '0.00';
+                            if (parseFloat(data) != 0) {
+                                html = numberRenderer1(data.toFixed(2)) + "<br/>" +
+                                    full.rec_chq_no + "<br/>" +
+                                    full.rec_chq_bank + "<br/>" +
+                                    moment(full.rec_chq_date).format("DD-MM-YYYY");
+                            }
+
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [8],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [9],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [10],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [11],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [12],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [13],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [14],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [15],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [16],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [17],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2),
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [18],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2),
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [19],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2),
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [20],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [21],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [22],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [23],
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (recId, type, full, meta) {
+                            var rec_status = full.rec_status;
+                            var rec_status2 = full.rec_status2;
+
+                            var more = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (rec_status != "Deleted" && rec_status2 != "Posted") {
+                                more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="editReceipt(\'' + recId + '\',\'' + full.pat_code + '\',\'' + full.pat_mob + '\',\'' + full.pat_name + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="deleteReceipt(\'' + recId + '\',\'' + full.rec_type + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="printReceipt(\'' + recId + '\')"><i class="fe fe-printer text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Print</a>'+
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="documentsReceipt(\'' + recId + '\', \'' + full.rec_code +'\')"><i class="fe fe-folder-plus text-info" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Document</a>'+
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)"><i class="fa fa-whatsapp text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Send in Whatsapp</a>'+
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)"><i class="fe fe-mail text-secondary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Send in Mail</a>';
+                            }
+
+                            more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)"  onclick="receiptLog(\'' + recId + '\')"><i class="fe fe-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058"></i>&nbsp;Logs</a>' +
+                                '</div>' +
+                                '</div>';
+
+                            return more;
+                        }
+                    },
+                    {
+                        "aTargets": [24],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [25],
+                        "visible": false,
+                        "render": function (data) {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "aTargets": [26],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [27],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [28],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [29],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [30],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [31],
+                        "visible": false,
+                        "render": function (data) {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "aTargets": [32],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [33],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [34],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [35],
+                        "visible": false
+                    },
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[2, 'asc']],
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Advance / Loyalty / Refunds | Receipts',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,18,
+                                19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,35]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Advance / Loyalty / Refunds | Receipts to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Advance / Loyalty / Refunds | Receipts',
+                        footer: 'true',
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL',
+                        exportOptions: {
+                            columns: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                                19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Advance / Loyalty / Refunds | Receipts to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Advance / Loyalty / Refunds | Receipts',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                                19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Advance / Loyalty / Refunds | Receipts to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Advance / Loyalty / Refunds | Receipts',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                                19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Advance / Loyalty / Refunds | Receipts!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Receipts </span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    rec_cash = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(numberRenderer1(rec_cash.toFixed(2)));
+
+                    rec_cc = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(numberRenderer1(rec_cc.toFixed(2)));
+
+                    rec_chq = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer1(rec_chq.toFixed(2)));
+
+                    rec_bt = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(numberRenderer1(rec_bt.toFixed(2)));
+
+                    rec_tabby = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(9).footer()).html(numberRenderer1(rec_tabby.toFixed(2)));
+
+                    rec_self = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(10).footer()).html(numberRenderer1(rec_self.toFixed(2)));
+
+                    rec_spoti = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(11).footer()).html(numberRenderer1(rec_spoti.toFixed(2)));
+
+                    rec_cob = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(12).footer()).html(numberRenderer1(rec_cob.toFixed(2)));
+
+                    rec_group = api.column(13).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(13).footer()).html(numberRenderer1(rec_group.toFixed(2)));
+
+                    rec_stripe = api.column(14).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(14).footer()).html(numberRenderer1(rec_stripe.toFixed(2)));
+
+                    rec_loyal_val = api.column(15).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(15).footer()).html(numberRenderer1(rec_loyal_val.toFixed(2)));
+
+                    rec_tamara = api.column(16).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(16).footer()).html(numberRenderer1(rec_tamara.toFixed(2)));
+
+                    rec_extra_pay1 = api.column(17).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(17).footer()).html(numberRenderer1(rec_extra_pay1.toFixed(2)));
+
+                    rec_extra_pay2 = api.column(18).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(18).footer()).html(numberRenderer1(rec_extra_pay2.toFixed(2)));
+
+                    rec_extra_pay3 = api.column(19).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(19).footer()).html(numberRenderer1(rec_extra_pay3.toFixed(2)));
+
+                    rec_total = api.column(20).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(20).footer()).html(numberRenderer1(rec_total.toFixed(2)));
+
+                    rec_allocated = api.column(21).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(21).footer()).html(numberRenderer1(rec_allocated.toFixed(2)));
+
+                    rec_balance = api.column(22).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(22).footer()).html(numberRenderer1(rec_balance.toFixed(2)));
+                },
+                rowCallback: function (row, data, index) {
+                    if (data.rec_status === "Deleted" || data.rec_status2 === "Posted") {
+                        $('td:eq(0)', row).find("input[type='checkbox']").remove();
+                    }
+                },
+            });
+            table.buttons().container().appendTo('#tbl_receipts_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region View Patient Details
+        var patientDetails = function (patId, pat_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PatientDetail", "Patient", new { area = "Patient" })?patId=" + patId + "&pat_name=" + pat_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#patient_details_body").html(response);
+                    $("#patient_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region New Receipt
+        $("#btnRec_Add").click(function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NewReceipt", "AdvanceLoyaltyRefund", new { area = "Invoice" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#addnew_advance_modal_body").html(response);
+                    $("#addnew_advance_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        });
+        //#endregion
+
+        //#region Alert Timeout
+        function timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 5000);
+        }
+        //#endregion
+
+        //#region Edit Receipt
+        var editReceipt = function (recId, mrn, mobile, name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditReceipt", "AdvanceLoyaltyRefund", new { area = "Invoice" })?recId=" + recId + "&mrn=" + mrn + "&mobile=" + mobile + "&name=" + name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#edit_receipt_modal_body").html(response);
+                    $("#edit_receipt_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Delete Receipt
+        var deleteReceipt = function (recId, rec_type) {
+            Swal.fire({
+            title: "Are you sure you want to delete this " + rec_type +"?",
+            html: "This action will delete record and its Recalculate the " + rec_type +" and all!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeletePayReceipt", "Receipt", new { area = "Invoice" })?recId=' + recId ,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.isSuccess) {
+                                    load_receipts();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: rec_type + " is Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Delete the " + rec_type +"!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete this " + rec_type +"!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete " + rec_type +"! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Print Receipt
+        var printReceipt = function (recId, rec_type) {
+            window.open("@Url.Action("PrintReceipt", "Receipt", new { area = "Invoice" })?recId=" + recId , "Receipt Print");
+        }
+        //#endregion
+
+        //#region Receipt Documents
+        var documentsReceipt = function (recId, rec_code) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ReceiptDocument", "Receipt", new { area = "Invoice" })?recId=" + recId + "&rec_code=" + rec_code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#receipt_documents_body").html(response);
+                    $("#receipt_documents").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Receipt Logs
+        var receiptLog = function (recId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ReceiptAuditLog", "Receipt", new { area = "Invoice" })?recId=" + recId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#receipt_log_body").html(response);
+                    $("#receipt_log").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Post Receipt(s) to Accounts
+        $("#btnRec_PostToAccount").click(function (event) {
+            var table = $("#tbl_receipts").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                Swal.fire({
+                    title: "This action will Post selected Receipts to Chart of Account!",
+                    html: "Are you sure you want to post selected receipts to <span class='text-danger'>Chart of Accounts</span> ? <br/>Once its posted to Account you can't do any updation in the receipts!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _recIds = [];
+                        var _recipt_type = [];
+
+                        $.each(rows, function (index, rowId) {
+                            var _data = table.row(rowId).data();
+                            if (_data.rec_status2 !== "Posted") {
+                                _recIds.push(_data.recId);
+                                _recipt_type.push(_data.rec_type);
+                            }
+                        });
+
+                        if (_recIds != null && _recIds != undefined) {
+
+                            var ReceiptsBulkStatus = {
+                                recIds: _recIds,
+                                rec_type: _recipt_type
+                            }
+
+                            $.ajax({
+                                url: '@Url.Action("PostToAccountReceipts", "AdvanceLoyaltyRefund", new { area = "Invoice" })',
+                                type: "POST",
+                                dataType: "json",
+                                data: ReceiptsBulkStatus,
+                                async: false,
+                                success: function (response) {
+                                    if (response.isSuccess) {
+                                        load_receipts();
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        return $.growl.notice({
+                                            title: "Success",
+                                            message: response.message
+                                        });
+                                    }
+                                    else {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        return $.growl.error({
+                                            title: "Error",
+                                            message: response.message
+                                        });
+                                    }
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Attention!",
+                                text: "Please Select atleast one receipt in the list to post to Chart of Account",
+                                icon: "warning",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                            });
+                        }
+                    }
+                });
+            }
+            else {
+                event.preventDefault();
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast one receipt in the list to post to Chart of Account",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+
+        });
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+    </script>
+}
+
+
+

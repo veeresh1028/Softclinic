@@ -1,0 +1,232 @@
+﻿@model BusinessEntities.Reports.SearchDetails
+
+<style type="text/css">
+    #tbl_comm_details_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 100px;
+    }
+</style>
+
+<div class="modal-header">
+    <h5 class="modal-title text-secondary font-weight-semibold">Doctor Commission Details for <b class="font-weight-bold">@Model.emp_name</b></h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4">
+    @Html.HiddenFor(m => m.empId)
+    @Html.HiddenFor(m => m.type)
+
+    <div class="table-responsive" style="min-height:auto">
+        <table id="tbl_comm_details" class="table table-striped table-bordered text-nowrap resize" style="width: 100%;">
+            <thead>
+                <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                    <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Patient Name</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Treatment Code</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Treatment Name</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Unit Price</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Disocunt</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">NET + VAT</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        get_comm_details($("#empId").val(), $("#type").val());
+    });
+    //#endregion
+
+    //#region View Commission Details
+    var get_comm_details = function (empId, type) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetDoctorsComissionDetails", "DoctorsComissionsReport", new { area = "Reports" })?empId=" + empId + "&type=" + type,
+            contentType: "application/json",
+            dataType: "json",
+            success: function (response) {
+                if (!response.isAuthorized) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_comm_details')) {
+                        table = $('#tbl_comm_details').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        BindDataTable(response);
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log("Error while Viewing Details : " + xhr.statusText);
+            }
+        }).done(function () {
+            resizedt();
+        });
+    }
+    //#endregion
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_comm_details").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 50,
+            stateSave: true,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "pt_app_fdate",
+                    "render": function (pt_app_fdate, type, full, meta) {
+                        if (type === 'display' || type === 'filter') {
+                            moment(pt_app_fdate).format("DD-MM-YYYY");
+                        }
+
+                        return moment(pt_app_fdate).format("YYYY-MM-DD");
+                    }
+                },
+                {
+                    "mData": "pat_name"
+                },
+                {
+                    "mData": "pt_tr_code",
+                    "className": 'text-justify text-wrap'
+                },
+                {
+                    "mData": "pt_tr_name",
+                    "className": 'text-justify text-wrap'
+                },
+                {
+                    "mData": "pt_type"
+                },
+                {
+                    "mData": "pt_qty",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pt_uprice",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pt_total",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pt_disc",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pt_net",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pt_vat",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pt_netvat",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                }
+            ],
+            order: [[0, 'desc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Patient / Date</span>',
+                lengthMenu: '_MENU_',
+                scrollX: "100%"
+            },
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Designations',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 2, 4]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Designations to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Designations',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 2, 4]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Designations to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Designations',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 2, 4]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Designations to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Designations',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 2, 4]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Designations!");
+                    }
+                }
+            ]
+        });
+
+        table.buttons().container().appendTo('#tbl_designations_wrapper .col-md-6:eq(0)');
+    };
+    //#endregion
+
+    //#region Datatable Resize
+    function resizedt() {
+        setTimeout(function () {
+            var tables = $.fn.dataTable.tables({ visible: true, api: true });
+            if (tables) {
+                $('#tbl_comm_details').DataTable().columns.adjust();
+            }
+        }, 500);
+    }
+    //#endregion
+</script>

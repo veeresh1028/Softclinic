@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Carboxy Therapy";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Carboxy Therapy Consent Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="CarboxyTherapy_add" style="display:none">
+                </div>
+                <div id="CarboxyTherapy_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="CarboxyTherapy_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetCarboxyTherapyInfo();
+        CarboxyTherapyPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetCarboxyTherapyInfo
+    var GetCarboxyTherapyInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetCarboxyTherapyData", "CarboxyTherapy", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditCarboxyTherapy();
+                        $("#CarboxyTherapy_add").hide();
+                        $("#CarboxyTherapy_edit").show();
+
+                    }
+                    else {
+                        $("#CarboxyTherapy_add").show();
+                        $("#CarboxyTherapy_edit").hide();
+                        AddCarboxyTherapy();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load CarboxyTherapy
+
+    //#region Add CarboxyTherapy
+    function AddCarboxyTherapy() {
+        var x = $("#CarboxyTherapy_add");
+        x.load("@Url.Action("CreateCarboxyTherapy", "CarboxyTherapy", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add CarboxyTherapy
+
+    // #region Update CarboxyTherapy
+    function EditCarboxyTherapy() {
+        var x = $("#CarboxyTherapy_edit");
+        x.load("@Url.Action("UpdateCarboxyTherapy", "CarboxyTherapy", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update CarboxyTherapy
+
+    //#region History of Carboxy Therapy
+    function CarboxyTherapyPreviousHistory() {
+        var x = $("#CarboxyTherapy_history");
+        x.load("@Url.Action("CarboxyTherapyPreviousHistory", "CarboxyTherapy", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

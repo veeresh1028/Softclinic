@@ -1,0 +1,1543 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Appointment Scheduler - Calendar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader col-md-4">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="schedule-doctors">Schedule Doctors</span>
+            <span class="badge bg-primary mt-2" style="background-color: #CFF5E7 !important; color: #0b8124;" data-lang-key="today"><small>Today</small></span>
+            <span class="badge bg-primary mt-2" style="background-color: #BFEAF5 !important; color: #0940a5;" data-lang-key="future"><small>Future</small></span>
+            <span class="badge bg-primary mt-2" style="background-color: #F8EDE3 !important; color: #9d4d08;" data-lang-key="past"><small>Past</small></span>
+        </h4>
+    </div>
+    <div class="page-rightheader col-md-8">
+        <div class="row align-items-center justify-content-center">
+            <div class="col-sm-12 col-md-12 col-lg-2 mb-2 mb-lg-0">
+                <button type="button" class="btn btn-warning btn-svgs btn-svg-white w-100 text-center" id="btnCreatePackageOrder">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
+                        <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z" />
+                        <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z" />
+                    </svg>
+                    <span class="btn-svg-text">Allocate Package</span>
+                </button>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-2 mb-2 mb-lg-0">
+                <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="button" id="btnBlock">Block</button>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-2 mb-2 mb-lg-0">
+                <button type="button" class="btn btn-outline-success w-100" data-bs-toggle="button" id="btnMeeting">Meeting</button>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-2 mb-2 mb-lg-0">
+                <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="button" id="btnBreak">Break</button>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4 mb-2 mb-lg-0">
+                <select id="select_branch" class="form-control custom-select select2 w-100">
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-2">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="card-body">
+                    <input type="hidden" id="hi_designation" value="0" />
+                    <input type="hidden" id="hi_empId" value="0" />
+                    <input type="hidden" id="hi_branch" value="0" />
+                    <input type="hidden" id="hi_branch_selected" value="0" />
+                    <div class="mb-1 d-grid">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">
+                                <span data-lang-key="select-date">Select Date</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                <input id="dt_select" class="form-control form-control-sm" placeholder="YYYY/MM/DD" type="text">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-1 d-grid">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">
+                                <span data-lang-key="departments">Department<small>(s)</small></span>
+                            </label>
+                            <div class="input-group">
+                                <select id="dept_select" class="form-control mb-4" multiple="multiple"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-1 d-grid">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">
+                                <span data-lang-key="doctors">Doctor<small>(s)</small></span>
+                            </label>
+                            <label class="custom-switch">
+                                <input type="checkbox" class="custom-switch-input d-none" id="chkDoctAll" name="chkDoctAll">
+                                <span class="custom-switch-indicator d-none" style="background: #fc7303;"></span>
+                                <span class="custom-switch-description font-weight-semibold text-orange d-none">
+                                    <span data-lang-key="select-all-doctors">Select All Doctors</span>
+                                </span>
+
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="chkAll" name="chkAll" />
+                                    <span class="custom-control-label font-weight-semibold text-orange">
+                                        <span data-lang-key="select-unslect-all-doctors">Select/Unselect All Doctors</span>
+                                    </span>
+                                </label>
+                            </label>
+
+                            <div id="loadDoctors"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-body">
+                <div class="demo-static-toast">
+                    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1000000">
+                        <div id="calenderToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        </div>
+                    </div>
+                </div>
+                <div class="" id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade overflow-auto" id="create_appointment_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="create_appointment_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade overflow-auto" id="update_appointment_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="update-appointment">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="update_appointment_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customer_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="customer_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade overflow-auto" id="create_patient_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="create_patient_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirm_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeC">
+        <div class="modal-content" id="confirm_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="inquiry_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeI">
+        <div class="modal-content" id="inquiry_modal_body">
+        </div>
+    </div>
+</div>
+<!-- Modal Quick Cash Billings -->
+<div class="modal fade overflow-auto" id="quick_billing" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="quick_billing_body">
+        </div>
+    </div>
+</div>
+<!-- End Quick Cash Billings -->
+<!-- Modal Insurance Billings -->
+<div class="modal fade overflow-auto" id="quick_ins_billing_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="quick_ins_billing_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Insurance Billings -->
+<!-- Modal Appointment Remarks -->
+<div class="modal fade overflow-auto" id="patient_remarks" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_remarks_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Appointment Remarks -->
+<!-- Modal Edit Patient -->
+<div class="modal fade overflow-auto" id="edit_patient_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg " id="size">
+        <div class="modal-content" id="edit_patient_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Edit Patient -->
+<!-- Modal Add New Receipt -->
+<div class="modal fade overflow-auto" id="addnew_receipt_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="addnew_receipt_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Add New Receipt -->
+<!-- Modal Patient Package Create -->
+<div class="modal fade overflow-auto" id="patient_package_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeI">
+        <div class="modal-content" id="patient_package_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Package Create Details -->
+
+@section myScripts{
+    <script src='~/assets/plugins/fullcalenderV2/main.js'></script>
+
+    <style type="text/css">
+        .modal-lg {
+            max-width: 1500px;
+        }
+
+        .form-label {
+            font-weight: 700;
+        }
+    </style>
+
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            if (localStorage.getItem("initial_view") == null) {
+                localStorage.setItem("initial_view", "resourceTimeGridDay");
+            }
+
+            var designation = "@emp_designation.ToString()"
+
+            if (parseInt(@empId) > 0) {
+                $("#hi_empId").val("@empId.ToString()");
+                $("#hi_designation").val(designation);
+                $("#hi_branch").val("@emp_branch.ToString()");
+                $("#hi_branch_selected").val("@emp_branch.ToString()");
+            }
+            else {
+                $("#hi_empId").val("1");
+                $("#hi_designation").val("Super Administrator");
+                $("#hi_branch").val("1");
+                $("#hi_branch_selected").val("1");
+            }
+
+            load_all_branches();
+
+            load_departments();
+
+            $('#dt_select').bootstrapdatepicker({
+                format: "yyyy-mm-dd",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+            });
+
+            $('#dt_select').val(moment().format("YYYY-MM-DD"));
+
+            $('#loadDoctors input:checkbox').attr('checked', 'checked');
+
+            $('#chkAll').attr('checked', 'checked');
+
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            Calendar.init();
+        });
+        //#endregion
+
+        //#region Select All Doctors
+        $('#chkAll').click(function () {
+            var isChecked = $(this).prop('checked');
+
+            var $checkboxes = $("#loadDoctors input[name='doctor-check']");
+
+            $checkboxes.prop('checked', isChecked);
+
+            $checkboxes.trigger("change");
+        });
+
+        $('#chkDoctAll').click(function () {
+            var _data = {};
+
+            if ($(this).is(':checked')) {
+                _data = {
+                    "Departments": $('#dept_select').val()
+                }
+            }
+            else {
+                _data = {
+                    "Departments": 0
+                }
+            }
+
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("GetDoctorsByDepartments", "Appointment", new { area = "Appointment" })',
+                dataType: 'json',
+                data: _data,
+                success: function (response) {
+                    $('#loadDoctors').html('');
+
+                    load_doctors_by_selection(response);
+                },
+                error: function (xhr, status, error) {
+                    console.log(error);
+                    console.log(xhr);
+                    console.log(status);
+                }
+            });
+        });
+        //#endregion
+
+        //#region Load All Branch(es)
+        var load_all_branches = function () {
+            $("#select_branch").select2({
+                placeholder: 'Select a Branch',
+                width: '100%'
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetBranches", "Appointment", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var value = "";
+
+                    if ("@emp_designation.ToString()" === "Doctor" || "@emp_designation.ToString()" === "Therapist") {
+                        value = "@emp_branch.ToString()";
+                    }
+
+                    $.each(response, function (j) {
+                        var newOption;
+
+                        if (value != null && value != "" && value != undefined && value != 0) {
+                            newOption = new Option(response[j].text, response[j].id, (response[j].id === value) ? true : false, (response[j].id === value) ? true : false);
+                        }
+                        else {
+                            newOption = new Option(response[j].text, response[j].id);
+                        }
+
+                        $('#select_branch').append(newOption).trigger('change');
+                    });
+
+                    $('#select_branch').val(value).trigger('change');
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                $('#select_branch').val($("#hi_branch_selected").val());
+
+                run_all_doctors();
+            });
+        };
+        //#endregion
+
+        //#region Branch Select Event
+        $('#select_branch').on('select2:select', function (e) {
+            $("#hi_branch_selected").val($('#select_branch').val());
+            $('#loadDoctors').html('');
+
+            var _param = "";
+            if ($("#hi_designation").val() !== "Doctor" && $("#hi_designation").val() !== "Therapist") {
+                _param = "?docId=0&setId=" + $('#select_branch').val();
+            }
+            else {
+                _param = "?docId=" + $("#hi_empId").val() + "&setId=" + $('#select_branch').val();
+            }
+
+            $.ajax({
+                url: '@Url.Action("GetActive_Doctors", "Appointment", new { area = "Appointment" })' + _param,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    load_doctors_by_selection(response);
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        });
+        //#endregion
+
+        //#region Load Departments
+        var load_departments = function () {
+            $('#dept_select').SumoSelect({
+                placeholder: 'Select Department(s)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#dept_select').html('');
+            $('#dept_select')[0].sumo.reload();
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "Appointment", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    if ("@emp_designation.ToString()" === "Doctor") {
+                        $('#dept_select')[0].sumo.add(@emp_dept.ToString(), "@emp_department.ToString()");
+                        $('#dept_select')[0].sumo.selectItem(["@emp_dept.ToString()"]);
+                    }
+                    else {
+                        $.each(response, function (j) {
+                            $('#dept_select')[0].sumo.add(response[j]["id"], response[j]["text"]);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                $('#dept_select')[0].sumo.selectAll();
+                $('#dept_select')[0].sumo.reload();
+            });
+        };
+        //#endregion
+
+        //#region Departments Select Event
+        $('#dept_select').on('change', function () {
+            var _data = {}
+
+            if ($("#hi_designation").val() !== "Doctor") {
+                _data = {
+                    "Departments": $('#dept_select').val(),
+                    "Doctor": ""
+                }
+            }
+            else {
+                _data = {
+                    "Departments": $('#dept_select').val(),
+                    "Doctor": $("#hi_empId").val()
+                }
+            }
+
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("GetDoctorsByDepartments", "Appointment", new { area = "Appointment" })',
+                dataType: 'json',
+                data: _data,
+                success: function (response) {
+                    $('#loadDoctors').html('');
+
+                    load_doctors_by_selection(response);
+
+                    $('.popover').popover('hide');
+                },
+                error: function (xhr, status, error) {
+                    console.log(error);
+                }
+            });
+        });
+        //#endregion
+
+        //#region Load All Doctors
+        var run_all_doctors = function () {
+            $('#loadDoctors').html('');
+
+            var _param = "";
+            var _docId = 0;
+
+            if ($("#hi_designation").val() !== "Doctor") {
+                _param = "?docId=" + _docId + "&setId=" + $("#hi_branch_selected").val();
+            }
+            else {
+                _param = "?docId=" + $("#hi_empId").val() + "&setId=" + $("#hi_branch_selected").val();
+            }
+
+            $.ajax({
+                url: '@Url.Action("GetActive_Doctors", "Appointment", new { area = "Appointment" })' + _param,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var ids = '';
+
+                    $.each(response, function (j) {
+                        ids += "," + response[j]["id"];
+
+                        var popover_id = "pos_" + response[j]["id"];
+
+                        $('#loadDoctors')
+                            .append('<label class="custom-control custom-checkbox" id="' + popover_id + '" data-trigger="hover" >' +
+                                '<input type="checkbox" class="custom-control-input" name="doctor-check" value="" id=' + response[j]["id"] + '>' +
+                                '<span class="custom-control-label">' +
+                                '<span class="avatar brround me-2" style="background-image: url(' + response[j]["extendedProps"]["emp_photo"] + ');"><span class="avatar-status" style="background:' + response[j]["extendedProps"]["emp_color"] + '!important"></span></span>' + response[j]["title"] + '' +
+                                //'<img class="avatat avatar-md brround me-2" src="' + response[j]["extendedProps"]["emp_photo"] + '" alt="img" style="width: 2rem !important;height: 2rem !important;line-height: 2rem !important;">' + response[j]["title"] + '</img>' +
+                                //'<span class="dot-label bg-success ms-2 me-2 w-2 h-2" style="background-color:' + response[j]["extendedProps"]["emp_color"] + ' !important;"></span>' +
+                                '</span>' +
+                                '</label>');
+                    });
+
+                    ids = ids.substring(1, ids.length);
+
+                    localStorage.getItem("selected_doctors");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Doctor Selection By Branch/Department (With Popover)
+        var load_doctors_by_selection = function (response) {
+            if (response.length > 0) {
+                var ids = '';
+
+                $.each(response, function (j) {
+                    var html = '<div class="card text-start user-contact-list">' +
+                        '<div class="">' +
+                        '<div class="card-header border-bottom text-white bg-gradient p-5">' +
+                        '<img class="avatar avatar-xxl br-7 d-block cover-image" src="' + response[j]["extendedProps"]["emp_photo"] + '">	</img>' +
+                        '<div class=" ms-3 text-white">' +
+                        '<p class="mb-0 mt-1 fs-14 font-weight-semibold">' + response[j]["title"] + '</p>' +
+                        '<small class="">' + response[j]["extendedProps"]["emp_desig_name"] + '</small>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="p-1">' +
+                        '<div class="">' +
+                        '<p class="font-weight-bold">License No  :  <span class="text-muted font-weight-normal ms-5">' + response[j]["extendedProps"]["emp_license"] + '</span></p>' +
+                        '<p class="font-weight-bold">Speciality  :  <span class="text-muted font-weight-normal ms-5">' + response[j]["extendedProps"]["emp_speciality"] + '</span></p>' +
+                        '<p class="font-weight-bold">Department  :  <span class="font-weight-normal text-info ms-5">' + response[j]["extendedProps"]["emp_dept_name"] + '</span></p>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>';
+
+                    ids += "," + response[j]["id"];
+                    var popover_id = "pos_" + response[j]["id"];
+
+                    $('#loadDoctors')
+                        .append('<label class="custom-control custom-checkbox" id="' + popover_id + '" data-trigger="hover">' +
+                            '<input type="checkbox" class="custom-control-input" name="doctor-check" value="" id=' + response[j]["id"] + '>' +
+                            '<span class="custom-control-label font-weight-semibold">' +
+                            '<span class="avatar brround me-2" style="background-image: url(' + response[j]["extendedProps"]["emp_photo"] + ');"><span class="avatar-status" style="background:' + response[j]["extendedProps"]["emp_color"] + '!important"></span></span>' + response[j]["title"] + '' +
+                            '</span>' +
+                            '</label>');
+
+                    $('#' + popover_id).popover({
+                        trigger: 'hover',
+                        title: 'Doctor Information',
+                        html: true,
+                        content: html,
+                        placement: 'right'
+                    }).popover({ trigger: "hover" });
+                });
+
+                ids = ids.substring(1, ids.length);
+
+                localStorage.setItem("selected_doctors", ids);
+
+                $('#loadDoctors input:checkbox').attr('checked', 'checked');
+
+                Calendar.init();
+            }
+            else {
+                $('#loadDoctors').html('<p class="text-danger text-wrap">No Doctor(s) or Therapist(s) Found for the selected Branch</p>');
+
+                localStorage.setItem("selected_doctors", "");
+
+                Calendar.init();
+            }
+        };
+        //#endregion
+
+        //#region Calender
+        var Calendar = function () {
+            "use strict";
+
+            //#region Doctor Check/Uncheck Event
+            $("#loadDoctors").on("change", ":checkbox", function () {
+                if ($(this).is(':checked')) {
+                    if (localStorage.getItem("selected_doctors").indexOf($(this).attr("id") + ",") == -1) {
+                        var str = localStorage.getItem("selected_doctors");
+
+                        if (str != "") {
+                            str = str + "," + $(this).attr("id");
+                        }
+                        else {
+                            str = $(this).attr("id");
+                        }
+
+                        localStorage.setItem("selected_doctors", str);
+                    }
+                    else {
+                        var str = localStorage.getItem("selected_doctors").replace($(this).attr("id") + ",", "");
+                        str = str + "," + $(this).attr("id");
+                        localStorage.setItem("selected_doctors", str);
+                    }
+                }
+                else {
+                    if (localStorage.getItem("selected_doctors").indexOf($(this).attr("id")) >= 0) {
+                        if (localStorage.getItem("selected_doctors").indexOf($(this).attr("id") + ",") >= 0) {
+                            var str = localStorage.getItem("selected_doctors").replace($(this).attr("id") + ",", "");
+                            localStorage.setItem("selected_doctors", str);
+                        }
+                        else {
+                            var str = localStorage.getItem("selected_doctors").replace($(this).attr("id"), "");
+                            localStorage.setItem("selected_doctors", str);
+                        }
+                    }
+                }
+
+                //ids = ids.substring(1, ids.length);
+
+                setFullCalendarEvents();
+            });
+            //#endregion
+
+            var setFullCalendarEvents = function () {
+                //#region Get TimeSlot Id
+                var getTimeSlotId = function (app_time) {
+                    var result;
+                    var _param = "?app_branch=" + parseInt($('#hi_branch_selected').val()) + "&app_time=" + app_time;
+
+                    $.ajax({
+                        url: '@Url.Action("GetTimeSlotId", "Appointment", new { area = "Appointment" })' + _param,
+                        type: "GET",
+                        dataType: "json",
+                        async: false,
+                        success: function (response) {
+                            result = response;
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            alert(xhr);
+                        }
+                    });
+                    return result;
+                }
+                //#endregion Get TimeSlot Id
+
+                // Get Calender Object
+                var calendarEl = document.getElementById('calendar');
+
+                // Calender Initialization/Settings
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: localStorage.getItem("initial_view"),
+                    initialDate: $('#dt_select').val(),
+                    editable: true,
+                    selectable: true,
+                    selectConstraint: 'businessHours',
+                    eventConstraint: 'businessHours',
+                    selectOverlap: false,
+                    dayMaxEvents: true,
+                    nowIndicator: true,
+                    businessHours: true,
+                    dayMinWidth: 200,
+                    slotDuration: '00:15',
+                    slotMinTime: '00:00',
+                    slotMaxTime: '23:59',
+                    slotLabelFormat:
+                    {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        omitZeroMinute: false,
+                    },
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'resourceTimeGridDay,resourceTimeGridTwoDay,resourceTimeGridThreeDay,timeGridWeek,resourceTimeGridWeek,dayGridMonth'
+                    },
+                    views: {
+                        resourceTimeGridDay: {
+                            titleFormat: { year: 'numeric', month: 'long', day: '2-digit', weekday: 'long' },
+                            buttonText: 'Day',
+                        },
+                        resourceTimeGridTwoDay: {
+                            type: 'resourceTimeGrid',
+                            duration: { days: 2 },
+                            buttonText: '2 Days',
+                        },
+                        resourceTimeGridThreeDay: {
+                            type: 'resourceTimeGrid',
+                            duration: { days: 3 },
+                            buttonText: '3 Days',
+                        },
+                        timeGridWeek: {
+                            buttonText: 'Week',
+                        },
+                        resourceTimeGridWeek: {
+                            buttonText: 'Week & Doctors',
+                        },
+                        dayGridMonth: {
+                            buttonText: 'Month',
+                        }
+                    },
+                    height: 700,
+                    //dayMinWidth: 100, // will cause horizontal scrollbars
+                    allDaySlot: false,
+                    displayEventTime: false,
+                    refetchResourcesOnNavigate: true,
+                    resources: function (fetchInfo, successCallback, failureCallback) {
+                        //console.log(localStorage.getItem("selected_doctors"));
+
+                        if (localStorage.getItem("selected_doctors") != null) {
+                            var _param = "?docIds=" + localStorage.getItem("selected_doctors") + "&setId=" + $('#hi_branch_selected').val() + "&start=" + moment(fetchInfo.start).format("YYYY-MM-DD") + "&end=" + moment(fetchInfo.end).format("YYYY-MM-DD") ;
+
+                            $.ajax({
+                                url: '@Url.Action("GetDoctorsWithRange", "Appointment", new { area = "Appointment" })' + _param,
+                                type: "GET",
+                                dataType: "json",
+                                async: false,
+                                success: function (response) {
+                                    successCallback(response);
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                    },
+                    resourceOrder: 'emp_rank',
+                    resourceLabelContent: (info) => {
+                        var popover_id = "po_" + info.resource.id;
+
+                        var html = '<a id="' + popover_id +'" data-trigger="hover">';
+                        html +=  '<img class="avatat avatar-md brround me-2" src="' + info.resource.extendedProps.emp_photo + '" alt="img" style="width: 2rem !important;height: 2rem !important;line-height: 2rem !important;"><span class="doc_header">' + info.resource.title + '</span></img>';
+                        html += '</a>';
+
+                        return { html: html }
+                    },
+                    resourceLabelDidMount: function (arg) {
+                        var html = '<div class="card text-start user-contact-list">' +
+                            '<div class="">' +
+                            '<div class="card-header border-bottom text-white bg-gradient p-5">' +
+                            '<img class="avatar avatar-xxl br-7 d-block cover-image" src="' + arg.resource.extendedProps.emp_photo + '">	</img>' +
+                            '<div class=" ms-3 text-white">' +
+                            '<p class="mb-0 mt-1 fs-14 font-weight-semibold">' + arg.resource.title + '</p>' +
+                            '<small class="">' + arg.resource.extendedProps.emp_desig_name + '</small>' +
+                            '</div>' +
+                            '</div>' +
+                            '<div class="p-1">' +
+                            '<div class="">' +
+                            '<p class="font-weight-bold">License No  :  <span class="text-muted font-weight-normal ms-5">' + arg.resource.extendedProps.emp_license + '</span></p>' +
+                            '<p class="font-weight-bold">Speciality  :  <span class="text-muted font-weight-normal ms-5">' + arg.resource.extendedProps.emp_speciality + '</span></p>' +
+                            '<p class="font-weight-bold">Department  :  <span class="font-weight-normal text-info ms-5">' + arg.resource.extendedProps.emp_dept_name + '</span></p>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>';
+
+                        var popover_id = "po_" + arg.resource.id;
+
+                        $('#' + popover_id).popover({
+                            trigger: 'hover',
+                            title: 'Doctor Information',
+                            html: true,
+                            content: html,
+                            placement: 'bottom'
+                        }).popover({ trigger: "hover" });
+
+                        var popover_side_id = "pos_" + arg.resource.id;
+
+                        $('#' + popover_side_id).popover({
+                            trigger: 'hover',
+                            title: 'Doctor Information',
+                            html: true,
+                            content: html,
+                            placement: 'right'
+                        }).popover({ trigger: "hover" });
+                    },
+                    events: function (info, successCallback, failureCallback) {
+                        var _param = "?start=" + moment(info.startStr).format("YYYY-MM-DD") + "&end=" + moment(info.endStr).format("YYYY-MM-DD") + "&docIds=" + localStorage.getItem("selected_doctors") + "&setId=" + $('#hi_branch_selected').val();
+
+                        $.ajax({
+                            url: '@Url.Action("GetAppointments", "Appointment", new { area = "Appointment" })' + _param,
+                            type: "GET",
+                            dataType: "json",
+                            async: false,
+                            success: function (response) {
+                                successCallback(response);
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                        });
+                    },
+                    eventContent: (info) => {
+                        var epopover_id = "epo_" + info.event.id;
+
+                        var html = '<a id="' + epopover_id + '" data-trigger="hover">';
+                        html += '<div>';
+                        html += '<span class="p-1">' + info.event.title + '</span>';
+                        html += '<span class="dot-label bg-success me-2 w-2 h-2" style="background-color:' + info.event.extendedProps.emp_color + ' !important;"></span>';
+                        html += '</div>';
+                        html += '</a>';
+
+                        return { html: html }
+                    },
+                    eventDidMount: function (arg) {
+
+                        var html = '<div class="row">' +
+                            '<div class="border p-0 shadow-none">' +
+                                '<div class="d-flex p-1 justify-content-center">' +
+                                    '<img class="avatar avatar-xxl br-7 d-block cover-image text-center" src="' + arg.event.extendedProps.pat_photo + '">	</img>' +
+                                '</div>' +
+                                '<div class="border-top">' +
+                                    '<p class="mb-1 text-center">' + arg.event.extendedProps.app_resnforvisit +'</p>' +
+                                        '<ul class="mb-0 user-details p-1">' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold d-flex justify-content-between">MRN # :<span class="h6 ps-2">' + arg.event.extendedProps.pat_code + '</span></small></li>' +
+                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Full Name :</span><span class="h6 ps-2">' + arg.event.extendedProps.title_arb + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Gender :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_gender + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Age :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_age + ' Years</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">DOB :</span><span class="h6 ps-2">' + moment(arg.event.extendedProps.pat_dob).format("DD-MMMM-YYYY") + ' </span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Nationality :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_nationality + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Emirates ID :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_emirateid +'</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Mobile No :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_mob + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Doctor :</span><span class="h6 ps-2">' + arg.event.extendedProps.emp_name + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Appointment Date :</span><span class="h6 ps-2">' + moment(arg.event.start).format("DD-MMMM-YYYY")  + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Appointment Time :</span><span class="h6 ps-2">' + moment(arg.event.start).format("HH:mm") + ' to ' + moment(arg.event.end).format("HH:mm") + '</span></small></li>' +
+                                            //'<li class="mb-1"><small><span class="font-weight-semibold">In/Out :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_inout + '</span></small></li>' +
+                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Room :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_room_name + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Type :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_type + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Status :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_status + '</span></small></li>' +
+                                            //'<li class="mb-1"><small><span class="font-weight-semibold">Emergency :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_emergency + '</span></small></li>' +
+                                            '<li class="mb-1"><small class="d-flex justify-content-between"><span class="font-weight-semibold">Insurance :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_ic_name + '</span></small></li>' +
+                                        '</ul>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+
+                        var epopover_id = "epo_" + arg.event.id;
+
+                        $('#' + epopover_id).popover({
+                            trigger: 'hover',
+                            title: 'Patient & Appointment Information',
+                            html: true,
+                            content: html,
+                            placement: 'bottom'
+                        })
+                        .popover({ trigger: "hover" });
+                    },
+                    select: function (arg) {
+                        localStorage.setItem("initial_view", arg.view.type);
+                        $('#dt_select').val(moment(arg.startStr).format("YYYY-MM-DD"));
+
+                         // Block Time-Slot
+                         if ($("#btnBlock").hasClass("active")) {
+                             Swal.fire({
+                                 title: `Are You Sure You Want to Block this Time-Slot?\n ${moment(arg.startStr).format("hh: mm A")} - ${moment(arg.endStr).format("hh: mm A")}`,
+                                 input: "text",
+                                 inputAttributes: {
+                                     id:"txt_reasonBlock",
+                                     autocapitalize: "off",
+                                     placeholder: "Enter the Reson",
+                                     autocomplete:"off"
+                                 },
+                                 showCancelButton: true,
+                                 cancelButtonText: 'No! Cancel Please',
+                                 cancelButtonClass: "btn btn-danger ms-2 mt-2",
+
+                                 confirmButtonText: 'Yes! I confirm',
+                                 confirmButtonClass: "btn btn-success mt-2",
+                                 showLoaderOnConfirm: true,
+
+                                 preConfirm: async (login) => {
+
+                                     if (login === undefined || login.trim() === "") {
+                                         Swal.showValidationMessage(`Request failed: please enter reason to block`);
+                                     }
+                                     else {
+                                         return true;
+                                     }
+                                 },
+                                 allowOutsideClick: () => !Swal.isLoading()
+                             }).then((result) => {
+                                 if (result.isConfirmed) {
+
+                                     let app = {
+                                         app_doctor: arg.resource.id,
+                                         app_ins: 8246,
+                                         app_fdate: moment(arg.startStr).format("YYYY-MM-DD"),
+                                         app_tdate: moment(arg.endStr).format("YYYY-MM-DD"),
+                                         app_doc_ftime: moment(arg.startStr).format("HH:mm"),
+                                         app_doc_ttime: moment(arg.endStr).format("HH:mm"),
+                                         app_comments: $('#txt_reasonBlock').val().trim(),
+                                     };
+
+                                     $.ajax({
+                                         url: "@Url.Action("BlockAppointment", "Appointment", new { area = "Appointment" })",
+                                         method: "POST",
+                                         data: app,
+                                         dataType: "json",
+                                         success: function (response) {
+                                             if (response.isAuthorized) {
+                                                 let status = "error";
+
+                                                 if (response.isSuccess) {
+                                                     setFullCalendarEvents();
+                                                     status = "success";
+                                                 }
+
+                                                 let _toast_html = toast_html(status, 'Appointment', response.message);
+                                                 var calenderToast = document.getElementById('calenderToast');
+                                                 calenderToast.innerHTML = _toast_html;
+                                                 var toast = new bootstrap.Toast(calenderToast)
+                                                 toast.show();
+                                             }
+                                             else {
+                                                 let _toast_html = toast_html('error', 'Appointment', response.message);
+                                                 var calenderToast = document.getElementById('calenderToast');
+                                                 calenderToast.innerHTML = _toast_html;
+                                                 var toast = new bootstrap.Toast(calenderToast)
+                                                 toast.show();
+                                             }
+                                         },
+                                         error: function (xhr) {
+                                             let _toast_html = toast_html('error', 'Appointment', 'Error when blocking time slot: ' + xhr.statusText);
+                                             var calenderToast = document.getElementById('calenderToast');
+                                             calenderToast.innerHTML = _toast_html;
+                                             var toast = new bootstrap.Toast(calenderToast)
+                                             toast.show();
+                                         }
+
+                                     });
+                                     $("#btnBlock").button("toggle");
+                                 }
+                                 else {
+                                     $("#btnBlock").button("toggle");
+                                 }
+                             });
+
+                             return;
+                        }
+                         // Meeting Time-Slot
+                        if ($("#btnMeeting").hasClass("active")) {
+                             Swal.fire({
+                                 title: `Are You Sure You Want to Block this Time-Slot for Meeting?\n ${moment(arg.startStr).format("hh: mm A")} - ${moment(arg.endStr).format("hh: mm A")}`,
+                                 input: "text",
+                                 inputAttributes: {
+                                     id:"txt_reasonBlock",
+                                     autocapitalize: "off",
+                                     placeholder: "Enter the Notes",
+                                     autocomplete:"off"
+                                 },
+                                 showCancelButton: true,
+                                 cancelButtonText: 'No! Cancel Please',
+                                 cancelButtonClass: "btn btn-danger ms-2 mt-2",
+
+                                 confirmButtonText: 'Yes! I confirm',
+                                 confirmButtonClass: "btn btn-success mt-2",
+                                 showLoaderOnConfirm: true,
+
+                                 preConfirm: async (login) => {
+
+                                     if (login === undefined || login.trim() === "") {
+                                         Swal.showValidationMessage(`Request failed: please enter Notes`);
+                                     }
+                                     else {
+                                         return true;
+                                     }
+                                 },
+                                 allowOutsideClick: () => !Swal.isLoading()
+                             }).then((result) => {
+                                 if (result.isConfirmed) {
+
+                                     let app = {
+                                         app_doctor: arg.resource.id,
+                                         app_ins: 8245,
+                                         app_fdate: moment(arg.startStr).format("YYYY-MM-DD"),
+                                         app_tdate: moment(arg.endStr).format("YYYY-MM-DD"),
+                                         app_doc_ftime: moment(arg.startStr).format("HH:mm"),
+                                         app_doc_ttime: moment(arg.endStr).format("HH:mm"),
+                                         app_comments: $('#txt_reasonBlock').val().trim(),
+                                     };
+
+                                     $.ajax({
+                                         url: "@Url.Action("BlockAppointment", "Appointment", new { area = "Appointment" })",
+                                         method: "POST",
+                                         data: app,
+                                         dataType: "json",
+                                         success: function (response) {
+                                             if (response.isAuthorized) {
+                                                 let status = "error";
+
+                                                 if (response.isSuccess) {
+                                                     setFullCalendarEvents();
+                                                     status = "success";
+                                                 }
+
+                                                 let _toast_html = toast_html(status, 'Appointment', response.message);
+                                                 var calenderToast = document.getElementById('calenderToast');
+                                                 calenderToast.innerHTML = _toast_html;
+                                                 var toast = new bootstrap.Toast(calenderToast)
+                                                 toast.show();
+                                             }
+                                             else {
+                                                 let _toast_html = toast_html('error', 'Appointment', response.message);
+                                                 var calenderToast = document.getElementById('calenderToast');
+                                                 calenderToast.innerHTML = _toast_html;
+                                                 var toast = new bootstrap.Toast(calenderToast)
+                                                 toast.show();
+                                             }
+                                         },
+                                         error: function (xhr) {
+                                             let _toast_html = toast_html('error', 'Appointment', 'Error when blocking time slot: ' + xhr.statusText);
+                                             var calenderToast = document.getElementById('calenderToast');
+                                             calenderToast.innerHTML = _toast_html;
+                                             var toast = new bootstrap.Toast(calenderToast)
+                                             toast.show();
+                                         }
+
+                                     });
+                                     $("#btnMeeting").button("toggle");
+                                 }
+                                 else {
+                                     $("#btnMeeting").button("toggle");
+                                 }
+                             });
+
+                             return;
+                        }
+                        // Break Time-Slot
+                        if ($("#btnBreak").hasClass("active")) {
+                             Swal.fire({
+                                 title: `Are You Sure You Want to Block this Time-Slot for Break?\n ${moment(arg.startStr).format("hh: mm A")} - ${moment(arg.endStr).format("hh: mm A")}`,
+                                 input: "text",
+                                 inputAttributes: {
+                                     id:"txt_reasonBlock",
+                                     autocapitalize: "off",
+                                     placeholder: "Enter the Notes",
+                                     autocomplete:"off"
+                                 },
+                                 showCancelButton: true,
+                                 cancelButtonText: 'No! Cancel Please',
+                                 cancelButtonClass: "btn btn-danger ms-2 mt-2",
+
+                                 confirmButtonText: 'Yes! I confirm',
+                                 confirmButtonClass: "btn btn-success mt-2",
+                                 showLoaderOnConfirm: true,
+
+                                 preConfirm: async (login) => {
+
+                                     if (login === undefined || login.trim() === "") {
+                                         Swal.showValidationMessage(`Request failed: please enter Notes`);
+                                     }
+                                     else {
+                                         return true;
+                                     }
+                                 },
+                                 allowOutsideClick: () => !Swal.isLoading()
+                             }).then((result) => {
+                                 if (result.isConfirmed) {
+
+                                     let app = {
+                                         app_doctor: arg.resource.id,
+                                         app_ins: 8247,
+                                         app_fdate: moment(arg.startStr).format("YYYY-MM-DD"),
+                                         app_tdate: moment(arg.endStr).format("YYYY-MM-DD"),
+                                         app_doc_ftime: moment(arg.startStr).format("HH:mm"),
+                                         app_doc_ttime: moment(arg.endStr).format("HH:mm"),
+                                         app_comments: $('#txt_reasonBlock').val().trim(),
+                                     };
+
+                                     $.ajax({
+                                         url: "@Url.Action("BlockAppointment", "Appointment", new { area = "Appointment" })",
+                                         method: "POST",
+                                         data: app,
+                                         dataType: "json",
+                                         success: function (response) {
+                                             if (response.isAuthorized) {
+                                                 let status = "error";
+
+                                                 if (response.isSuccess) {
+                                                     setFullCalendarEvents();
+                                                     status = "success";
+                                                 }
+
+                                                 let _toast_html = toast_html(status, 'Appointment', response.message);
+                                                 var calenderToast = document.getElementById('calenderToast');
+                                                 calenderToast.innerHTML = _toast_html;
+                                                 var toast = new bootstrap.Toast(calenderToast)
+                                                 toast.show();
+                                             }
+                                             else {
+                                                 let _toast_html = toast_html('error', 'Appointment', response.message);
+                                                 var calenderToast = document.getElementById('calenderToast');
+                                                 calenderToast.innerHTML = _toast_html;
+                                                 var toast = new bootstrap.Toast(calenderToast)
+                                                 toast.show();
+                                             }
+                                         },
+                                         error: function (xhr) {
+                                             let _toast_html = toast_html('error', 'Appointment', 'Error when blocking time slot: ' + xhr.statusText);
+                                             var calenderToast = document.getElementById('calenderToast');
+                                             calenderToast.innerHTML = _toast_html;
+                                             var toast = new bootstrap.Toast(calenderToast)
+                                             toast.show();
+                                         }
+
+                                     });
+                                     $("#btnBreak").button("toggle");
+                                 }
+                                 else {
+                                     $("#btnBreak").button("toggle");
+                                 }
+                             });
+
+                             return;
+                        }
+
+                        // Clone Appointment
+                        if (localStorage.getItem("clone_appointment") != null) {
+                            Swal.fire({
+                                title: "Are you sure you want to clone this appointment ?",
+                                text: "This action will Clone/Duplicate this Appointment!",
+                                icon: "question",
+                                showCancelButton: !0,
+                                confirmButtonText: 'Yes! I confirm',
+                                cancelButtonText: 'No! Cancel Please',
+                                confirmButtonClass: "btn btn-success mt-2",
+                                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                buttonsStyling: !1
+                            }).then(function (t) {
+                                if (t.value) {
+                                    var app = {
+                                        "appId": parseInt(localStorage.getItem("clone_appointment")),
+                                        "app_fdate": moment(arg.startStr).format("YYYY-MM-DD"),
+                                        "app_tdate": moment(arg.endStr).format("YYYY-MM-DD"),
+                                        "app_doc_ftime": moment(arg.startStr).format("HH:mm"),
+                                        "app_doc_ttime": moment(arg.endStr).format("HH:mm"),
+                                        "app_doctor": parseInt(arg.resource.id),
+                                        "app_branch": $('#hi_branch_selected').val(),
+                                        "app_madeby": parseInt(@empId)
+                                    }
+
+                                    $.ajax({
+                                        type: "GET",
+                                        url: "@Url.Action("CloneAppointment", "Appointment", new { area = "Appointment" })",
+                                        contentType: "application/json",
+                                        dataType: "json",
+                                        data: app,
+                                        success: function (response) {
+                                            setFullCalendarEvents();
+
+                                            var _toast_html = "";
+                                            _toast_html = toast_html('success', 'Appointment', 'You have successfully Cloned/Duplicated the appointment...');
+                                            var calenderToast = document.getElementById('calenderToast');
+                                            calenderToast.innerHTML = _toast_html;
+                                            var toast = new bootstrap.Toast(calenderToast)
+                                            toast.show();
+                                            localStorage.removeItem("clone_appointment")
+                                        },
+                                        error: function (xhr) {
+                                            console.log(xhr);
+                                        }
+                                    });
+                                }
+                                else {
+                                    localStorage.removeItem("clone_appointment")
+                                }
+                            });
+                        }
+                        // Re-book Appointment
+                        else if (localStorage.getItem("copy_appointment") != null) {
+                            Swal.fire({
+                                title: "Are you sure you want to Re-Book this appointment ?",
+                                text: "This action will Re-Book this Appointment with selected date!",
+                                icon: "question",
+                                showCancelButton: !0,
+                                confirmButtonText: 'Yes! I confirm',
+                                cancelButtonText: 'No! Cancel Please',
+                                confirmButtonClass: "btn btn-success mt-2",
+                                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                buttonsStyling: !1
+                            }).then(function (t) {
+                                if (t.value) {
+                                    var app = {
+                                        "appId": parseInt(localStorage.getItem("copy_appointment")),
+                                        "app_fdate": moment(arg.startStr).format("YYYY-MM-DD"),
+                                        "app_tdate": moment(arg.endStr).format("YYYY-MM-DD"),
+                                        "app_doc_ftime": moment(arg.startStr).format("HH:mm"),
+                                        "app_doc_ttime": moment(arg.endStr).format("HH:mm"),
+                                        "app_doctor": parseInt(arg.resource.id),
+                                        "app_branch": $('#hi_branch_selected').val(),
+                                        "app_madeby": parseInt(@empId)
+                                    }
+
+                                    $.ajax({
+                                        type: "GET",
+                                        url: "@Url.Action("RebookAppointment", "Appointment", new { area = "Appointment" })",
+                                        contentType: "application/json",
+                                        dataType: "json",
+                                        data: app,
+                                        success: function (response) {
+                                            setFullCalendarEvents();
+
+                                            var _toast_html = "";
+                                            _toast_html = toast_html('success', 'Appointment', 'You have successfully Rebooked the appointment...');
+                                            var calenderToast = document.getElementById('calenderToast');
+                                            calenderToast.innerHTML = _toast_html;
+                                            var toast = new bootstrap.Toast(calenderToast)
+                                            toast.show();
+                                            localStorage.removeItem("copy_appointment")
+                                        },
+                                        error: function (xhr) {
+                                            console.log(xhr);
+                                            alert(xhr);
+                                        }
+                                    });
+                                }
+                                else {
+                                    localStorage.removeItem("copy_appointment")
+                                }
+                            });
+                        }
+                        // Create Appointment
+                        else {
+                            //console.log(arg.startStr)
+                            let _resource_id = 0;
+                            if (arg.resource !== null && arg.resource !== undefined) {
+                                _resource_id = arg.resource.id;
+                            }
+
+                            let _app_ftime = getTimeSlotId(moment(arg.startStr).format("HH:mm"));
+                            let _app_ttime = getTimeSlotId(moment(arg.endStr).format("HH:mm"));
+
+                            // Binding Appointment Modal
+                            var app = {
+                                "appId": 0,
+                                "app_inout": "Out Patient",
+                                "app_branch": parseInt($('#hi_branch_selected').val()),
+                                "app_doctor": parseInt(_resource_id),
+                                "app_fdate": moment(arg.startStr).format("YYYY-MM-DD"),
+                                "app_tdate": moment(arg.startStr).format("YYYY-MM-DD"),
+                                "app_doc_ftime": moment(arg.startStr).format("HH:mm"),
+                                "app_doc_ttime": moment(arg.endStr).format("HH:mm"),
+                                "app_room": 0,
+                                "app_ftime": parseInt(_app_ftime),
+                                "app_ttime": parseInt(_app_ttime),
+                                "app_patient": 0,
+                                "app_type": "First Time",
+                                "app_status": "Booked",
+                                "app_emergency": "NO",
+                                "app_eligibility": "",
+                                "app_reason_for_visit": "",
+                                "app_comments": "",
+                                "app_package_order": 0,
+                                "app_service":0
+                            }
+
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("CreateAppointment", "Appointment", new { area = "Appointment" })",
+                                contentType: "application/json",
+                                dataType: "html",
+                                data: app,
+                                success: function (data) {
+                                    $('#create_appointment_modal').attr("data-modal-from", "create-appointment");
+                                    $("#create_appointment_modal_body").html(data);
+                                    $("#create_appointment_modal").modal("show");
+                                },
+                                error: function (xhr) {
+                                    console.log("Error : "+xhr.statusText);
+                                }
+                            });
+                        }
+                    },
+                    dateClick: function (arg) {
+                        localStorage.setItem("initial_view", arg.view.type);
+                        $('#dt_select').val(moment(arg.date).format("YYYY-MM-DD"));
+                        //console.log(
+                        //    'dateClick',
+                        //    arg.date,
+                        //    arg.resource ? arg.resource.id : '(no resource)'
+                        //);
+                    },
+                    eventClick: function (info) {
+                        localStorage.setItem("initial_view", info.view.type);
+                        $('#dt_select').val(moment(info.event.startStr).format("YYYY-MM-DD"));
+
+                        // Binding Appointment Modal
+                        var app = {
+                            "appId": parseInt(info.event.id),
+                            "app_inout": info.event.extendedProps.app_inout,
+                            "app_branch": parseInt(info.event.extendedProps.app_branch),
+                            "app_doctor": parseInt(info.event.extendedProps.app_doctor),
+                            "app_fdate": info.event.extendedProps.app_fdate,
+                            "app_doc_ftime": moment(info.event.startStr).format("HH:mm"),
+                            "app_doc_ttime": moment(info.event.endStr).format("HH:mm"),
+                            "app_room": parseInt(info.event.extendedProps.app_room),
+                            "app_ftime": parseInt(info.event.extendedProps.app_ftime),
+                            "app_ttime": parseInt(info.event.extendedProps.app_ttime),
+                            "app_patient": parseInt(info.event.extendedProps.app_ins),
+                            "app_ins": parseInt(info.event.extendedProps.app_patient),
+                            "app_type": info.event.extendedProps.app_type,
+                            "app_status": info.event.extendedProps.app_status,
+                            "app_emergency": info.event.extendedProps.app_emergency,
+                            "app_eligibility": info.event.extendedProps.app_eligibility,
+                            "app_reason_for_visit": info.event.extendedProps.app_resnforvisit,
+                            "app_comments": info.event.extendedProps.app_comments,
+                            "app_package_order": parseInt(info.event.extendedProps.app_po),
+                            "app_service": parseInt(info.event.extendedProps.app_service),
+                            "app_category": info.event.extendedProps.app_category
+                        }
+
+                        $.ajax({
+                            type: "GET",
+                            url: "@Url.Action("UpdateAppointment", "Appointment", new { area = "Appointment" })",
+                            contentType: "application/json",
+                            dataType: "html",
+                            data: app,
+                            success: function (data) {
+                                $('#update_appointment_modal').attr("data-modal-from", "update-appointment");
+                                $("#update_appointment_modal_body").html(data);
+                                $("#update_appointment_modal").modal("show");
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                        });
+                    },
+                    eventDrop: function (info) {
+                        localStorage.setItem("initial_view", info.view.type);
+                        var app_status = info.event.extendedProps.app_status;
+
+                        $('#dt_select').val(moment(info.event.extendedProps.app_fdate).format("YYYY-MM-DD"));
+
+                        if (app_status != "Invoiced") {
+                            var event = calendar.getEventById(info.event.id);
+                            var resources = event.getResources();
+                            var resourceIds = resources.map(function (resource) { return resource.id });
+
+                            // Binding ReBooking-Appointment Modal
+                            var app = {
+                                "appId": parseInt(info.event.id),
+                                "app_fdate": moment(info.event.startStr).format("YYYY-MM-DD"),
+                                "app_tdate": moment(info.event.endStr).format("YYYY-MM-DD"),
+                                "app_doc_ftime": moment(info.event.startStr).format("HH:mm"),
+                                "app_doc_ttime": moment(info.event.endStr).format("HH:mm"),
+                                "app_doctor": parseInt(resourceIds[0]),
+                                "app_branch": $('#hi_branch_selected').val(),
+                                "app_madeby": parseInt(@empId)
+                            }
+
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("RebookAppointment", "Appointment", new { area = "Appointment" })",
+                                contentType: "application/json",
+                                dataType: "json",
+                                data: app,
+                                success: function (response) {
+                                    setFullCalendarEvents();
+
+                                    var _toast_html = "";
+                                    _toast_html = toast_html('success', 'Appointment', '<i class="fe fe-check-circle me-2 text-success"></i> You have successfully Updated the appointment!');
+                                    var calenderToast = document.getElementById('calenderToast');
+                                    calenderToast.innerHTML = _toast_html;
+                                    var toast = new bootstrap.Toast(calenderToast)
+                                    toast.show();
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            }).done(function () {
+                                $(".popover").popover('hide');
+                            });
+                        }
+                        else {
+                            setFullCalendarEvents();
+
+                            var _toast_html = "";
+
+                            _toast_html = toast_html('warning', 'Appointment', "<i class='fe fe-alert-triangle me-2 text-warning'></i> <b>" + app_status +"</b> Appointment can't be Updated!");
+                            var calenderToast = document.getElementById('calenderToast');
+                            calenderToast.innerHTML = _toast_html;
+                            var toast = new bootstrap.Toast(calenderToast)
+                            toast.show();
+                        }
+                    },
+                    eventResize: function (info) {
+                        localStorage.setItem("initial_view", info.view.type);
+
+                        var event = calendar.getEventById(info.event.id);
+                        var resources = event.getResources();
+                        var resourceIds = resources.map(function (resource) { return resource.id });
+
+                        var app_status = info.event.extendedProps.app_status;
+                        $('#dt_select').val(moment(info.event.extendedProps.app_fdate).format("YYYY-MM-DD"));
+
+                        if (app_status != "Invoiced") {
+                            // Binding ReBooking-Appointment Modal
+                            var app = {
+                                "appId": parseInt(info.event.id),
+                                "app_fdate": moment(info.event.startStr).format("YYYY-MM-DD"),
+                                "app_tdate": moment(info.event.endStr).format("YYYY-MM-DD"),
+                                "app_doc_ftime": moment(info.event.startStr).format("HH:mm"),
+                                "app_doc_ttime": moment(info.event.endStr).format("HH:mm"),
+                                "app_doctor": parseInt(resourceIds[0]),
+                                "app_branch": $('#hi_branch_selected').val(),
+                                "app_madeby": parseInt(@empId)
+                            }
+
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("RebookAppointment", "Appointment", new { area = "Appointment" })",
+                                contentType: "application/json",
+                                dataType: "json",
+                                data: app,
+                                success: function (response) {
+                                    setFullCalendarEvents();
+
+                                    var _toast_html = "";
+                                    _toast_html = toast_html('success', 'Appointment', '<i class="fe fe-check-circle me-2 text-success"></i> You have successfully Updated the appointment!');
+                                    var calenderToast = document.getElementById('calenderToast');
+                                    calenderToast.innerHTML = _toast_html;
+                                    var toast = new bootstrap.Toast(calenderToast)
+                                    toast.show();
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            }).done(function () {
+                                $(".popover").popover('hide');
+                            });
+                        }
+                        else {
+                            setFullCalendarEvents();
+
+                            var _toast_html = "";
+
+                            _toast_html = toast_html('warning', 'Appointment', "<i class='fe fe-alert-triangle me-2 text-warning'></i> <b>" + app_status + "</b> Appointment can't be Updated!");
+                            var calenderToast = document.getElementById('calenderToast');
+                            calenderToast.innerHTML = _toast_html;
+                            var toast = new bootstrap.Toast(calenderToast)
+                            toast.show();
+                        }
+                    },
+                    dayCellDidMount: function (arg){
+                        if (arg.view.type == "dayGridMonth" || arg.view.type == "timeGridWeek") {
+                            console.log("No need Business Hours");
+                        }
+                        else {
+                            if (!arg.isDisabled) {
+                                if (arg.isToday) {
+                                    arg.el.style.backgroundColor = '#CFF5E7'
+                                }
+                                else if (arg.isFuture) {
+                                    arg.el.style.backgroundColor = '#BFEAF5'
+                                }
+                                else if (arg.isPast) {
+                                    arg.el.style.backgroundColor = '#F8EDE3'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                calendar.render();
+
+                //#region Change Calender Date on DatePickerChange
+                $('#dt_select').change(function () {
+                    calendar.gotoDate($(this).val());
+                });
+                //#endregion
+            }
+            return {
+                init: function () {
+                    setFullCalendarEvents();
+                }
+            };
+        }();
+        //#endregion
+
+        //#region Create Patient
+        $('#btnCreatePackageOrder').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreatePatientPackage", "Packages", new { area = "EMR" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $('#create_appointment_modal').modal('hide');
+                    $('#patient_package_modal').attr("data-modal-from", "create-appointment");
+                    $("#patient_package_body").html(data);
+                    $("#patient_package_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        });
+        //#endregion
+
+        //#region Toast Body
+        var toast_html = function (type, heading, content) {
+            var div = "";
+
+            if (type === "success") {
+                div = '<div class="toast-header bg-success text-white">';
+            }
+            else if (type === "error") {
+                div = '<div class="toast-header bg-danger text-white">';
+            }
+            else if (type === "info") {
+                div = '<div class="toast-header bg-info text-white">';
+            }
+            else if (type === "warning") {
+                div = '<div class="toast-header bg-warning text-white">';
+            }
+            else {
+                div = '<div class="toast-header bg-primary text-white">';
+            }
+
+            var html = div +
+                '<strong class="me-auto">' + heading + '</strong>' +
+                '<small>just now</small>' +
+                '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close">' +
+                '<span aria-hidden="true">×</span>' +
+                '</button>' +
+                '</div>' +
+                '<div class="toast-body">' +
+                content
+            '</div>';
+
+            return html;
+        }
+        //#endregion
+    </script>
+}

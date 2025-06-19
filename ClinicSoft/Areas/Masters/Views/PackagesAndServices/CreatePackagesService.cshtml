@@ -1,0 +1,272 @@
+﻿
+
+@model BusinessEntities.Masters.PackagesAndServices
+<style>
+    #size {
+        max-width: 600px;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Create New Package</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_AddPKG" >
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+
+            <div class="col-sm-6 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold">Code &nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.pkg_code, new { @class = "form-control", @placeholder = "Ex : PKG001", @maxlength = "80" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold">Name &nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.pkg_name, new { @class = "form-control", @placeholder = "Ex : Thyroid Profile", @maxlength = "80" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold">Cost</label>
+                    @Html.TextBoxFor(m => m.pkg_price, new { @class = "form-control mb-2", @placeholder = "Ex : 750.00", @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorCreate"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert">Create Package</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseCreate" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        validation();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+
+        $("#form_AddPKG").validate({
+            focusInvalid: true,
+            rules:
+            {
+                pkg_name: {
+                    required: true
+                }
+            },
+            messages: {
+                pkg_name: {
+                    required: "Please Enter Group Name"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#pkg_price').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 1000000) {
+                return false;
+            }
+        });
+
+        $("#pkg_price").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pkg_price").val(0.00);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Validate Decimal
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : evt.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Insert Package Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+        if ($("#form_AddPKG").valid()) {
+            $('#btn_Insert').removeClass("btn btn-success");
+            $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Insert').parent().addClass("curdrop");
+            $('.btnCloseCreate').addClass("disabled");
+            $('#btn_Insert').html("Creating... Please Wait");
+
+            var _dataInsert = {
+                "tgId": 0,
+                "pkg_code": $("#pkg_code").val().trim(),
+                "pkg_name": $("#pkg_name").val().trim(),
+                "pkg_price": $("#pkg_price").val(),
+                "__RequestVerificationToken" : $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertPackage", "PackagesAndServices", new {area = "Masters" })",
+                dataType: 'JSON',
+                data: _dataInsert,
+                success: function (data) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Package");
+
+                    if (data.isSuccess) {
+                        if (data.isInserted) {
+                            GetPackagesServices();
+
+                            var alertPlaceholder = document.getElementById("PackageAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Package Created Successfully!", "success");
+
+                            $("#pkg_name").val('');
+                            $("#pkg_price").val('0.00');
+                            $('#package_modal').modal('toggle');
+                            Timeout();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Package Already Exists with the same name!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorCreate").html(html);
+                        }
+
+                    } else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.&nbsp;</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+                        $("#errorCreate").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Package");
+
+                    $('#package_modal').modal('toggle');
+                    Timeout();
+                }
+            })
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

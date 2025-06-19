@@ -1,0 +1,114 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "DischargeCrossLinkingNewIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Discharge Summary For Corneal Collagen Cross Linking
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargeCrossLinkingNew_add" style="display:none">
+                </div>
+                <div id="DischargeCrossLinkingNew_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargeCrossLinkingNew_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetDischargeCrossLinkingNewInfo();
+           DischargeCrossLinkingNewPreviousHistory();
+
+        });
+        //#endregion Page Load
+
+        //#region Load GetDischargeCrossLinkingNewInfo
+        var GetDischargeCrossLinkingNewInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDischargeCrossLinkingNewData", "DischargeCrossLinkingNew", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditDischargeCrossLinkingNew();
+                            $("#DischargeCrossLinkingNew_add").hide();
+                            $("#DischargeCrossLinkingNew_edit").show();
+
+                        }
+                        else {
+                            $("#DischargeCrossLinkingNew_add").show();
+                            $("#DischargeCrossLinkingNew_edit").hide();
+                            AddDischargeCrossLinkingNew();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load DischargeCrossLinkingNew
+
+        //#region Add DischargeCrossLinkingNew
+        function AddDischargeCrossLinkingNew() {
+            var x = $("#DischargeCrossLinkingNew_add");
+            x.load("@Url.Action("CreateDischargeCrossLinkingNew", "DischargeCrossLinkingNew", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add DischargeCrossLinkingNew
+
+        //#region Update DischargeCrossLinkingNew
+        function EditDischargeCrossLinkingNew() {
+            var x = $("#DischargeCrossLinkingNew_edit");
+            x.load("@Url.Action("UpdateDischargeCrossLinkingNew", "DischargeCrossLinkingNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update DischargeCrossLinkingNew
+
+          //#region Histroy of DischargeCrossLinkingNew
+        function DischargeCrossLinkingNewPreviousHistory() {
+            var x = $("#DischargeCrossLinkingNew_history");
+            x.load("@Url.Action("DischargeCrossLinkingNewPreviousHistory", "DischargeCrossLinkingNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of DischargeCrossLinkingNew
+
+
+    </script>
+
+@*}*@

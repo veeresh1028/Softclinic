@@ -1,0 +1,2663 @@
+﻿@model IEnumerable<BusinessEntities.Appointment.AppointmentList>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Appointment List";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<style type="text/css">
+    #tbl_appointments_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="appointments">Appointments</span>
+            <span class="badge mt-2">
+                <span id="count_booked"></span>
+                <span id="count_confirmed"></span>
+                <span id="count_arrived"></span>
+                <span id="count_nurse"></span>
+                <span id="count_doctor"></span>
+                <span id="count_invoiced"></span>
+                <span id="count_cancelled"></span>
+            </span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> <span data-lang-key="advance-filter"> Advanced Filters</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span>
+                                </label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="departments">Department<small>(s)</small></span>
+                                </label>
+                                <select class="form-control" id="select_dept" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="doctors">Doctor<small>(s)</small></span>
+                                </label>
+                                <select class="form-control" id="select_doctor" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="rooms">Room<small>(s)</small></span>
+                                </label>
+                                <select class="form-control select2" id="select_room" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="referrals">Referral<small>(s)</small></span>
+                                </label>
+                                <select class="form-control" id="select_referal" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="nationality">Nationality</span>
+                                </label>
+                                <select class="form-control" id="select_nationality" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="insurance TPA">Insurance TPA<small>(s)</small></span>
+                                </label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_ins_tpa">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="insurance-scheme">Insurance Scheme<small>(s)</small></span>
+                                </label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_scheme">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="insurance-payers">Insurance Payer<small>(s)</small></span>
+                                </label>
+                                <select class="form-control" multiple="multiple" id="select_ins_payer"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="patient-search">Patient <small class="ms-2 text-info">(Search By MRN/EID/Mobile/Name)</small></span>
+                                </label>
+                                <select class="form-control select2-show-search" id="select_patient"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="type">Type<small>(s)</small></span>
+                                </label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_type"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="status">status</span>
+                                </label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_status"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span>
+                                </label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from_app" class="form-control" placeholder="Select Appointment Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span>
+                                </label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to_app" class="form-control" placeholder="Select Appointment Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-1">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i>
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-static-toast">
+        <div class="position-fixed top-0 end-0 p-3" style="z-index:100000000">
+            <div id="appointmentToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+        <div id="AppointmentAlert"></div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body d-lg-flex">
+                <div class="col-sm-6 col-md-2 col-lg-2">
+                    <div class="form-group">
+                        <select id="sms_email_template" class="form-select select2 mb-4">
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-2 col-lg-2">
+                    <div class="form-group">
+                        <textarea id="sms_email_template_msg" class="form-control mb-4" placeholder="Enter custom message" rows="1"></textarea>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="btn-list btn-animation">
+                        <button class="btn btn-green mt-2" type="button" id="btnWhatsapp" style="display:none;">
+                            <i class="fa fa-whatsapp"></i>
+                            <span data-lang-key="send-whatsup">Send Whatsapp</span>
+                        </button>
+                        <button class="btn btn-indigo ms-2 mt-2" type="button" id="btnSMS" style="display:none;">
+                            <i class="fa fa-comment"></i>
+                            <span data-lang-key="seng-sms">Send SMS</span>
+                        </button>
+                        <button class="btn btn-primary ms-lg-2 mt-2" type="button" id="btnSMS_AR" style="display:none;">
+                            <i class="fa fa-comment-o"></i> رسالة قصيرة
+                        </button>
+                        <button class="btn btn-info ms-lg-2 mt-2" type="button" id="btnEmail" style="display:none;">
+                            <i class="fa fa-envelope"></i>
+                            <span data-lang-key="send-email">Send Email</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_appointments" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="photo">Photo</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="visit-id">Visit ID</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="date and time">Date &amp; Time</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-details">Patients Details</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-details">Doctor Details</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="room">Room</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="type">Type</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="insurance">Insurance</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="remarks">Remarks</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">EMR</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                                <!-- Hidden Export Columns -->
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    Patient Name
+                                </th><!--14-->
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="gender">Gender</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="dob">Date of Birth</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="mobile">Mobile No.</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">EMID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="nationality">Nationality</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-name">Doctor Name</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="departments">Department</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="date-time-arrived">Date / Time Arrived</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="date-time-Invoice">Date / Time Invoiced</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="appointment-date">Appointment Date</span>
+                                </th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-wrap d-none" id="toastApp">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="appToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto">
+                                <span data-lang-key="appointments">Appointments</span>
+                            </strong>
+                            <small>
+                                <span data-lang-key="just-now">Just Now</span>
+                            </small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body">
+                            <i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark"><span data-lang-key=filtered>Filtered </span> </b> <b class="text-primary" id="app_count"> <span data-lang-key="records-in-about">record(s) in about</span></b>  <b id="etime"></b> ms
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Appointment -->
+<div class="modal fade overflow-auto" id="update_appointment_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="update_appointment_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Edit Appointment -->
+<!-- Modal Package -->
+<div class="modal fade overflow-auto" id="pkg_order_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="pkg_order_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Package -->
+<!-- Modal Create Patient -->
+<div class="modal fade overflow-auto" id="create_patient_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="create_patient_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Create Patient -->
+<!-- Modal Patient Label -->
+<div class="modal fade overflow-auto" id="patient_label" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizePL">
+        <div class="modal-content" id="patient_label_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Label -->
+<!-- Modal Appointment Audit Logs -->
+<div class="modal fade overflow-auto" id="app_logs" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="app_logs_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Appointment Audit Logs -->
+<!-- Modal Medical Sheet -->
+<div class="modal fade overflow-auto" id="med_sheet" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="med_sheet_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Medical Sheet -->
+<!-- Modal Appointment Remarks -->
+<div class="modal fade overflow-auto" id="patient_remarks" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_remarks_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Appointment Remarks -->
+<!-- Modal Patient Details -->
+<div class="modal fade overflow-auto" id="patient_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Details -->
+<!-- Modal Patient Inquiry -->
+<div class="modal fade overflow-auto" id="inquiry_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeI">
+        <div class="modal-content" id="inquiry_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Inquiry -->
+<!-- Modal Quick Cash Billings -->
+<div class="modal fade overflow-auto" id="quick_billing" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="quick_billing_body">
+        </div>
+    </div>
+</div>
+<!-- End Quick Cash Billings -->
+<!-- Modal Print Invoice -->
+<div class="modal fade overflow-auto" id="print_invoice" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg ">
+        <div class="modal-content" id="print_invoice_body">
+        </div>
+    </div>
+</div>
+<!-- End Print Invoice -->
+<!-- Modal Doctor Details -->
+<div class="modal fade overflow-auto" id="doctor_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="doctor_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Doctor Details -->
+<!-- Modal Treatment Items Details -->
+<div class="modal fade overflow-auto" id="treatment_item_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="treatment_item_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Treatment Items Details -->
+<!-- Modal Auditlog Appointment -->
+<div class="modal fade overflow-auto" id="audit_appointment_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="audit_appointment_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Auditlog Appointment -->
+<!-- Modal Appointment logs -->
+<div class="modal fade overflow-auto" id="appointment_logs" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="appointment_logs_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Appointment logs -->
+<!-- Modal Insurance Billings -->
+<div class="modal fade overflow-auto" id="quick_ins_billing_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="appointment-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="quick_ins_billing_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Insurance Billings -->
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Toggle Sidebar
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Appointments
+            GetAppointments(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var pageLoad = false;
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_departments();
+            load_doctors();
+            load_referrals();
+            load_nationalities();
+            load_types();
+            load_status();
+            load_patients();
+            load_ins_tpa();
+
+            $('#select_date_from_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from_app").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_to_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to_app").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_from_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $("#sms_email_template").select2({
+                placeholder: 'Select a Template',
+                width: '100%',
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+
+            load_templates();
+
+            $("#bulk_status").select2({
+                placeholder: 'Select Status',
+                width: '100%'
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                if ("@emp_designation.ToString()" === "Doctor")
+                {
+                    $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                }
+                else
+                {
+                    $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        //$('#select_branch')[0].sumo.selectItem([response[j].id]);
+                    });
+                }
+                pageLoad = false;
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+                load_rooms($("#select_branch").val());
+            });
+        }
+        // Load Departments
+        var load_departments = function () {
+            $('#select_dept').SumoSelect({
+                placeholder: 'Select Department(s)',
+                captionFormat: '{0} Department(s) Selected',
+                captionFormatAllSelected: 'All {0} Department(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_dept').html('');
+                    $('#select_dept')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" === "Doctor")
+                    {
+                        $('#select_dept')[0].sumo.add(@emp_dept.ToString(), "@emp_department.ToString()");
+                        $('#select_dept')[0].sumo.selectItem(["@emp_dept.ToString()"]);
+                    }
+                    else
+                    {
+                        $.each(response, function (j) {
+                            $('#select_dept')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#select_dept')[0].sumo.selectItem([response[j].id]);
+                        });
+                    }
+                    $('#select_dept')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Doctors
+        var load_doctors = function () {
+            $("#select_doctor").SumoSelect({
+                placeholder: 'Select Doctor(s)',
+                captionFormat: '{0} Doctor(s) Selected',
+                captionFormatAllSelected: 'All {0} Doctors selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $('#select_doctor').html('');
+            $('#select_doctor')[0].sumo.reload();
+        }
+        // On Departments select
+        $('#select_dept').on('change', function (e) {
+            if ($(this).val() != "" && $('#select_branch').val() != "") {
+
+                var _data = {
+                    "Departments": $('#select_dept').val(),
+                    "Branches": $('#select_branch').val(),
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetDoctorsByDepartment", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'JSON',
+                    data: _data,
+                    success: function (response) {
+                        $('#select_doctor').html('');
+                        $('#select_doctor')[0].sumo.reload();
+
+                        if ("@emp_designation.ToString()" === "Doctor") {
+                            $('#select_doctor')[0].sumo.add(@empId.ToString(), "@emp_name.ToString()");
+                            $('#select_doctor')[0].sumo.selectItem(["@empId.ToString()"]);
+                        }
+                        else {
+                            $.each(response, function (j) {
+                                $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                                //$('#select_doctor')[0].sumo.selectItem([response[j].id]);
+                            });
+                        }
+                        $('#select_doctor')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_doctor').html('');
+                $('#select_doctor')[0].sumo.reload();
+            }
+        });
+        // On Branches select
+        $('#select_branch').on('change', function () {
+
+            if (!pageLoad) {
+
+                if ($(this).val() != "" && $('#select_dept').val() != "") {
+
+                    var _data = {
+                        "Departments": $('#select_dept').val(),
+                        "Branches": $('#select_branch').val(),
+                    }
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("GetDoctorsByDepartment", "AppointmentList", new { area = "Appointment" })',
+                        dataType: 'JSON',
+                        data: _data,
+                        success: function (response) {
+                            $('#select_doctor').html('');
+                            $('#select_doctor')[0].sumo.reload();
+
+                            if ("@emp_designation.ToString()" === "Doctor") {
+                                $('#select_doctor')[0].sumo.add(@empId.ToString(), "@emp_name.ToString()");
+                                $('#select_doctor')[0].sumo.selectItem(["@empId.ToString()"]);
+                            }
+                            else {
+                                $.each(response, function (j) {
+                                    $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                                    //$('#select_doctor')[0].sumo.selectItem([response[j].id]);
+                                });
+                            }
+
+                            $('#select_doctor')[0].sumo.reload();
+                            load_rooms($("#select_branch").val());
+                        },
+                        error: function (xhr) {
+                            console.log("Failed! Error Message : " + xhr.statusText);
+                        }
+                    });
+                }
+                else {
+                    load_rooms($("#select_branch").val());
+                    $('#select_doctor').html('');
+                    $('#select_doctor')[0].sumo.reload();
+                }
+            }
+
+        });
+        // Load Rooms
+        var load_rooms = function (app_branch) {
+            $("#select_room").SumoSelect({
+                placeholder: 'Select Room(s)',
+                captionFormat: '{0} Room(s) Selected',
+                captionFormatAllSelected: 'All {0} Rooms selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            if (app_branch != "")
+            {
+                var _data = {
+                    "Rooms": app_branch
+                }
+
+                $.ajax({
+                    url: '@Url.Action("GetRoomsByBranch", "AppointmentList", new { area = "Appointment" })',
+                    type: "POST",
+                    dataType: "JSON",
+                    data: _data,
+                    success: function (response) {
+
+                        $('#select_room').html('');
+                        $('#select_room')[0].sumo.reload();
+
+                        $.each(response, function (j) {
+                            $('#select_room')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#select_room')[0].sumo.selectItem([response[j].id]);
+                        });
+
+                        $('#select_room')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else
+            {
+                $('#select_room').html('');
+                $('#select_room')[0].sumo.reload();
+            }
+        }
+        // Load Referral
+        var load_referrals = function () {
+
+            $("#select_referal").SumoSelect({
+                placeholder: 'Select Referral(s)',
+                captionFormat: '{0} Referral(s) Selected',
+                captionFormatAllSelected: 'All {0} Referrals selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetReferrals", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+
+                    $('#select_referal').html('');
+                    $('#select_referal')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_referal')[0].sumo.add(response[j].id, response[j].text);
+                        //$('#select_referal')[0].sumo.selectItem([response[j].id]);
+                    });
+
+                    $('#select_referal')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Nationalities
+        var load_nationalities = function () {
+
+            $("#select_nationality").SumoSelect({
+                placeholder: 'Select Nationality',
+                captionFormat: '{0} item(s) Selected',
+                captionFormatAllSelected: 'All {0} item(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetNationalities", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+
+                    $('#select_nationality').html('');
+                    $('#select_nationality')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_nationality')[0].sumo.add(response[j].id, response[j].text);
+                        //$('#select_nationality')[0].sumo.selectItem([response[j].id]);
+                    });
+
+                    $('#select_nationality')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status',
+                captionFormat: '{0} Status Selected',
+                captionFormatAllSelected: 'All {0} Status selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetStatus", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+
+                    $('#select_status').html('');
+                    $('#select_status')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_status')[0].sumo.add(response[j].text, response[j].text);
+                        //$('#select_status')[0].sumo.selectItem([response[j].text]);
+                    });
+
+                    $('#select_status')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Types
+        var load_types = function () {
+            $('#select_type').SumoSelect({
+                placeholder: 'Select Type(s)',
+                captionFormat: '{0} Type(s) Selected',
+                captionFormatAllSelected: 'All {0} Types selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $('#select_type').html('');
+            $('#select_type')[0].sumo.reload();
+
+            $('#select_type')[0].sumo.add("First Time", "First Time");
+            //$('#select_type')[0].sumo.selectItem("First Time");
+
+            $('#select_type')[0].sumo.add("Follow Up", "Follow Up");
+            //$('#select_type')[0].sumo.selectItem("Follow Up");
+
+            $('#select_type')[0].sumo.add("Repeat", "Repeat");
+            //$('#select_type')[0].sumo.selectItem("Repeat");
+
+            $('#select_type')[0].sumo.reload();
+        }
+        // Load Patients
+        var load_patients = function () {
+            $('#select_patient').select2({
+                placeholder: 'Search Patient',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("GetPatients", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 0
+                            //,from_date: $('#select_date_from_app').val(),
+                            //to_date: $('#select_date_to_app').val()
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+        // Load Insurance TPA
+        var load_ins_tpa = function () {
+            $("#select_ins_tpa").SumoSelect({
+                placeholder: 'Select Insurance TPA(s)',
+                captionFormat: '{0} Insurance TPA(s) Selected',
+                captionFormatAllSelected: 'All {0} Insurance TPAs selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetInsuranceCompanies", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $('#select_ins_tpa').html('');
+                    $('#select_ins_tpa')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_ins_tpa')[0].sumo.add(response[j].id, response[j].text);
+                    });
+
+                    $('#select_ins_tpa')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                load_schemes();
+
+                load_ins_payer();
+            });
+        }
+        // Load Insurance Schemes
+        var load_schemes = function () {
+            $("#select_scheme").SumoSelect({
+                placeholder: 'Select Insurance Scheme(s)',
+                captionFormat: '{0} Insurance Scheme(s) Selected',
+                captionFormatAllSelected: 'All {0} Insurance Schemes selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_scheme').html('');
+            $('#select_scheme')[0].sumo.reload();
+        }
+        // Insurance Company Change Event (Load Schemes)
+        $('#select_ins_tpa').on('change', function (e) {
+            if ($(this).val() != "" && $(this).val() != null && $(this).val() != undefined) {
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("GetInsuranceSchemes", "AppointmentList", new { area = "Appointment" })?icIds=' + $(this).val().toString(),
+                    dataType: 'json',
+                    success: function (response) {
+                        $('#select_scheme').html('');
+                        $('#select_scheme')[0].sumo.reload();
+
+                        $.each(response, function (j) {
+                            $('#select_scheme')[0].sumo.add(response[j].Value, response[j].Text);
+                        });
+
+                        $('#select_scheme')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_scheme').html('');
+                $('#select_scheme')[0].sumo.reload();
+            }
+        });
+        // Load Insurance Payers
+        var load_ins_payer = function () {
+            $("#select_ins_payer").SumoSelect({
+                placeholder: 'Select Payer(s)',
+                captionFormat: '{0} Payer(s) Selected',
+                captionFormatAllSelected: 'All {0} Payers selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $('#select_ins_payer').html('');
+            $('#select_ins_payer')[0].sumo.reload();
+        }
+        // Insurance Company Change Event (Load Payers)
+        $('#select_ins_tpa').on('change', function (e) {
+            if ($(this).val() != "" && $(this).val() != null && $(this).val() != undefined) {
+                $.ajax({
+                    url: "@Url.Action("GetInsurancePayersByIcIds", "AppointmentList", new { area = "Appointment" })?icIds=" + $(this).val().toString(),
+                    type: "POST",
+                    dataType: "json",
+                    success: function (response) {
+                        $('#select_ins_payer').html('');
+                        var selectedTextArray = $('#select_ins_tpa option:selected').map(function () {
+                            return $(this).text();
+                        }).get();
+
+                        $('#select_ins_payer').attr("placeholder", "Select Insurance Payer(s) for " + selectedTextArray.toString());
+                        $('#select_ins_payer')[0].sumo.enable();
+                        $('#select_ins_payer')[0].sumo.reload();
+
+                        if (response != "") {
+                            $.each(response, function (j) {
+                                $('#select_ins_payer')[0].sumo.add(response[j].id, response[j].text);
+                            });
+
+                            $('#select_ins_payer')[0].sumo.reload();
+                        }
+                        else {
+                            $('#select_ins_payer')[0].sumo.reload();
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_ins_payer').html('');
+                $('#select_ins_payer')[0].sumo.reload();
+            }
+        });
+        //#endregion
+
+        //#region Search Appointments Click
+        $("#btnSearch").click(function (e){
+            e.preventDefault();
+
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") ||
+                    ($("#select_dept").val() != null && $("#select_dept").val() != 0 && $("#select_dept").val() != "") ||
+                    ($("#select_room").val() != null && $("#select_room").val() != 0 && $("#select_room").val() != "") ||
+                    ($("#select_referal").val() != null && $("#select_referal").val() != 0 && $("#select_referal").val() != "") ||
+                    ($("#select_nationality").val() != null && $("#select_nationality").val() != 0 && $("#select_nationality").val() != "") ||
+                    ($("#select_type").val() != null && $("#select_type").val() != 0 && $("#select_type").val() != "") ||
+                    ($("#select_status").val() != null && $("#select_status").val() != 0 && $("#select_status").val() != "") ||
+                    ($("#select_patient").val() != null && $("#select_patient").val() != 0 && $("#select_patient").val() != "") ||
+                    ($("#select_ins_tpa").val() != null && $("#select_ins_tpa").val() != 0 && $("#select_ins_tpa").val() != "")) {
+
+                    let isValid = true;
+                    let app_frm = moment($("#select_date_from_app").val(), "DD-MMMM-YYYY");
+                    let app_to = moment($("#select_date_to_app").val(), "DD-MMMM-YYYY");
+
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) {
+                        if (!app_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined) {
+                        if (!app_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) && ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined)) {
+                        if (app_frm.isValid() && app_to.isValid()) {
+                            if (app_to.diff(app_frm, 'days') < -1) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from_app");
+                                index.push("select_date_to_app");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "Apointment From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetAppointments(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Search by Either of the following filters : Department(s) / Rooms(s) / Referral(s) / Nationality / Type(s) / Status(es) / Patient(s) / Insurance TPA(s)",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Appointments!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Appointments
+        var GetAppointments = function (search_type) {
+            var doc = "";
+
+            if ("@emp_designation.ToString()" == "Doctor") {
+                doc = '@empId';
+            }
+            else {
+                doc = $('#select_doctor').val().toString();
+            }
+
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "dept_ids"      : $('#select_dept').val().toString(),
+                "doc_ids"       : doc,
+                "room_ids"      : $('#select_room').val().toString(),
+                "referral_ids"  : $('#select_referal').val().toString(),
+                "nats_ids"      : $('#select_nationality').val().toString(),
+                "types"         : $('#select_type').val().toString(),
+                "status"        : $('#select_status').val().toString(),
+                "patient"       : $('#select_patient').val(),
+                "ins_tpa"       : $('#select_ins_tpa').val().toString(),
+                "ins_scheme"    : $('#select_scheme').val().toString(),
+                "ins_payer"     : $('#select_ins_payer').val().toString(),
+                "date_from"     : $('#select_date_from_app').val(),
+                "date_to"       : $('#select_date_to_app').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAppointmentList", "AppointmentList", new { area = "Appointment" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    $('#etime').html(new Date().getTime() - this.start_time);
+
+                    if (!response.isAuthorized) {
+                        //#region Load Datatable
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_appointments')) {
+                            table = $('#tbl_appointments').DataTable();
+                            var currentPage = table.page();
+                            table.clear();
+                            table.rows.add(response.AppointmentList).draw();
+                            table.page(currentPage).draw(false);
+                        }
+                        else {
+                            BindDataTable(response.AppointmentList);
+                        }
+                        //#endregion
+
+                        //#region Appointment Summary
+                        var count_booked = response.AppointmentCount.Booked;
+                        var count_confirmed = response.AppointmentCount.Confirmed;
+                        var count_arrived = response.AppointmentCount.Arrived;
+                        var count_nurse = response.AppointmentCount.NurseStation;
+                        var count_doctor = response.AppointmentCount.WithDoctor;
+                        var count_invoiced = response.AppointmentCount.Invoiced;
+                        var count_cancelled = response.AppointmentCount.Cancelled;
+                        // Total Records Filtered
+                        var count_total;
+
+                        if (response.AppointmentList.length > 0) {
+                            count_total = response.AppointmentList.length;
+                            $('#toastApp').removeClass("d-none");
+                            $('#appToast').show();
+                            $('#app_count').html(count_total.toLocaleString());
+                        }
+
+                        var color_booked = response.AppointmentStatusColor.Booked;
+                        var color_confirmed = response.AppointmentStatusColor.Confirmed;
+                        var color_arrived = response.AppointmentStatusColor.Arrived;
+                        var color_nurse = response.AppointmentStatusColor.NurseStation;
+                        var color_doctor = response.AppointmentStatusColor.WithDoctor;
+                        var color_invoiced = response.AppointmentStatusColor.Invoiced;
+                        var color_cancelled = response.AppointmentStatusColor.Cancelled;
+
+                        $("#count_booked").html('<span class=\'me-2\' style=\'color:' + color_booked + '\'><small>Booked <span class=\'badge rounded-pill\' style=\'padding-right: 6px;padding-left: 6px;background-color:' + color_booked + '\' >' + count_booked + '</span></small></span>');
+                        $("#count_confirmed").html('<span class=\'me-2\' style=\'color:' + color_confirmed + '\'><small>Confirmed <span class=\'badge rounded-pill\' style=\'padding-right: 6px;padding-left: 6px;background-color:' + color_confirmed + '\' >' + count_confirmed + '</span></small></span>');
+                        $("#count_arrived").html('<span class=\'me-2\' style=\'color:' + color_arrived + '\'><small>Arrived <span class=\'badge rounded-pill\' style=\'padding-right: 6px;padding-left: 6px;background-color:' + color_arrived + '\' >' + count_arrived + '</span></small></span>');
+                        $("#count_nurse").html('<span class=\'me-2\' style=\'color:' + color_nurse + '\'><small>Nurse Station <span class=\'badge rounded-pill\' style=\'padding-right: 6px;padding-left: 6px;background-color:' + color_nurse + '\' >' + count_nurse + '</span></small></span>');
+                        $("#count_doctor").html('<span class=\'me-2\' style=\'color:' + color_doctor + '\'><small>With Doctor <span class=\'badge rounded-pill\' style=\'padding-right: 6px;padding-left: 6px;background-color:' + color_doctor + '\' >' + count_doctor + '</span></small></span>');
+                        $("#count_invoiced").html('<span class=\'me-2\' style=\'color:' + color_invoiced + '\'><small>Invoiced <span class=\'badge rounded-pill\' style=\'padding-right: 6px;padding-left: 6px;background-color:' + color_invoiced + '\' >' + count_invoiced + '</span></small></span>');
+                        $("#count_cancelled").html('<span class=\'me-2\' style=\'color:' + color_cancelled + '\'><small>Cancelled <span class=\'badge rounded-pill\' style=\'padding-right: 6px;padding-left: 6px;background-color:' + color_cancelled + '\' >' + count_cancelled + '</span></small></span>');
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                setTimeout(function () {
+                    $('#appToast').fadeOut('fast');
+                    $('#toastApp').addClass("d-none");
+                }, 5000);
+                $('#progress-loader').hide();
+            });
+        }
+        // Bind Datatable
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_appointments").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 50,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "appId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "mData": "pat_photo",
+                        "render": function (pat_photo) {
+                            return '<img class="avatar avatar-lg brround" src="' + pat_photo + '">	</img>'
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "appId",
+                        "render": function (appId) {
+                            return '<a onclick="AppointmentJourney(\'' + appId + '\')"><span class="bg-primary text-white btn-sm">' + appId + '</span></a>';
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "app_fdate",
+                        "render": function (app_fdate, type, full, meta) {
+                            var date_arr = moment(full.date_arrived).format("DD-MM-YYYY");
+                            var date_inv = moment(full.date_invoiced).format("DD-MM-YYYY");
+                            var dt = '';
+
+                            if (type === 'display' || type === 'filter') {
+
+                                dt += '<span class="badge bg-primary-light mb-1">D/T Registered</span><br/>' +
+                                    '<i class="fe fe-calendar text-dark"></i> <b class="text-info">' + moment(app_fdate).format("DD-MM-YYYY") + '</b><br/>' +
+                                    '<i class="fe fe-clock text-dark"></i> <b class="text-danger">' + full.app_doc_ftime + ' - ' + full.app_doc_ttime + '<b><br/>';
+
+                                if (date_arr == "31-12-1899") {
+                                    dt += '';
+                                }
+                                else {
+                                    dt += '<span class="badge bg-info-light mb-1">D/T Arrived</span><br/>' +
+                                        '<i class="fe fe-calendar text-dark"></i> <b class="text-dark">' + date_arr + '</b><br/>' +
+                                        '<i class="fe fe-clock text-dark"></i> <b class="text-dark">' + moment(full.date_arrived).format("hh:mm A") + '<b><br/>';
+                                }
+
+                                if (date_inv == "31-12-1899") {
+                                    dt += '';
+                                }
+                                else {
+                                    dt += '<span class="badge bg-success-light mb-1">D/T Invoiced</span><br/>' +
+                                        '<i class="fe fe-calendar text-dark"></i> <b class="text-dark">' + date_inv + '</b><br/>' +
+                                        '<i class="fe fe-clock text-dark"></i> <b class="text-dark">' + moment(full.date_invoiced).format("hh:mm A") + '<b>';
+                                }
+                                return dt;
+                            }
+                            return moment(app_fdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "pat_name",
+                        "render": function (pat_name, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var gender = full.pat_gender;
+                            var emid = full.pat_emirateid;
+
+                            if (emid == "") {
+                                emid = "999-9999-9999999-9";
+                            }
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a class="font-weight-semibold text-capitalize fs-14 text-black" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a class="font-weight-semibold text-capitalize fs-14 text-black" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a class="font-weight-semibold text-capitalize fs-14 text-black" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a><br/> ';
+                            }
+                            else {
+                                pat_det += '<a class="font-weight-semibold text-capitalize fs-14 text-black" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span></a><br/> ';
+                            }
+
+                            pat_det += '<span class="badge bg-primary-light-1 font-weight-semibold mt-2" title="MRN #">' + full.app_pat_code + '</span>';
+
+                            // Check EMID Expiry
+                            if (emid != null && emid != "" && emid != undefined) {
+
+                                let id_card_edate = moment(full.id_card_edate);
+                                if (id_card_edate.isValid()) {
+                                    let today = moment();
+                                    if (id_card_edate.diff(today, 'days') <= 0) {
+                                        pat_det += ' <div class="badge bg-danger-transparent font-weight-semibold mt-2" style="margin-left:5px;font-size: 0.9em">' + emid + '<span class="tag-addon"><i class="fa fa-exclamation-circle" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;"></i></span></div>';
+                                        //pat_det += '<span class="badge bg-danger-transparent ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span> <i class="fa fa-exclamation-circle fa-lg" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;margin-left: 5px;"></i> ';
+                                    }
+                                    else {
+                                        pat_det += '<span class="badge bg-primary-transparent text-dark ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span>';
+                                    }
+                                }
+                            }
+
+                            pat_det += ' <span class="badge bg-info-light ms-2 font-weight-bold" style="font-size: 0.9em;">' + full.pat_mob + '</span> <a class="ms-2" href="https://wa.me/' + full.pat_mob + '" target="_blank"><i class="fa fa-whatsapp fa-lg text-success"></i></a><br/>';
+
+                            // Check Patient Gender
+                            if (gender === "Male") {
+                                pat_det += ' <div class="tag bg-white border-1 border-info font-weight-semibold mt-2 text-info" title="Gender">Male<span class="tag-addon tag-info"><i class="fa fa-male"></i></span></div>';
+                            }
+                            else if (gender === "Female") {
+                                pat_det += '<div class="tag bg-white border-1 border-pink font-weight-semibold mt-2 text-pink" style="border: 1px solid;" title="Gender">Female<span class="tag-addon tag-pink"><i class="fa fa-female"></i></span></div>';
+                            }
+                            else {
+                                pat_det += '<div class="tag bg-white border-1 border-dark-transparent font-weight-semibold mt-2 text-gray" title="Gender">Unknown<span class="tag-addon tag-gray"><i class="fa fa-question-circle"></i></span></div>';
+                            }
+
+                            pat_det += '<div class="tag bg-white border-1 border-teal font-weight-semibold mt-2 ms-2 text-teal" title="Date of Birth">' + moment(full.pat_dob).format("DD-MM-YYYY") + '<span class="tag-addon tag-teal"><i class="fe fe-calendar"></i></span></div><div class="tag bg-white border-1 border-dark font-weight-semibold mt-2 ms-2 text-dark" title="Nationality">' + full.nationality + '<span class="tag-addon tag-dark"><i class="fa fa-flag"></i></span></div><br/><div class="tag bg-white border-1 border-dark font-weight-semibold mt-2 text-dark" title="Patient Balance">' + numberRenderer(full.pat_tot_balance) + '<span class="tag-addon tag-orange"><i class="fa fa-money"></i></span></div>';
+
+                            return pat_det;
+                        }
+                    },
+                    {
+                        "mData": "emp_name",
+                        "render": function (emp_name, type, full, meta) {
+                            return '<a class="font-weight-semibold text-capitalize fs-14 text-black" onclick="DoctorDetails(\'' + full.empId + '\',\'' + emp_name + '\')"><span> <i class="fa fa-circle" style="color:' + full.emp_color + '"></i> ' + emp_name + '</span></a><br/>' +
+                                '<div class="tag tag-secondary font-weight-semibold mt-2" title="Department">' + full.emp_dept_name + '<span class="tag-addon"><i class="fe fe-activity"></i></span></div><div class="tag tag-default border-dark text-dark font-weight-semibold mt-2 ms-2" title="License">' + full.emp_license + '</div>';
+                        }
+                    },
+                    {
+                        "mData": "room",
+                        "render": function (room) {
+                            return room
+                        }
+                    },
+                    {
+                        "mData": "app_type",
+                        "render": function (app_type) {
+                            return app_type
+                        }
+                    },
+                    {
+                        "className": 'text-center text-wrap',
+                        "mData": "ins_exp",
+                        "render": function (ins_exp, type, full, meta) {
+                            return ins_exp + '<span class="text-info font-weight-semibold ms-1">[' + full.app_category + ']</span>';
+                        }
+                    },
+                    {
+                        "orderable": false,
+                        "className": "text-wrap",
+                        "mData": "app_comments",
+                        "render": function (app_comments) {
+                            if (app_comments == '') {
+                                return '<span class="text-muted">No Remarks</span>'
+                            }
+                            else {
+                                return app_comments
+                            }
+                        }
+                    },
+                    {
+                        "mData": "pendings",
+                        "className": "text-center",
+                        'render': function (pendings, type, full, meta) {
+                            var appId = full.appId;
+                            var app_status = full.app_status;
+                            var _html = '';
+
+                            var emp_desig = "@emp_designation.ToString()";
+
+                            // Front Desk
+                            if (emp_desig == "Super Administrator" || emp_desig == "Receptionist") {
+                                _html += '<a target="_blank" href="@Url.Action("RegistrationMain", "RegistrationMain", new { area= "FrontDesk" })?appId=' + full.appId +'" title="Front Desk (Registration)"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-pc-display-horizontal text-primary" viewBox="0 0 16 16"><path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v7A1.5 1.5 0 0 0 1.5 10H6v1H1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-5v-1h4.5A1.5 1.5 0 0 0 16 8.5v-7A1.5 1.5 0 0 0 14.5 0h-13Zm0 1h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5ZM12 12.5a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0Zm2 0a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0ZM1.5 12h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1ZM1 14.25a.25.25 0 0 1 .25-.25h5.5a.25.25 0 1 1 0 .5h-5.5a.25.25 0 0 1-.25-.25Z"/></svg></a>';
+                            }
+
+                            // Nurse Station
+                            if (emp_desig == "Super Administrator" || emp_desig == "Nurse" || emp_desig == "Dental Assistant") {
+                                if ((app_status == "Arrived" || app_status == "Invoiced") && full.app_status != "Deleted") {
+                                    _html += '<a onclick="openEMR(\'' + appId + '\',\'' + "NurseStation" + '\',\'' + full.emp_dept_name + '\')" title="Nurse Station"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-heart-pulse text-indigo ms-2" viewBox="0 0 16 16" viewBox="0 0 16 16">  <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053.918 3.995.78 5.323 1.508 7H.43c-2.128-5.697 4.165-8.83 7.394-5.857.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17c3.23-2.974 9.522.159 7.394 5.856h-1.078c.728-1.677.59-3.005.108-3.947C13.486.878 10.4.28 8.717 2.01L8 2.748ZM2.212 10h1.315C4.593 11.183 6.05 12.458 8 13.795c1.949-1.337 3.407-2.612 4.473-3.795h1.315c-1.265 1.566-3.14 3.25-5.788 5-2.648-1.75-4.523-3.434-5.788-5Z"/>  <path d="M10.464 3.314a.5.5 0 0 0-.945.049L7.921 8.956 6.464 5.314a.5.5 0 0 0-.88-.091L3.732 8H.5a.5.5 0 0 0 0 1H4a.5.5 0 0 0 .416-.223l1.473-2.209 1.647 4.118a.5.5 0 0 0 .945-.049l1.598-5.593 1.457 3.642A.5.5 0 0 0 12 9h3.5a.5.5 0 0 0 0-1h-3.162l-1.874-4.686Z"/></svg></a>';
+                                }
+                            }
+
+                            // Electronic Medical Records
+                            if (emp_desig == "Super Administrator" || emp_desig == "Doctor" || emp_desig == "Therapist" || emp_desig == "Nurse" || emp_desig == "Dental Assistant") {
+                                if ((app_status == "Arrived" || app_status == "Invoiced") && full.app_status != "Deleted") {
+                                    _html += '<a onclick="openEMR(\'' + appId + '\',\'' + "EMR" + '\',\'' + full.emp_dept_name + '\')" title="Electronic Medical Records"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clipboard-plus-fill text-danger ms-2" viewBox="0 0 16 16"><path d="M6.5 0A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3Zm3 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Z" /><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1A2.5 2.5 0 0 1 9.5 5h-3A2.5 2.5 0 0 1 4 2.5v-1Zm4.5 6V9H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V10H6a.5.5 0 0 1 0-1h1.5V7.5a.5.5 0 0 1 1 0Z" /></svg></a>';
+                                }
+                            }
+
+                            // EMR Pendings
+                            if (pendings > 0) {
+                                _html += '<a class="position-relative" id="po_' + full.appId + '" data-bs-toggle="popover"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="midnightblue" class="bi bi-hourglass-split ms-2" viewBox="0 0 16 16"><path d="M2.5 15a.5.5 0 1 1 0-1h1v-1a4.5 4.5 0 0 1 2.557-4.06c.29-.139.443-.377.443-.59v-.7c0-.213-.154-.451-.443-.59A4.5 4.5 0 0 1 3.5 3V2h-1a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-1v1a4.5 4.5 0 0 1-2.557 4.06c-.29.139-.443.377-.443.59v.7c0 .213.154.451.443.59A4.5 4.5 0 0 1 12.5 13v1h1a.5.5 0 0 1 0 1h-11zm2-13v1c0 .537.12 1.045.337 1.5h6.326c.216-.455.337-.963.337-1.5V2h-7zm3 6.35c0 .701-.478 1.236-1.011 1.492A3.5 3.5 0 0 0 4.5 13s.866-1.299 3-1.48V8.35zm1 0v3.17c2.134.181 3 1.48 3 1.48a3.5 3.5 0 0 0-1.989-3.158C8.978 9.586 8.5 9.052 8.5 8.351z" /></svg><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="padding-right:6px;padding-left:6px;">' + pendings + '<span class="visually-hidden"> EMR Mandatory Pendings</span></span></a>';
+                            }
+                            else {
+                                _html += '<a class="disabled" title="No Pendings" href="javascript:void(0)"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shield-fill-check text-success ms-2" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.24.829.24s.548-.108.829-.24a7 7 0 0 0 1.048-.625 11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 3.061-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m2.146 5.146a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793z"/></svg></a>';
+                            }
+
+                            return _html;
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "app_status",
+                        "render": function (app_status, type, full, meta) {
+                            if (full.aps_color != undefined && full.aps_color != "") {
+                                return '<span class="badge rounded-pill mt-2" style="width: auto;background-color:' + full.aps_color + '">' + app_status + '</span>'
+                            }
+                            else {
+                                return '<span class="badge bg-dark rounded-pill mt-2" style="width: auto;">' + app_status + '</span>'
+                            }
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "mData": "appId",
+                        "render": function (appId, type, full, meta) {
+                            var app_status = full.app_status;
+                            var billing = '';
+                            var more =  '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (full.app_ic_name == "Cash") {
+
+                                billing += `<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="QuickCashBilling('${appId} ', '${full.emp_dept_name}', '${app_status}')"><i class="fe fe-dollar-sign text-warning" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Billing</a>`;
+
+                                billing += '<a class="Packorder dropdown-item text-dark fw-bold"><i class="fa fa-th-list text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Order</a>';
+                            }
+                            else {
+                                billing += `<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="QuickInsBilling('${appId}', '${full.emp_dept_name}', '${app_status}')"><i class="fe fe-dollar-sign text-warning" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Billing</a>`;
+                            }
+
+                            if (app_status == "Arrived") {
+                                more += '<a class="edit dropdown-item text-dark fw-bold"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="DeleteAppointment(\'' + appId + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                    billing +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="PatientLabel(\'' + full.app_patient + '\')"><i class="fe fe-tag text-indigo" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Label</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="GoToConsents(\'' + appId + '\')"><i class="fe fe-file-plus text-purple" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Consents</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Remarks</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentJourney(\'' + appId + '\')"><i class="mdi mdi-av-timer text-primary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Journey</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentAuditLogs(\'' + appId + '\')"><i class="fe fe-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>' +
+                                    '</div>' +
+                                    '</div>';
+
+                            }
+                            else if (app_status == "Invoiced") {
+                                more += '<a class="edit dropdown-item text-dark fw-bold"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    billing +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="PatientLabel(\'' + full.app_patient + '\')"><i class="fe fe-tag text-indigo" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Label</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="GoToConsents(\'' + appId + '\')"><i class="fe fe-file-plus text-purple" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Consents</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Remarks</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentJourney(\'' + appId + '\')"><i class="mdi mdi-av-timer text-primary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Journey</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentAuditLogs(\'' + appId + '\')"><i class="fe fe-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                            else if (app_status === "Deleted") {
+                                more += '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Remarks</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="PatientLabel(\'' + full.app_patient + '\')"><i class="fe fe-tag text-indigo" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Label</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentJourney(\'' + appId + '\')"><i class="mdi mdi-av-timer text-primary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Journey</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentAuditLogs(\'' + appId + '\')"><i class="fe fe-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>';
+                            }
+                            else {
+                                more += '<a class="edit dropdown-item text-dark fw-bold"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="DeleteAppointment(\'' + appId + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="PatientLabel(\'' + full.app_patient + '\')"><i class="fe fe-tag text-indigo" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Label</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem"></i>&nbsp;Remarks</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentJourney(\'' + appId + '\')"><i class="mdi mdi-av-timer text-primary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Journey</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="AppointmentAuditLogs(\'' + appId + '\')"><i class="fe fe-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>';
+                            }
+
+                            more += '</div></div>';
+
+                            return more;
+                        }
+                    },
+                    //#region Hidden Export Columns
+                    {
+                        "mData": "pat_name",
+                        "visible": false,
+                        'render': function (pat_name, type, full, meta) {
+                            return pat_name;
+                        }
+                    },
+                    {
+                        "mData": "pat_gender",
+                        "visible": false,
+                        'render': function (pat_gender, type, full, meta) {
+                            return pat_gender;
+                        }
+                    },
+                    {
+                        "mData": "pat_dob",
+                        "visible": false,
+                        'render': function (pat_dob, type, full, meta) {
+                            return moment(pat_dob).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "mData": "pat_mob",
+                        "visible": false,
+                        'render': function (pat_mob, type, full, meta) {
+                            return pat_mob;
+                        }
+                    },
+                    {
+                        "mData": "pat_emirateid",
+                        "visible": false,
+                        'render': function (pat_emirateid, type, full, meta) {
+                            return pat_emirateid;
+                        }
+                    },
+                    {
+                        "mData": "nationality",
+                        "visible": false,
+                        'render': function (nationality, type, full, meta) {
+                            return nationality;
+                        }
+                    },
+                    {
+                        "mData": "emp_name",
+                        "visible": false,
+                        'render': function (emp_name, type, full, meta) {
+                            return emp_name;
+                        }
+                    },
+                    {
+                        "mData": "emp_dept_name",
+                        "visible": false,
+                        'render': function (emp_dept_name, type, full, meta) {
+                            return emp_dept_name;
+                        }
+                    },
+                    {
+                        "mData": "date_arrived",
+                        "visible": false,
+                        'render': function (date_arrived, type, full, meta) {
+                            var date_arr = moment(date_arrived).format("DD-MM-YYYY");
+                            if (date_arr == "31-12-1899") {
+                                return '';
+                            }
+                            else {
+                                return date_arr;
+                            }
+                        }
+                    },
+                    {
+                        "mData": "date_invoiced",
+                        "visible": false,
+                        'render': function (date_invoiced, type, full, meta) {
+                            var date_inv = moment(date_invoiced).format("DD-MM-YYYY");
+                            if (date_inv == "31-12-1899") {
+                                return '';
+                            }
+                            else {
+                                return date_inv;
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "visible": false,
+                        'render': function (app_fdate, type, full, meta) {
+                            var fdate = moment(app_fdate).format("DD-MM-YYYY");
+                            return fdate;
+                        }
+                    }
+                    //#endregion Hidden Export Columns
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[3, 'desc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Appointment List',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Appointment List to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Appointment List',
+                        footer: 'true',
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Appointment List to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Appointment List',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Appointment List to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Appointment List',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Appointment List!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By MRN # / (Patient / Doctor) Details / Date / Type / Room</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                "fnDrawCallback": function (settings) {
+                    var _appId;
+
+                    //#region EMR Pendings
+                    $(settings.aoData).each(function (index) {
+                        _appId = settings.aoData[index]._aData["appId"];
+                        $('#po_' + _appId).each(function () {
+                            var popId = $(this).attr('id');
+                            var appId = popId.substr(popId.lastIndexOf("_") + 1);
+                            var _data = { "data": appId }
+
+                            // Dynamic data for Popover
+                            var pendings = "";
+                            var html = "";
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("GetEMRPendings", "AppointmentList", new { area = "Appointment" })",
+                                data: _data,
+                                success: function (response) {
+                                    if (response.isAuthorized != false) {
+
+                                        $.each(response, function (j) {
+                                            pendings += (
+                                                '<li class="listorder">' + response[j]["text"] + '</li>'
+                                            );
+                                            html = '<p class="mb-0 mt-1 fs-14 font-weight-semibold"><ul class="list-group text-dark">' + pendings + '</ul></p>';
+                                        });
+
+                                        $('#' + popId).popover({
+                                            trigger: 'hover',
+                                            placement: 'right',
+                                            title: 'Mandatory EMR Pendings',
+                                            container: 'body',
+                                            html: true,
+                                            content: html
+                                        }).popover({ trigger: "hover" });
+                                    }
+                                    else {
+                                        console.log("You are not Authorized To perform this action!");
+                                    }
+                                },
+                                error: function (xhr) {
+                                    console.log("Failed! Error Message : " + xhr.statusText);
+                                }
+                            });
+                        });
+                    });
+                    //#endregion
+
+                    //#region Edit Appointment
+                    $('.edit','tr').on('click', function () {
+                        var row = $(this).closest('tr');
+                        var _data = table.row(row).data();
+
+                        var app =  {
+                            "appId": parseInt(_data.appId),
+                            "app_inout": _data.app_inout,
+                            "app_branch": parseInt(_data.app_branch),
+                            "app_doctor": parseInt(_data.app_doctor),
+                            "app_fdate": moment(_data.app_fdate).format("YYYY-MM-DD"),
+                            "app_doc_ftime": _data.app_doc_ftime,
+                            "app_doc_ttime": _data.app_doc_ttime,
+                            "app_room": parseInt(_data.app_room),
+                            "app_ftime": parseInt(_data.app_ftime),
+                            "app_ttime": parseInt(_data.app_ttime),
+                            "app_patient": parseInt(_data.app_ins),
+                            "app_ins": parseInt(_data.app_patient),
+                            "app_type": _data.app_type,
+                            "app_status": _data.app_status,
+                            "app_emergency": _data.app_emergency,
+                            "app_eligibility": _data.app_eligibility,
+                            "app_reason_for_visit": _data.app_resnforvisit,
+                            "app_comments": _data.app_comments,
+                            "app_package_order": parseInt(_data.app_po),
+                            "app_service": parseInt(_data.app_service),
+                            "app_category": _data.app_category,
+                        }
+
+                        $.ajax({
+                            type: "GET",
+                            url: "@Url.Action("EditAppointment", "AppointmentList", new { area = "Appointment" })",
+                            contentType: "application/json",
+                            dataType: "html",
+                            success: function (data) {
+                                localStorage.setItem("app", JSON.stringify(app));
+                                localStorage.setItem("calling_from", "appointment-list");
+                                $("#update_appointment_modal_body").html(data);
+                                $("#update_appointment_modal").modal("show");
+                            },
+                            error: function (xhr) {
+                                console.log("Error :" + xhr.statusText);
+                            }
+                        });
+                    });
+                    //#endregion
+
+                    //#region Appointment Remarks
+                    $('.remrk','tr').on('click', function () {
+                        var row = $(this).closest('tr');
+                        var _data = table.row(row).data();
+
+                        $.ajax({
+                            type: "GET",
+                            url: "@Url.Action("PatientRemarks", "Patient", new { area = "Patient" })?id=" + _data.appId + "&flag=Appointment&fdate=" + moment(_data.app_fdate).format("YYYY-MM-DD") + "&ftime=" + _data.app_ftime + "&patId=" + _data.app_patient,
+                            contentType: "application/json",
+                            dataType: "html",
+                            success: function (response) {
+                                $('#patient_remarks').attr("data-modal-from", "appointment-list");
+                                $("#patient_remarks_body").html(response);
+                                $("#patient_remarks").modal("show");
+                            },
+                            error: function (xhr) {
+                                console.log("Error :" + xhr.statusText);
+                            }
+                        });
+                    });
+                    //#endregion
+                },
+                // Add the createdRow callback function
+                "createdRow": function (row, data, dataIndex) {
+                    var emp_status = data.emp_status;
+
+                    // Check emp_status and set row color
+                    if (emp_status === 'Inactive') {
+                        //$(row).css('background-color', 'gray');
+                        $(row).addClass("bg-gray-light");
+                    }
+                }
+            });
+
+            table.buttons().container().appendTo('#tbl_appointments_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Send SMS / E-Mail / WhatsApp
+        // Load Templates
+        var load_templates = function () {
+            $.ajax({
+                url: '@Url.Action("GetTemplates", "Patient", new { area = "Patient" })?tempFor=2',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var newOption = new Option("Select Any Template", 0, false, false);
+                    $('#sms_email_template').append(newOption).trigger('change');
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            let text = response[j].TempName;
+
+                            if (response[j].TempWhatsapp == 1) {
+                                text += "<i class='fa fa-whatsapp text-green ms-1 font-weight-semibold'></i>";
+                            }
+                            if (response[j].TempSMS == 1) {
+                                text += "<i class='fa fa fa-comment text-indigo ms-1 font-weight-semibold'></i>";
+                            }
+                            if (response[j].TempEmail == 1) {
+                                text += "<i class='fa fa-envelope-o text-info ms-1 font-weight-semibold'></i>";
+                            }
+
+                            var newOption = new Option(text, response[j].TemplateId, false, false);
+                            $('#sms_email_template').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                }
+            });
+        };
+        // Select Template
+        $('#sms_email_template').on('select2:select', function () {
+            if ($(this).val() != 0) {
+                $.ajax({
+                    url: '@Url.Action("GetTemplates", "Patient", new { area = "Patient" })?tempFor=2&templateId=' + $('#sms_email_template').val(),
+                    type: "GET",
+                    dataType: "json",
+                    async: false,
+                    success: function (response) {
+                        if (response.length > 0) {
+                            if (response[0].TempWhatsapp == 1) {
+                                $("#btnWhatsapp").show();
+                            }
+                            else {
+                                $("#btnWhatsapp").hide();
+                            }
+
+                            if (response[0].TempSMS == 1) {
+                                $("#btnSMS").show();
+                                $("#btnSMS_AR").show();
+                            }
+                            else {
+                                $("#btnSMS").hide();
+                                $("#btnSMS_AR").hide();
+                            }
+
+                            if (response[0].TempEmail == 1) {
+                                $("#btnEmail").show();
+                            }
+                            else {
+                                $("#btnEmail").hide();
+                            }
+
+                            $('#sms_email_template_msg').val(response[0].TempContent);
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $("#btnWhatsapp").hide();
+                $("#btnSMS").hide();
+                $("#btnSMS_AR").hide();
+                $("#btnEmail").hide();
+                $('#sms_email_template').val(0).trigger('change');
+                $("#sms_email_template_msg").val("");
+            }
+        });
+        // Send WhastApp Message
+        $("#btnWhatsapp").click(function (event) {
+            event.preventDefault();
+            $('#btnWhatsapp').removeClass("btn btn-outline-success");
+            $('#btnWhatsapp').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btnWhatsapp').html("Sending...");
+
+            var table = $("#tbl_appointments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                if ($("#sms_email_template_msg").val() != "") {
+                    var _obj = {
+                        "branchId": _data.app_branch,
+                        "mobile": _data.pat_mob,
+                        "user": _data.patId,
+                        "content": $("#sms_email_template_msg").val()
+                    }
+
+                    $.ajax({
+                        url: '@Url.Action("WhatsappConfig", "Patient", new { area = "Patient" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            $('#btnWhatsapp').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnWhatsapp').addClass("btn btn-outline-success");
+                            $('#btnWhatsapp').html("<i class='fa fa-whatsapp'></i> Send WhatsApp");
+
+                            if (response.isSuccess == true) {
+                                if (response.data["status"] == "success") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.notice({
+                                        title: "Success",
+                                        message: response.message
+                                    });
+                                }
+                                else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.warning({
+                                        title: "Pending",
+                                        message: response.message
+                                    });
+                                }
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                }
+            });
+
+            //$('#sms_email_template').val(0).trigger('change');
+            //$("#sms_email_template_msg").val("");
+        });
+        // Send SMS English
+        $("#btnSMS").click(function (event) {
+            event.preventDefault();
+            $('#btnSMS').removeClass("btn btn-indigo");
+            $('#btnSMS').addClass("btn btn-indigo btn-loaders btn-icon");
+            $('#btnSMS').html("Sending...");
+
+            var table = $("#tbl_appointments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _obj = {
+                    "branchId": _data.app_branch,
+                    "mobile": _data.pat_mob,
+                    "user": _data.patId,
+                    "content": $("#sms_email_template_msg").val()
+                }
+
+                $.ajax({
+                    url: '@Url.Action("SMSConfig", "Patient", new { area = "Patient" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _obj,
+                    async: false,
+                    success: function (response) {
+                        $('#btnSMS').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btnSMS').addClass("btn btn-indigo");
+                        $('#btnSMS').html("<i class='fa fa-comment'></i> Send SMS");
+                        if (response.isSuccess == true) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.notice({
+                                title: "Success",
+                                message: response.message
+                            });
+                        }
+                        else {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: response.message
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        console.log("Error : "+xhr.statusText);
+                    }
+                });
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        // Send SMS Arabic
+        $("#btnSMS_AR").click(function (event) {
+            var table = $("#tbl_appointments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _obj = {
+                    "branchId": _data.app_branch,
+                    "mobile": _data.pat_mob,
+                    "user": _data.patId,
+                    "content": $("#sms_email_template_msg").val()
+                }
+
+                $.ajax({
+                    url: '@Url.Action("SMSConfig_AR", "Patient", new { area = "Patient" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _obj,
+                    async: false,
+                    success: function (response) {
+                        if (response.isSuccess == true) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.notice({
+                                title: "Success",
+                                message: response.message
+                            });
+                        }
+                        else {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: response.message
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error : " + xhr.statusText);
+                    }
+                });
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        // Send E-Mail
+        $("#btnEmail").click(function (event) {
+            var table = $("#tbl_appointments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                if (!(_data.pat_email == undefined || _data.pat_email == null || _data.pat_email == "")) {
+                    var _obj = {
+                        "branchId": _data.app_branch,
+                        "email": _data.pat_email,
+                        "user": _data.patId,
+                        "content": $("#sms_email_template_msg").val(),
+                        "templateId": parseInt($("#sms_email_template").val())
+                    }
+
+                    $.ajax({
+                        url: '@Url.Action("EmailConfig", "Patient", new { area = "Patient" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            if (response.isSuccess == true) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.notice({
+                                    title: "Success",
+                                    message: response.message
+                                });
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                }
+                else {
+                    console.log("Invalid email address :" + _data.pat_email);
+                }
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        //#endregion
+
+        //#region Datatable Miscellaneous Function
+        var isDetailViewClicked = false;
+        // Delete Appointment
+        var DeleteAppointment = function (appId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this appointment ?",
+                text: "This action will delete this appointment!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("DeleteAppointment", "AppointmentList", new { area= "Appointment" })?appId=" + appId,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Appointment Deleted Successfully!!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    })
+                                    GetAppointments(1);
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed To Delete Appointment!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to perform this action!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Appointment! Message : " + xhr.statusText,
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            })
+                        }
+                    });
+                }
+            });
+        }
+        // View Patient Label
+        var PatientLabel = function (patId) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PatientLabel", "AppointmentList", new { area = "Appointment" })",
+                contentType: "application/json",
+                data: { "patId": patId },
+                dataType: "html",
+                success: function (data) {
+                    $("#patient_label_body").html(data);
+                    $("#patient_label").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        }
+        // Go To Consents
+        var GoToConsents = function (appId) {
+            $("#spinner2").show();
+
+            $.ajax({
+                url: "@Url.Action("GetTabPatientInfo", "PatientConsents", new { area = "Tab" })?appId=" + appId,
+                method: "POST",
+                dataType: "json",
+                success: function (response) {
+                    if (response.result) {
+                        window.open("@Url.Action("TreatmentForms", "ConsentForms", new { area = "Tab" })");
+                    }
+                    else {
+                        console.log("Internal Server Error!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr, xhr.statusText);
+
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        // View Appointment Audit Logs
+        var AppointmentAuditLogs = function (appId) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("AppointmentAuditLogs", "AppointmentList", new { area = "Appointment" })",
+                contentType: "application/json",
+                data: { "appaId": appId },
+                dataType: "html",
+                success: function (response) {
+                    $("#app_logs_body").html(response);
+                    $("#app_logs").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        }
+        // Appointment Journey
+        var AppointmentJourney = function (appId) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("JourneyView", "AppJourney", new { area = "Timeline" })?appId=" + appId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#search_modal_body").html(data);
+                    $("#search_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error : "+xhr.statusText);
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        }
+        // View Patient Details
+        var PatientDetails = function (patId, pat_name) {
+            if (!isDetailViewClicked) {
+                isDetailViewClicked = true;
+
+                $("#spinner2").show();
+
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("PatientDetail", "Patient", new { area = "Patient" })?patId=" + patId + "&pat_name=" + pat_name,
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (response) {
+                        $("#patient_details_body").html(response);
+                        $("#patient_details").modal("show");
+                        isDetailViewClicked = false;
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                        isDetailViewClicked = false;
+                    },
+                    complete: function () {
+                        $("#spinner2").hide();
+                    }
+                });
+            }
+        }
+        // View Doctor Details
+        var DoctorDetails = function (empId, emp_name) {
+            if (!isDetailViewClicked) {
+                isDetailViewClicked = true;
+
+                $("#spinner2").show();
+
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("DoctorDetails", "Employees", new { area = "Masters" })?empId=" + empId + "&emp_name=" + emp_name,
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (response) {
+                        $("#doctor_details_body").html(response);
+                        $("#doctor_details").modal("show");
+                        isDetailViewClicked = false;
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                        isDetailViewClicked = false;
+                    },
+                    complete: function () {
+                        $("#spinner2").hide();
+                    }
+                });
+            }
+        }
+        // View Cash Billing
+        var QuickCashBilling = function (appId, app_dept, app_status) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("GetEMRPatientInfo", "Appointment", new { area = "Appointment" })?appId=' + appId,
+                dataType: 'json',
+                success: function (response) {
+                    $.ajax({
+                        type: "GET",
+                        url: "@Url.Action("CashBilling", "AppointmentList", new { area = "Appointment" })",
+                        contentType: "application/json",
+                        data: { "appId": appId, "app_dept": app_dept, "app_status": app_status },
+                        dataType: "html",
+                        success: function (data) {
+                            $("#quick_billing_body").html(data);
+                            $("#quick_billing").modal("show");
+                        },
+                        error: function (xhr) {
+                            console.log("Error :" + xhr.statusText);
+                        },
+                        complete: function () {
+                            $("#spinner2").hide();
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    console.log(xhr.statusText);
+                }
+            });
+        }
+        // View Insurance Billing
+        var QuickInsBilling = function (appId, app_dept, app_status) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("GetEMRPatientInfo", "Appointment", new { area = "Appointment" })?appId=' + appId,
+                dataType: 'json',
+                success: function (response) {
+                    $.ajax({
+                        type: "GET",
+                        url: "@Url.Action("InsuranceBilling", "AppointmentList", new { area = "Appointment" })",
+                        contentType: "application/json",
+                        data: { "appId": appId, "app_dept": app_dept, "app_status": app_status },
+                        dataType: "html",
+                        success: function (data) {
+                            $("#quick_ins_billing_modal_body").html(data);
+                            $("#quick_ins_billing_modal").modal("show");
+                        },
+                        error: function (xhr) {
+                            console.log("Error :" + xhr.statusText);
+                        },
+                        complete: function () {
+                            $("#spinner2").hide();
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    console.log(xhr.statusText);
+                }
+            });
+        }
+        // View EMR
+        var openEMR = function (appId, type, dept) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("GetEMRPatientInfo", "Appointment", new { area = "Appointment" })' + "?appId=" + appId,
+                dataType: 'json',
+                success: function (response) {
+                    localStorage.setItem("type", type);
+
+                    if (type == "EMR") {
+                        if (dept == "Dental") {
+                            window.open("@Url.Action("PainScale", "PainScale", new { area = "EMR" })");
+                        }
+                        else {
+                            window.open("@Url.Action("CheifComplaints", "CheifComplaints", new { area = "EMR" })");
+                        }
+                    }
+                    else {
+                        window.open("@Url.Action("VitalSigns", "VitalSigns", new { area = "NurseStation" })");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr.statusText);
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region UI Functions
+        // Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 450);
+        }
+        // Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+
+        $(document).on('click', '.Packorder', function () {
+            var table = $('#tbl_appointments').DataTable();
+            var row = $(this).closest('tr');
+            var _data = table.row(row).data();
+            var Packapp = {
+                "appId": parseInt(_data.appId),
+                "app_inout": _data.app_inout,
+                "app_branch": parseInt(_data.app_branch),
+                "app_doctor": parseInt(_data.app_doctor),
+                "app_fdate": moment(_data.app_fdate).format("YYYY-MM-DD"),
+                "app_doc_ftime": _data.app_doc_ftime,
+                "app_doc_ttime": _data.app_doc_ttime,
+                "app_room": parseInt(_data.app_room),
+                "app_ftime": parseInt(_data.app_ftime),
+                "app_ttime": parseInt(_data.app_ttime),
+                "app_patient": parseInt(_data.app_patient),
+                "app_ins": parseInt(_data.app_ins),
+                "app_type": _data.app_type,
+                "app_status": _data.app_status,
+                "app_emergency": _data.app_emergency,
+                "app_eligibility": _data.app_eligibility,
+                "app_reason_for_visit": _data.app_resnforvisit,
+                "app_comments": _data.app_comments,
+                "app_package_order": parseInt(_data.app_po),
+                "app_service": parseInt(_data.app_service),
+                "app_category": _data.app_category,
+            }
+
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("GetEMRPatientInfo", "Appointment", new { area = "Appointment" })' + "?appId=" + _data.appId,
+                dataType: 'json',
+                success: function (response) {
+                    $.ajax({
+                        type: "GET",
+                        //url: "@Url.Action("PackOrder", "AppointmentList", new { area = "Appointment" })",
+                        url: "@Url.Action("AppPackageOrder", "AppointmentList", new { area = "Appointment" })?patId=" + _data.patId,
+                        contentType: "application/json",
+                        dataType: "html",
+                        success: function (data) {
+                            var currentPage = table.page();
+                            localStorage.setItem("Packapp", JSON.stringify(Packapp));
+                            localStorage.setItem("calling_from", "appointment-list");
+                            $("#pkg_order_modal_body").html(data);
+                            $("#pkg_order_modal").modal("show");
+                            table.page(currentPage).draw('page');
+                        },
+                        error: function (xhr) {
+                            console.log("Error :" + xhr.statusText);
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    console.log(xhr.statusText);
+                }
+            });
+        });
+    </script>
+}

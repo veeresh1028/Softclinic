@@ -1,0 +1,373 @@
+﻿
+
+<div class="modal-header py-3 px-4" id="Header">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update Appointment / Patient / Insurance / Medical History / Billing History </h5>
+    <div class="ms-2" id="ins_type" style="display:none;">
+        <div class="d-flex">
+            @Html.DropDownList("insurance_type", new List<SelectListItem>
+            {
+                new SelectListItem{ Value="MOH", Text="MOH - Riayati"},
+                new SelectListItem{ Value="DHA", Text="DHA - Dubai"},
+                new SelectListItem{ Value="DOH", Text="DOH - Abu Dhabi"},
+            }, "Select Insurance Type", new { @class = "form-select select2", @id = "insurance_type", @style = "display:none;" })
+            <a href="javascript:void(0);" class="btn btn-md btn-outline-warning ms-2 align-self-center" id="btnTypeUpdate">Update</a>
+        </div>
+    </div>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4">
+    <div class="panel panel-primary">
+        
+        <div class="tab_wrapper first_tab">
+            <ul class="tab_list">
+                <li class="active" id="edit_app_title"><i class="fa fa-list-alt"></i> Edit Appointment</li>
+                <li id="edit_pat_title"><i class="la la-user-edit"></i> Edit Patient</li>
+                <li id="edit_ins_title"><i class="fa fa-id-card-o"></i> Edit Insurance</li>
+                <li id="edit_med_title"><i class="fa fa-medkit"></i> Medical History</li>
+                <li id="edit_bill_title"><i class="fa fa-dollar"></i> Billing History</li>
+            </ul>
+            <div class="content_wrapper">
+                <div id="tab_loader" style="min-height: 300px;">
+                    <div class="dimmer active">
+                        <div class="sk-cube-grid">
+                            <div class="sk-cube sk-cube1"></div>
+                            <div class="sk-cube sk-cube2"></div>
+                            <div class="sk-cube sk-cube3"></div>
+                            <div class="sk-cube sk-cube4"></div>
+                            <div class="sk-cube sk-cube5"></div>
+                            <div class="sk-cube sk-cube6"></div>
+                            <div class="sk-cube sk-cube7"></div>
+                            <div class="sk-cube sk-cube8"></div>
+                            <div class="sk-cube sk-cube9"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab_content active" style="min-height: 100px;">
+                    <div id="edit_app_content"></div>
+                </div>
+                <div class="tab_content" style="min-height: 100px;">
+                    <div id="edit_pat_content"></div>
+                </div>
+                <div class="tab_content" style="min-height: 100px;">
+                    <div id="edit_ins_content"></div>
+                </div>
+                <div class="tab_content" style="min-height: 100px;">
+                    <div id="edit_med_content"></div>
+                </div>
+                <div class="tab_content" style="min-height: 100px;">
+                    <div id="edit_bill_content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/tabs.js"></script>
+
+<script type="text/javascript">
+    //#region Page Load
+    var appointment = JSON.parse(localStorage.getItem("app"));
+
+    $(function () {
+        $("#tab_loader").hide();
+
+
+        if (appointment.app_status === "Deleted" || appointment.app_status === "Invoiced") {
+            // Remove Appointment Edit Tab
+            $('#edit_app_title').remove();
+            $('#edit_app_content').remove();
+            // Show Patient Edit Tab
+            $('#edit_pat_title').click();
+            // Show Category Update
+            //$('#ins_type').show();
+        }
+        else {
+            // Open Appointment Edit Tab
+            $('#edit_app_title').click();
+        }
+
+        $("#insurance_type").select2({
+            placeholder: 'Select Insurance Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#Header')
+        });
+
+        setTimeout(function () {
+            $('.tab_content').removeAttr('title');
+        }, 100);
+    });
+    //#endregion
+
+    //#region Navigation Tabs
+    // Appointment Edit on Click
+    $('#edit_app_title').on('click', function () {
+        if (localStorage.getItem("app") != null) {
+            $("#edit_app_content").empty();
+            _editAppointment(appointment);
+        }
+    });
+    // Patient Edit on Click
+    $('#edit_pat_title').on('click', function () {
+        if (localStorage.getItem("app") != null) {
+            $("#edit_pat_content").empty();
+            _editPatient(appointment.app_ins);
+        }
+    });
+    // Insurance Edit on Click
+    $('#edit_ins_title').on('click', function () {
+        if (localStorage.getItem("app") != null) {
+            $("#edit_ins_content").empty();
+            _editInsurance(appointment.app_ins);
+        }
+    });
+    // Medical History on Click
+    $('#edit_med_title').on('click', function () {
+        if (localStorage.getItem("app") != null) {
+            $("#edit_med_content").empty();
+            _editMedicalHistory(appointment.app_ins);
+        }
+    });
+    // Billing History on Click
+    $('#edit_bill_title').on('click', function () {
+        if (localStorage.getItem("app") != null) {
+            $("#edit_bill_content").empty();
+            _viewBillingHistory(appointment.app_ins);
+        }
+    });
+    //#endregion
+
+    //#region Load Partial Views
+    // Edit Appointment
+    var _editAppointment = function (app) {
+        $("#tab_loader").show();
+        setTimeout(function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("UpdateAppointment", "Appointment", new { area = "Appointment" })",
+                contentType: "application/json",
+                data: app,
+                dataType: "html",
+                success: function (data) {
+                    $("#edit_app_content").html(data);
+                    $("#edit_app_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                },
+                complete: function () {
+                    $("#tab_loader").hide();
+                }
+            });
+        }, 1500);
+    }
+    // Edit Patient
+    var _editPatient = function (patId) {
+        $("#tab_loader").show();
+        setTimeout(function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditPatient", "Patient", new { area = "Patient" })?patId=" + patId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#edit_pat_content").html(data);
+                    $("#edit_pat_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                },
+                complete: function () {
+                    $("#tab_loader").hide();
+                }
+            });
+        }, 1500);
+    };
+    // Edit Insurance
+    var _editInsurance = function (pat_ins) {
+        $("#tab_loader").show();
+        setTimeout(function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetPatientInsurancesById", "PatientInsurance", new { area = "Patient" })?patId=" + pat_ins,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#edit_ins_content").html(data);
+                    $("#edit_ins_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                },
+                complete: function () {
+                    $("#tab_loader").hide();
+                }
+            });
+        }, 1500);
+    };
+    // View Medical History
+    var _editMedicalHistory = function (pat_ins) {
+        $("#tab_loader").show();
+        setTimeout(function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ViewAppointmentHistory", "AppointmentList", new { area = "Appointment" })?patId=" + pat_ins,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#edit_med_content").html(data);
+                    $("#edit_med_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                },
+                complete: function () {
+                    $("#tab_loader").hide();
+                }
+            });
+        }, 1500);
+    };
+    // View Billing History
+    var _viewBillingHistory = function (patId) {
+        $("#tab_loader").show();
+        setTimeout(function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ViewBillingHistory", "AppointmentList", new { area = "Appointment" })?patId=" + patId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#edit_bill_content").html(data);
+                    $("#edit_bill_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                },
+                complete: function () {
+                    $("#tab_loader").hide();
+                }
+            });
+        }, 1500);
+    };
+    //#endregion
+
+    //#region View Medical Sheets
+    var PrintMedical_Sheet = function (appId) {
+        $.ajax({
+            type: 'POST',
+            url: '@Url.Action("GetEMRPatientInfo", "Appointment", new { area = "Appointment" })' + "?appId=" + appId,
+            dataType: 'json',
+            success: function (response) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("MedicalSheet", "AppointmentList", new { area = "Appointment" })",
+                    contentType: "application/json",
+                    data: { "appaId": appId },
+                    dataType: "html",
+                    success: function (response) {
+                        $("#med_sheet_body").html(response);
+                        $("#med_sheet").modal("show");
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                    }
+                });
+            },
+            error: function (xhr, status, error) {
+                console.log(xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Update Insurance Type
+    $('#btnTypeUpdate').on('click', function (e) {
+        e.preventDefault();
+
+        var type = $("#insurance_type").val();
+
+        if (type != undefined && type != "") {
+            var appId = appointment.appId;
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateInsuranceType", "AppointmentList", new { area = "Appointment" })?appId=" + appId + "&type=" + type,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    response = JSON.parse(response);
+
+                    if (response.isAuthorized) {
+                        if (response.success) {
+                            GetAppointments(1);
+
+                            Swal.fire({
+                                title: "Success!",
+                                text: response.message,
+                                icon: "success",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60"
+                            });
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Failed!",
+                                text: response.message,
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60"
+                            });
+                        }
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Access Denied!",
+                            text: "You are not authorised to perform this action!",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197",
+                            cancelButtonColor: "#ff3d60"
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                }
+            });
+        }
+        else {
+            Swal.fire({
+                title: "Required!",
+                text: "Please Select Type to Update Appointment!",
+                icon: "info",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197",
+                cancelButtonColor: "#ff3d60"
+            });
+        }
+    });
+    //#endregion
+
+    //#region On Modal CLose
+    $('.close-modal').on('click', function (e) {
+        e.preventDefault();
+
+        if (localStorage.getItem("app") != null) {
+            localStorage.removeItem("app");
+        }
+    });
+    //#endregion
+
+    //#region Clear LocalSorage on Close of Modal
+    $('#appointment_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("app") != null) {
+            localStorage.removeItem("app");
+        }
+    });
+    //#endregion
+</script>

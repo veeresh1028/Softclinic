@@ -1,0 +1,1298 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<link href="~/assets/plugins/morris/morris.css" rel="stylesheet" />
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary" data-lang-key="dashboard"><span data-lang-key="dashboard">Dashboard</span></h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-transparent"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold"><span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span>
+                                </label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select From Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span>
+                                </label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select To Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i>
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-6 col-xl-3">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">Invoices</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="cash-Sales">Cash Sales</span>
+
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="cash_net">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" id="pcash_net"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="insurance-Sales">Insurance Sales</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="ins_net">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" id="pins_net"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="Co.payment">Co. Payment</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="copay">0.00</span>
+                        <span class="text-muted  fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" id="pcopay"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="remittances">Remittances</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="remittance">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-pink progress-bar-striped progress-bar-animated" id="premittance"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-6 col-xl-3">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">Patient Treatments</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="consultation">Consultation</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="consult">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-azure-light progress-bar-striped progress-bar-animated" id="pconsult"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="procedures">Procedures</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="proc">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar badge-gradient-info progress-bar-striped progress-bar-animated" id="pproc"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="laboratory">Laboratory</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="lab">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-cyan-light progress-bar-striped progress-bar-animated" id="plab"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="radiology">Radiology</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="radiology">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-pink progress-bar-striped progress-bar-animated" id="pradiology"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-6 col-xl-3">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">Receipts</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="cash">Cash</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="cash">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" id="pcash"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="credit-card">CREDIT CARD</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="cc">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" id="pcc"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="cheques">Cheques</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="chq">0.00</span>
+                        <span class="text-muted  fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" id="pchq"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="bank-transfers">Bank Transfers</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="bt">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-pink progress-bar-striped progress-bar-animated" id="pbt"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-6 col-xl-3">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">Receipts & Others</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="advances">Advances</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="adv">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-azure-light progress-bar-striped progress-bar-animated" id="padv"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="allocations">Allocations</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="alloc">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar badge-gradient-info progress-bar-striped progress-bar-animated" id="palloc"></div>
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="bad-debits">Bad Debits</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="bdebit">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-cyan-light progress-bar-striped progress-bar-animated" id="pbdebit"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="text-muted fs-13 mb-1" data-lang-key="pharmacy">Pharmacy</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fs-16 font-weight-normal1" id="pharmacy">0.00</span>
+                        <span class="text-muted fs-12">AED</span>
+                    </div>
+                    <div class="progress progress-sm">
+                        <div class="progress-bar bg-pink progress-bar-striped progress-bar-animated" id="ppharmacy"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title text-indigo">
+                    <span data-lang-key="patient-collections-by-payment-modes"> Patient Collections (By Payment Modes)</span>
+                </div>
+                <div class="card-options">
+                    <a href="javascript:void(0);" class="card-options-collapse me-2" data-bs-toggle="card-collapse"><i class="fe fe-chevron-up"></i></a>
+                    <a href="javascript:void(0);" class="card-options-fullscreen me-2" data-bs-toggle="card-fullscreen"><i class="fe fe-maximize"></i></a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="morris-wrapper-demo" id="patient_collections"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title text-indigo"><span data-lang-key="Appointment-by-type">Appointments (By Type)</span></div>
+                <div class="card-options">
+                    <a href="javascript:void(0);" class="card-options-collapse me-2" data-bs-toggle="card-collapse"><i class="fe fe-chevron-up"></i></a>
+                    <a href="javascript:void(0);" class="card-options-fullscreen me-2" data-bs-toggle="card-fullscreen"><i class="fe fe-maximize"></i></a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="morris-wrapper-demo" id="app_type_chart"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title text-indigo">
+                    <span data-lang-key="invoiced-receipts">Invoiced v/s Receipts</span>
+                </div>
+                <div class="card-options">
+                    <a href="javascript:void(0);" class="card-options-collapse me-2" data-bs-toggle="card-collapse"><i class="fe fe-chevron-up"></i></a>
+                    <a href="javascript:void(0);" class="card-options-fullscreen me-2" data-bs-toggle="card-fullscreen"><i class="fe fe-maximize"></i></a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="morris-wrapper-demo" id="inv_rec_chart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title text-indigo">
+                    <span data-lang-key="appointment-by-status"> Appointment Details (By Status)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div>
+                    <canvas id="status_chart" class="h-500"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title text-indigo">
+                    <span data-lang-key="revenue-by-insurance-companies">Revenue (By Insurance Companies)</span>
+                </div>
+                <div class="card-options">
+                    <a href="javascript:void(0);" class="card-options-collapse me-2" data-bs-toggle="card-collapse"><i class="fe fe-chevron-up"></i></a>
+                    <a href="javascript:void(0);" class="card-options-fullscreen me-2" data-bs-toggle="card-fullscreen"><i class="fe fe-maximize"></i></a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="morris-wrapper-demo" id="revenue_ic"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title text-indigo">
+                    <span data-lang-key="collection-by-month">Collection (By Month)</span>
+                </div>
+                <div class="card-options">
+                    <a href="javascript:void(0);" class="card-options-collapse me-2" data-bs-toggle="card-collapse"><i class="fe fe-chevron-up"></i></a>
+                    <a href="javascript:void(0);" class="card-options-fullscreen me-2" data-bs-toggle="card-fullscreen"><i class="fe fe-maximize"></i></a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chartjs-wrapper-demo">
+                    <canvas id="collection_month" style="height:340px"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title text-indigo">
+                    <span data-lang-key="doctor-by-doctors"> Doctor Collections (By Doctors)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div>
+                    <canvas id="doctor_chart" class="h-500"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-wrap d-none" id="toastDash">
+    <div class="toast-main p-5">
+        <div class="demo-static-toast">
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="dashToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header text-dark">
+                        <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                        <strong class="me-auto">
+                            <span data-lang-key="dashboard-report">Dashboard Report</span>
+                        </strong>
+                        <small data-lang-key="just-now">Just Now</small>
+                        <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="toast-body" id="toastBody">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script src="~/assets/plugins/morris/raphael-min.js"></script>
+    <script src="~/assets/plugins/morris/morris.js"></script>
+    <script src="~/assets/plugins/chart/chart.bundle.js"></script>
+    <script src="~/assets/plugins/chart/utils.js"></script>
+    <script src="~/assets/js/apexcharts.js"></script>
+
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Load Advanced Filters
+            load_filters();
+            // Load Dashboard Data
+            GetDashboardReports(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "-1m");
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetBranches", "MyDashboard", new { area = "Dashboard" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $('#select_branch').html('');
+                    $('#select_branch')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" === "Super Administrator") {
+                        $.each(response, function (j) {
+                            $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                            $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        });
+                    }
+                    else {
+                        $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Dashboard Click
+        $("#btnSearch").click(function (e){
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                let isValid = true;
+                let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!date_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid From Date!"
+                        });
+                    }
+                }
+
+                // Check if Date To is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!date_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid To Date!"
+                        });
+                    }
+                }
+
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (date_frm.isValid() && date_to.isValid()) {
+                        if (date_to.diff(date_frm, 'days') <= -1) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to_app");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error!",
+                                message: "Filter From Date hould be less than To Date Filter!"
+                            });
+                        }
+                    }
+                }
+
+                // Check If Valid
+                if (isValid) {
+                    GetDashboardReports(1);
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Dashboard Reports!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Dashboard Reports
+        // Get Dashboard Data
+        var GetDashboardReports = function (search_type) {
+
+            var empId = "";
+
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                empId = 0;
+            }
+            else {
+                empId = @empId.ToString();
+            }
+
+            var _data = {
+                "search_type"   : search_type,
+                "empId"         : empId,
+                "select_branch" : $('#select_branch').val().toString(),
+                "date_from"     : $('#select_date_from').val(),
+                "date_to"       : $('#select_date_to').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDashboardDetails", "MyDashboard", new { area = "Dashboard" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#toastDash').removeClass("d-none");
+                    $('#dashToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+
+                        // Total Cash & Insurance Sales
+                        load_cash_ins_sales(response);
+
+                        // Total Collections
+                        load_collections(response);
+
+                        // Total Appointments (By Type)
+                        appTypes(response);
+
+                        // Patient Collection (By Payment Modes)
+                        patientCollection(response);
+
+                        // Invoiced v/s Receipts (By Month)
+                        invs_receipts(response);
+
+                        // Appointments (By Status)
+                        bindAppByStatus(response);
+
+                        // Collection (By Doctor)
+                        doctorCollection(response);
+
+                        // Revenue (By Insuarance Comapnies)
+                        revenueCollection(response);
+
+                        // Collection (By Month)
+                        bindMonthwise(response);
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                        $('#dashToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#dashToast').fadeOut('fast');
+                    $('#toastDash').addClass("d-none");
+                }, 5000);
+            });
+        }
+        //#endregion
+
+        //#region Load Total Cash & Insurance Sales
+        var load_cash_ins_sales = function (response) {
+            var cashNet = response.dbSales.total_cash_net;
+            var insNet = response.dbSales.total_ins_net;
+            var copay = response.dbSales.total_copay;
+            var remittance = response.dbSales.total_remittance_amt;
+            var consultation = response.dbSales.total_consultation;
+            var proc = response.dbSales.total_proc;
+            var lab = response.dbSales.total_lab;
+            var radiology = response.dbSales.total_radiology;
+            var pharmacy = response.dbSales.total_pharmacy;
+
+            var fCashNet = cashNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var finsNet = insNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fcopay = copay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fremittance = remittance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fconsultation = consultation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fproc = proc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var flab = lab.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fradiology = radiology.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fpharmacy = pharmacy.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            $("#cash_net,#ins_net,#copay,#remittance,#consult,#proc,#lab,#radiology,#pharmacy").html('0.00');
+            $("#cash_net").html(fCashNet);
+            $("#ins_net").html(finsNet);
+            $("#copay").html(fcopay);
+            $("#remittance").html(fremittance);
+            $("#consult").html(fconsultation);
+            $("#proc").html(fproc);
+            $("#lab").html(flab);
+            $("#radiology").html(fradiology);
+            $("#pharmacy").html(fpharmacy);
+
+            //#region Load Progress Bars
+            if (parseInt(fCashNet) > 0) {
+                $("#pcash_net").css({ "width": "100%" });
+            }
+            else {
+                $("#pcash_net").css({ "width": "0%" });
+            }
+
+            if (parseInt(finsNet) > 0) {
+                $("#pins_net").css({ "width": "100%" });
+            }
+            else {
+                $("#pins_net").css({ "width": "0%" });
+            }
+
+            if (parseInt(fcopay) > 0) {
+                $("#pcopay").css({ "width": "100%" });
+            }
+            else {
+                $("#pcopay").css({ "width": "0%" });
+            }
+
+            if (parseInt(fremittance) > 0) {
+                $("#premittance").css({ "width": "100%" });
+            }
+            else {
+                $("#premittance").css({ "width": "0%" });
+            }
+
+            if (parseInt(fconsultation) > 0) {
+                $("#pconsult").css({ "width": "100%" });
+            }
+            else {
+                $("#pconsult").css({ "width": "0%" });
+            }
+
+            if (parseInt(fproc) > 0) {
+                $("#pproc").css({ "width": "100%" });
+            }
+            else {
+                $("#pproc").css({ "width": "0%" });
+            }
+
+            if (parseInt(flab) > 0) {
+                $("#plab").css({ "width": "100%" });
+            }
+            else {
+                $("#plab").css({ "width": "0%" });
+            }
+
+            if (parseInt(fradiology) > 0) {
+                $("#pradiology").css({ "width": "100%" });
+            }
+            else {
+                $("#pradiology").css({ "width": "0%" });
+            }
+
+            if (parseInt(fpharmacy) > 0) {
+                $("#ppharmacy").css({ "width": "100%" });
+            }
+            else {
+                $("#ppharmacy").css({ "width": "0%" });
+            }
+            //#endregion
+        }
+        //#endregion
+
+        //#region Load Total Collections
+        var load_collections = function (response) {
+            var cash = response.dbCollections.total_cash;
+            var ccs = response.dbCollections.total_cc;
+            var chqs = response.dbCollections.total_cheques;
+            var bts = response.dbCollections.total_bt;
+            var advances = response.dbCollections.total_advances;
+            var allocs = response.dbCollections.total_allocations;
+            var debits = response.dbCollections.total_bad_debits;
+
+            var fcash = cash.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fccs = ccs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fchqs = chqs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fbts = bts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fadvances = advances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fallocs = allocs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var fdebit = debits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            $("#cash,#cc,#chq,#bt,#adv,#alloc,#bdebit").html('0.00');
+            $("#cash").html(fcash);
+            $("#cc").html(fccs);
+            $("#chq").html(fchqs);
+            $("#bt").html(fbts);
+            $("#adv").html(fadvances);
+            $("#alloc").html(fallocs);
+            $("#bdebit").html(fdebit);
+
+            //#region Load Progress Bars
+            if (parseInt(fcash) > 0) {
+                $("#pcash").css({ "width": "100%" });
+            }
+            else {
+                $("#pcash").css({ "width": "0%" });
+            }
+
+            if (parseInt(fccs) > 0) {
+                $("#pcc").css({ "width": "100%" });
+            }
+            else {
+                $("#pcc").css({ "width": "0%" });
+            }
+
+            if (parseInt(fchqs) > 0) {
+                $("#pchq").css({ "width": "100%" });
+            }
+            else {
+                $("#pchq").css({ "width": "0%" });
+            }
+
+            if (parseInt(fbts) > 0) {
+                $("#pbt").css({ "width": "100%" });
+            }
+            else {
+                $("#pbt").css({ "width": "0%" });
+            }
+
+            if (parseInt(fadvances) > 0) {
+                $("#padv").css({ "width": "100%" });
+            }
+            else {
+                $("#padv").css({ "width": "0%" });
+            }
+
+            if (parseInt(fallocs) > 0) {
+                $("#palloc").css({ "width": "100%" });
+            }
+            else {
+                $("#palloc").css({ "width": "0%" });
+            }
+
+            if (parseInt(fdebit) > 0) {
+                $("#pbdebit").css({ "width": "100%" });
+            }
+            else {
+                $("#pbdebit").css({ "width": "0%" });
+            }
+            //#endregion
+        }
+        //#endregion
+
+        //#region Total Appointments (By Type)
+        var appTypes = function (response) {
+            $('#app_type_chart').empty('');
+
+            var _data = response.dbAppTypes;
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+            var colorIndex = 0;
+
+            new Morris.Bar({
+                element: 'app_type_chart',
+                data: _data,
+                xkey: 'labels',
+                ykeys: ['total'],
+                labels: _labels,
+                stacked: true,
+                gridTextSize: 10,
+                hideHover: 'auto',
+                resize: true,
+                xLabelMargin: 25,
+                hoverCallback: function (index, options, content, row) {
+                    var label = options.data[index].labels;
+                    var total = options.data[index].total;
+                    total = total.toLocaleString();
+                    return label + ': ' + total + ' Nos';
+                },
+                barColors: function () {
+                    if (colorIndex < 4)
+                        return barColorsArray[++colorIndex];
+                    else {
+                        colorIndex = 0;
+                        return barColorsArray[++colorIndex];
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Patient Collection (By Payment Modes)
+        var patientCollection = function (response) {
+            $('#patient_collections').empty('');
+
+            var _data = response.patientCollections;
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+            var colorIndex = 0;
+
+            new Morris.Bar({
+                element: 'patient_collections',
+                data: _data,
+                xkey: 'labels',
+                ykeys: ['total'],
+                labels: _labels,
+                stacked: true,
+                gridTextSize: 10,
+                hideHover: 'auto',
+                resize: true,
+                xLabelMargin: 25,
+                hoverCallback: function (index, options, content, row) {
+                    var label = options.data[index].labels;
+                    var total = options.data[index].total;
+                    total = total.toLocaleString();
+                    return label + ': ' + total + ' AED';
+                },
+                barColors: function () {
+                    if (colorIndex < 4)
+                        return barColorsArray[++colorIndex];
+                    else {
+                        colorIndex = 0;
+                        return barColorsArray[++colorIndex];
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Invoiced v/s Receipts (BY MONTH)
+        var invs_receipts = function (response) {
+
+            var _data = response.invRecMonth;
+
+            $('#inv_rec_chart').empty('');
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+            var colorIndex = 0;
+
+            new Morris.Bar({
+                element: 'inv_rec_chart',
+                data: _data,
+                xkey: 'labels',
+                ykeys: ['total'],
+                labels: _labels,
+                stacked: true,
+                gridTextSize: 10,
+                hideHover: 'auto',
+                resize: true,
+                xLabelMargin: 25,
+                hoverCallback: function (index, options, content, row) {
+                    var label = options.data[index].labels;
+                    var total = options.data[index].total;
+                    total = total.toLocaleString();
+                    return label + ': ' + total + ' AED';
+                },
+                barColors: function () {
+                    if (colorIndex < 4)
+                        return barColorsArray[++colorIndex];
+                    else {
+                        colorIndex = 0;
+                        return barColorsArray[++colorIndex];
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Appointments (By Status)
+        var statusChart = document.getElementById('status_chart').getContext('2d');
+        var bindAppByStatus = function (response) {
+
+            var chartInstance = null;
+
+            var _data = response.appStatusList;
+
+            if (chartInstance !== null) {
+                chartInstance.destroy();
+                $('#status_chart').empty('');
+            }
+
+            var _labels = _data.map(function (value) {
+                return value.app_status;
+            });
+
+            var _values = _data.map(function (value) {
+                return value.total;
+            });
+
+            var gradient = statusChart.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, '#44c4fa');
+            gradient.addColorStop(1, '#664dc9');
+
+            chartInstance = new Chart(statusChart, {
+                type: 'bar',
+                data: {
+                    labels: _labels,
+                    datasets: [{
+                        label: '',
+                        data: _values,
+                        backgroundColor: gradient
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    legend: {
+                        display: false,
+                        labels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 10,
+                                max: 1500
+                            }
+                        }],
+                        xAxes: [{
+                            barPercentage: 0.6,
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 11
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Doctor Collection (By Doctors)
+        var doctorChart = document.getElementById('doctor_chart').getContext('2d');
+        var doctorCollection = function (response) {
+            var chartInstance = null;
+
+            var _data = response.collectionByDoctors;
+
+            if (chartInstance !== null) {
+                chartInstance.destroy();
+                $('#doctor_chart').empty('');
+            }
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            $.each(_labels, function (index, label) {
+                var trimmedLabel = $.trim(label).substring(0, 8);
+
+                _labels[index] = trimmedLabel;
+            });
+
+            var _values = _data.map(function (value) {
+                return value.total;
+            });
+
+            var gradient = doctorChart.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, '#44c4fa');
+            gradient.addColorStop(1, '#4b30b5');
+
+            chartInstance = new Chart(doctorChart, {
+                type: 'bar',
+                data: {
+                    labels: _labels,
+                    datasets: [{
+                        label: '',
+                        data: _values,
+                        backgroundColor: gradient
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    legend: {
+                        display: false,
+                        labels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 10,
+                                max: 2000000
+                            }
+                        }],
+                        xAxes: [{
+                            barPercentage: 0.6,
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 11
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Revenue (By Insuarance Comapnies)
+        var revenueCollection = function (response) {
+            $('#revenue_ic').empty('');
+
+            var _data = response.RevenueByInsCompanies;
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+            var colorIndex = 0;
+
+            new Morris.Bar({
+                element: 'revenue_ic',
+                data: _data,
+                xkey: 'labels',
+                ykeys: ['total'],
+                labels: _labels,
+                stacked: true,
+                gridTextSize: 10,
+                hideHover: 'auto',
+                resize: true,
+                xLabelMargin: 25,
+                xLabelAngle: 40,
+                hoverCallback: function (index, options, content, row) {
+                    var label = options.data[index].labels;
+                    var total = options.data[index].total;
+                    total = total.toLocaleString();
+                    return label + ': ' + total + ' AED';
+                },
+                barColors: function () {
+                    if (colorIndex < 4)
+                        return barColorsArray[++colorIndex];
+                    else {
+                        colorIndex = 0;
+                        return barColorsArray[++colorIndex];
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Collection By Month
+        var bindMonthwise = function (response) {
+
+            $('#collection_month').empty('');
+
+            var _data = response.collectionByMonths;
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var _values = _data.map(function (value) {
+                return value.total;
+            });
+
+            var gradient2 = statusChart.createLinearGradient(0, 280, 0, 0);
+            gradient2.addColorStop(0, 'rgba(91, 115, 232,0)');
+            gradient2.addColorStop(1, 'rgba(91, 115, 232,.5)');
+
+            var monthChart = document.getElementById('collection_month');
+
+            new Chart(monthChart, {
+                type: 'line',
+                data: {
+                    labels: _labels,
+                    datasets: [{
+                        data: _values,
+                        borderColor: '#664dc9',
+                        borderWidth: 1,
+                        backgroundColor: gradient2
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false,
+                        labels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 10,
+                                max: 1000000
+                            }
+                        }],
+                        xAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 11
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+        //#endregion
+    </script>
+}

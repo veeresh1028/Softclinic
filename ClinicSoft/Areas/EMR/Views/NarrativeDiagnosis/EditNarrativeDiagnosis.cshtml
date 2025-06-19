@@ -1,0 +1,342 @@
+﻿
+@model BusinessEntities.EMR.NarrativeDiagnosis
+<form id="form_EditNarrative" class="needs-validation" >
+
+   
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.ntdId)
+    @Html.HiddenFor(m => m.ntd_appId)
+<div class="row">
+    <div class="col-sm-6 col-md-6 col-lg-6">
+        <div class="form-group mb-3">
+            <label class="form-label text-black">Template&nbsp;</label>
+            @Html.DropDownListFor(m => m.title, new List<SelectListItem> { }, "Select Template", new { @class = "form-select  mb-2 select2", @id = "utitle" })
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-6 col-lg-6">
+        <div class="page-rightheader">
+            <div class="btn-list">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addDiagnosisu">
+                    <i class="fa fa-bullseye"></i>
+                    Add Diagnosis
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-6 col-lg-6">
+        <div class="form-group mb-3">
+            <label class="form-label text-black">Narrative Diagnosis&nbsp;<span class="text-danger">*</span></label>
+            @Html.TextAreaFor(m => m.ntd_1, new { @class = "form-control", @placeholder = "Enter NarrativeDiagnosis", @row = "8", @id = "untd_1" })
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-6 col-lg-6">
+        <div class="form-group mb-3">
+            <label class="form-label text-black">Final Diagnosis&nbsp;</label>
+            @Html.TextAreaFor(m => m.ntd_2, new { @class = "form-control", @placeholder = "Enter Final Diagnosis", @row = "8", @id = "untd_2" })
+        </div>
+    </div>
+</div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-warning" id="btn_Update_Narrative">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_Editnarrative">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+         $(function () {
+            
+
+            $("#utitle").select2({
+                placeholder: 'Select Template',
+                width: '100%',
+                minimumInputLength: 3,
+                     dropdownParent: $('#form_EditNarrative'),
+
+                ajax: {
+                    url: '@Url.Action("GetNarrative", "NarrativeDiagnosis", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+             validate();
+            // load_NarrativeDiagnosis("@Model.title");
+        });
+    //#endregion Partial View Onload
+
+    //#region Close NarrativeDiagnosis
+        $('#btn_Close_Editnarrative').click(function () {
+            $('#narrative_edit').hide();
+            AddNarrativeDiagnosis();
+            $("#narrative_add").show();
+        });
+    //#endregion Close NarrativeDiagnosis
+
+    //#region load NarrativeDiagnosis
+    var load_NarrativeDiagnosis = function (title) {
+            $.ajax({
+                url: '@Url.Action("GetNarrative", "NarrativeDiagnosis", new { area = "EMR" })?query=' + title,
+                type: "GET",
+                dataType: "json",
+                async: false,
+
+                success: function (response) {
+                    var data = {
+                        "id": response[0].id,
+                        "text": response[0].text,
+                    };
+                    $('#ntd_1').val(response[0].text);
+                    var newOption = new Option(response[0].text, response[0].id, true, true);
+                    $('#utitle').append(newOption).trigger('change');
+                    $('#utitle').trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    });
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+
+            });
+        };
+    //#endregion load NarrativeDiagnosis
+
+    //#region Add Diagnosis
+        $('#addDiagnosisu').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateDiagnosis", "Diagnosis", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $('#create_diag_modal').attr("data-modal-from", "update-narrative");
+                    $("#create_diag_body").html(data);
+                    $("#create_diag_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Diagnosis : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+    //#region Create Diagnosis On Modal Close
+        $('#create_diag_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newDiagnosis") != null) {
+                var diagnosis = JSON.parse(localStorage.getItem("newDiagnosis"));
+                setNarrative(diagnosis);
+                localStorage.removeItem("newDiagnosis");
+            }
+        });
+    //#endregion Create Diagnosis On Modal Close
+
+    //#region set Narrative
+        var setNarrative = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#utitle').append(newOption).trigger('change');
+
+            $('#utitle').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion Set Narrative
+
+
+    //#region select2 NarrativeDiagnosis
+        $('#utitle').on('select2:select', function (e) {
+            var data = e.params.data;
+            console.log(data);
+            $('#untd_1').val(data.id);
+        });
+    //#endregion select2 NarrativeDiagnosis
+
+    //#region Update  Button Click
+        $('#btn_Update_Narrative').on('click', function (e) {
+             e.preventDefault();
+            if ($("#form_EditNarrative").valid()) {
+                $('#btn_Update_Narrative').removeClass("btn btn-success");
+                $('#btn_Update_Narrative').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Update_Narrative').html("Updating the Record....");
+                var _dataInsert = {
+                    "ntdId": $("#ntdId").val(),
+                    "ntd_appId": $("#ntd_appId").val(),
+                    "ntd_1": $("#untd_1").val(),
+                    "ntd_2": $("#untd_2").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                console.log(_dataInsert)
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdateNarrativeDiagnosis", "NarrativeDiagnosis", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                success: function (data) {
+                    $('#narrative_edit').hide();
+                    $('#btn_Update_Narrative').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_Narrative').addClass("btn btn-success");
+                    $('#btn_Update_Narrative').html("Save Changes");
+                    if (data.isSuccess) {
+                        if (data.isInserted) {
+                            var alertPlaceholder = document.getElementById("Alert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Narrative Diagnosis Updated Successfully!", "success");
+                            clearControls();
+                            Timeout();
+                            GetNarrativeDiagnosis();
+                            GetPreviousNarrativeDiagnosis();
+                            $('#narrative_add').show();
+                            $("#narrative_edit").hide()
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Warning.. Narrative Diagnosis Alredy Exists..</strong><br/>" +
+                                "</div></div>";
+                            $("#error").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+                        html += "</ul></div></div>";
+                        $("#error").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update_Narrative').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_Narrative').addClass("btn btn-success");
+                    $('#btn_Update_Narrative').html("Save Changes");
+                    Timeout();
+                }
+                });
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Update  Button Click
+
+    //#region Clear Controls
+        var clearControls = function () {
+            $("#untd_1").val("");
+            $("#untd_2").val("");
+            $("#utitle").val("");
+        }
+    //#endregion Clear Controls
+
+    //#region Validation Initialization
+        var validate = function () {
+            $('#untd_1').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                    return false;
+            });
+            $("#form_EditNarrative").validate({
+                rules: {
+                    untd_1: {
+                        required: true
+                    },
+                },
+                messages: {
+                    untd_1: {
+                        required: "Please Enter Location!"
+                    },
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+        }
+    //#endregion Validation Initialization
+
+    //#region Add Complaint
+        function addComplaint() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateComplaintsMaster", "ComplaintsMaster", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#complaint_modal_body").html(data);
+                    $("#complaint_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Complaint : " + xhr.statusText);
+                }
+            });
+        }
+    //#endregion
+</script>

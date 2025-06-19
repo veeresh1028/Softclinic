@@ -1,0 +1,2638 @@
+﻿<!--aside open-->
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    Dictionary<int, bool> dict = (Dictionary<int, bool>)TempData["MenuAccess"];
+    TempData.Keep("MenuAccess");
+
+    if (TempData["MenuAccess"] == null)
+    {
+        Response.Redirect("/Authentication/Authentication/Login");
+    }
+
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+
+    #region Master
+    bool isHPI = (dict == null) ? false : ((dict.ContainsKey((int)Pages.HPI)) ? dict[(int)Pages.HPI] : false);
+    bool isAllergies = (dict == null) ? false : ((dict.ContainsKey((int)Pages.Allergies)) ? dict[(int)Pages.Allergies] : false);
+    bool isPastHistory = (dict == null) ? false : ((dict.ContainsKey((int)Pages.PastHistory)) ? dict[(int)Pages.PastHistory] : false);
+    bool isReviewofSystems = (dict == null) ? false : ((dict.ContainsKey((int)Pages.ReviewofSystems)) ? dict[(int)Pages.ReviewofSystems] : false);
+    bool isNurseNotes = (dict == null) ? false : ((dict.ContainsKey((int)Pages.NurseNotes)) ? dict[(int)Pages.NurseNotes] : false);
+    bool isVitalSign = (dict == null) ? false : ((dict.ContainsKey((int)Pages.VitalSign)) ? dict[(int)Pages.VitalSign] : false);
+    bool isPhysicalExamination = (dict == null) ? false : ((dict.ContainsKey((int)Pages.PhysicalExamination)) ? dict[(int)Pages.PhysicalExamination] : false);
+    bool isPhysicianOrders = (dict == null) ? false : ((dict.ContainsKey((int)Pages.PhysicianOrders)) ? dict[(int)Pages.PhysicianOrders] : false);
+    bool isNurseStationMenu = (isHPI || isAllergies || isPastHistory || isVitalSign);
+
+    bool isChiefComplaints = (dict == null) ? false : ((dict.ContainsKey((int)Pages.ChiefComplaints)) ? dict[(int)Pages.ChiefComplaints] : false);
+    bool isGeneralExamination = (dict == null) ? false : ((dict.ContainsKey((int)Pages.GeneralExamination)) ? dict[(int)Pages.GeneralExamination] : false);
+    bool isRespiratorySystem = (dict == null) ? false : ((dict.ContainsKey((int)Pages.RespiratorySystem)) ? dict[(int)Pages.RespiratorySystem] : false);
+    bool isCardioVascular = (dict == null) ? false : ((dict.ContainsKey((int)Pages.CardioVascular)) ? dict[(int)Pages.CardioVascular] : false);
+    bool isGastroIntestinal = (dict == null) ? false : ((dict.ContainsKey((int)Pages.GastroIntestinal)) ? dict[(int)Pages.GastroIntestinal] : false);
+    bool isGenitoUrinary = (dict == null) ? false : ((dict.ContainsKey((int)Pages.GenitoUrinary)) ? dict[(int)Pages.GenitoUrinary] : false);
+    bool isCentralNervous = (dict == null) ? false : ((dict.ContainsKey((int)Pages.CentralNervous)) ? dict[(int)Pages.CentralNervous] : false);
+    bool isMusculoSkeletal = (dict == null) ? false : ((dict.ContainsKey((int)Pages.MusculoSkeletal)) ? dict[(int)Pages.MusculoSkeletal] : false);
+    bool isPainScale = (dict == null) ? false : ((dict.ContainsKey((int)Pages.PainScale)) ? dict[(int)Pages.PainScale] : false);
+    bool isNarrativeDiagnosis = (dict == null) ? false : ((dict.ContainsKey((int)Pages.NarrativeDiagnosis)) ? dict[(int)Pages.NarrativeDiagnosis] : false);
+    bool isPatientDiagnosis = (dict == null) ? false : ((dict.ContainsKey((int)Pages.PatientDiagnosis)) ? dict[(int)Pages.PatientDiagnosis] : false);
+    bool isDiagnosisFavourites = (dict == null) ? false : ((dict.ContainsKey((int)Pages.DiagnosisFavourites)) ? dict[(int)Pages.DiagnosisFavourites] : false);
+    bool isPatientTreatments = (dict == null) ? false : ((dict.ContainsKey((int)Pages.PatientTreatments)) ? dict[(int)Pages.PatientTreatments] : false);
+    bool isPrescription = (dict == null) ? false : ((dict.ContainsKey((int)Pages.Prescription)) ? dict[(int)Pages.Prescription] : false);
+    bool isProgressNotes = (dict == null) ? false : ((dict.ContainsKey((int)Pages.ProgressNotes)) ? dict[(int)Pages.ProgressNotes] : false);
+    bool isOralExamination = (dict == null) ? false : ((dict.ContainsKey((int)Pages.OralExamination)) ? dict[(int)Pages.OralExamination] : false);
+    bool isDentalHistory = (dict == null) ? false : ((dict.ContainsKey((int)Pages.DentalHistory)) ? dict[(int)Pages.DentalHistory] : false);
+    bool isDoctorQueries = (dict == null) ? false : ((dict.ContainsKey((int)Pages.DoctorQueries)) ? dict[(int)Pages.DoctorQueries] : false);
+    bool isEMRMenu = (isHPI || isAllergies || isPastHistory || isChiefComplaints || isDoctorQueries);
+    bool isDiagnosis = (isHPI || isAllergies || isPatientDiagnosis || isNarrativeDiagnosis);
+
+    #endregion Master
+}
+
+<aside class="app-sidebar">
+    <div class="app-sidebar__logo">
+        <a class="header-brand" href="@Url.Action("DashboardIndex", "MyDashboard", new { area = "Dashboard" })">
+            <img src="~/assets/images/brand/logo3.png" class="header-brand-img desktop-lgo" alt="Vision Technologies logo">
+            <img src="~/assets/images/brand/logo1.png" class="header-brand-img dark-logo" alt="Vision Technologies logo">
+            <img src="~/assets/images/brand/favicon.png" class="header-brand-img mobile-logo" alt="Vision Technologies logo">
+            <img src="~/assets/images/brand/favicon1.png" class="header-brand-img darkmobile-logo" alt="Vision Technologies logo">
+        </a>
+    </div>
+
+    <ul class="side-menu app-sidebar3 nurseStation d-none" id="NurseStation">
+        @if (isNurseStationMenu)
+        {
+            <li class="side-item side-item-category">Nurse Station</li>
+            if (isHPI)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("HistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-clock-history" viewBox="0 0 16 16">
+                            <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z" />
+                            <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z" />
+                            <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z" />
+                        </svg>
+                        <span class="side-menu__label"> HPI</span>
+                    </a>
+                </li>
+            }
+            if (isAllergies)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("Allergies", "Allergies", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-lungs" viewBox="0 0 16 16">
+                            <path d="M8.5 1.5a.5.5 0 1 0-1 0v5.243L7 7.1V4.72C7 3.77 6.23 3 5.28 3c-.524 0-1.023.27-1.443.592-.431.332-.847.773-1.216 1.229-.736.908-1.347 1.946-1.58 2.48-.176.405-.393 1.16-.556 2.011-.165.857-.283 1.857-.241 2.759.04.867.233 1.79.838 2.33.67.6 1.622.556 2.741-.004l1.795-.897A2.5 2.5 0 0 0 7 11.264V10.5a.5.5 0 0 0-1 0v.764a1.5 1.5 0 0 1-.83 1.342l-1.794.897c-.978.489-1.415.343-1.628.152-.28-.25-.467-.801-.505-1.63-.037-.795.068-1.71.224-2.525.157-.82.357-1.491.491-1.8.19-.438.75-1.4 1.44-2.25.342-.422.703-.799 1.049-1.065.358-.276.639-.385.833-.385a.72.72 0 0 1 .72.72v3.094l-1.79 1.28a.5.5 0 0 0 .58.813L8 7.614l3.21 2.293a.5.5 0 1 0 .58-.814L10 7.814V4.72a.72.72 0 0 1 .72-.72c.194 0 .475.11.833.385.346.266.706.643 1.05 1.066.688.85 1.248 1.811 1.439 2.249.134.309.334.98.491 1.8.156.814.26 1.73.224 2.525-.038.829-.224 1.38-.505 1.63-.213.19-.65.337-1.628-.152l-1.795-.897A1.5 1.5 0 0 1 10 11.264V10.5a.5.5 0 0 0-1 0v.764a2.5 2.5 0 0 0 1.382 2.236l1.795.897c1.12.56 2.07.603 2.741.004.605-.54.798-1.463.838-2.33.042-.902-.076-1.902-.24-2.759-.164-.852-.38-1.606-.558-2.012-.232-.533-.843-1.571-1.579-2.479-.37-.456-.785-.897-1.216-1.229C11.743 3.27 11.244 3 10.72 3 9.77 3 9 3.77 9 4.72V7.1l-.5-.357V1.5Z" />
+                        </svg>
+
+                        <span class="side-menu__label">Allergies</span>
+                        <span class="badge bg-danger  side-badge">Required</span>
+                    </a>
+                </li>
+            }
+            if (isPastHistory)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("PastHistory", "PastHistory", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-arrow-counterclockwise" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z" />
+                            <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z" />
+                        </svg>
+                        <span class="side-menu__label">Past History</span>
+                        <span class="badge bg-danger  side-badge">Required</span>
+                    </a>
+                </li>
+            }
+            if (isReviewofSystems)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("ReviewofSystems", "ReviewofSystems", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-clipboard2-pulse-fill" viewBox="0 0 16 16">
+                            <path d="M10 .5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5.5.5 0 0 1-.5.5.5.5 0 0 0-.5.5V2a.5.5 0 0 0 .5.5h5A.5.5 0 0 0 11 2v-.5a.5.5 0 0 0-.5-.5.5.5 0 0 1-.5-.5Z" />
+                            <path d="M4.085 1H3.5A1.5 1.5 0 0 0 2 2.5v12A1.5 1.5 0 0 0 3.5 16h9a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 12.5 1h-.585c.055.156.085.325.085.5V2a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 2v-.5c0-.175.03-.344.085-.5ZM9.98 5.356 11.372 10h.128a.5.5 0 0 1 0 1H11a.5.5 0 0 1-.479-.356l-.94-3.135-1.092 5.096a.5.5 0 0 1-.968.039L6.383 8.85l-.936 1.873A.5.5 0 0 1 5 11h-.5a.5.5 0 0 1 0-1h.191l1.362-2.724a.5.5 0 0 1 .926.08l.94 3.135 1.092-5.096a.5.5 0 0 1 .968-.039Z" />
+                        </svg>
+                        <span class="side-menu__label">Review of Systems</span>
+                    </a>
+                </li>
+            }
+            if (isPhysicalExamination)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("PhysicalExamination", "PhysicalExamination", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-universal-access-circle" viewBox="0 0 16 16">
+                            <path d="M8 4.143A1.071 1.071 0 1 0 8 2a1.071 1.071 0 0 0 0 2.143Zm-4.668 1.47 3.24.316v2.5l-.323 4.585A.383.383 0 0 0 7 13.14l.826-4.017c.045-.18.301-.18.346 0L9 13.139a.383.383 0 0 0 .752-.125L9.43 8.43v-2.5l3.239-.316a.38.38 0 0 0-.047-.756H3.379a.38.38 0 0 0-.047.756Z" />
+                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0ZM1 8a7 7 0 1 1 14 0A7 7 0 0 1 1 8Z" />
+                        </svg>
+                        <span class="side-menu__label">Physical Examination</span>
+                    </a>
+                </li>
+            }
+            if (isNurseNotes)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("NurseNotes", "NurseNotes", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-book-half" viewBox="0 0 16 16">
+                            <path d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z" />
+                        </svg>
+                        <span class="side-menu__label">Nurse Notes</span>
+                    </a>
+                </li>
+            }
+            if (isVitalSign)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("VitalSigns", "VitalSigns", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-thermometer-half" viewBox="0 0 16 16">
+                            <path d="M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z" />
+                            <path d="M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z" />
+                        </svg>
+                        <span class="side-menu__label">Vital Signs</span>
+                        <span class="badge bg-danger  side-badge">Required</span>
+                    </a>
+                </li>
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("TPRCharts", "TPRCharts", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-bar-chart-line" viewBox="0 0 16 16">
+                            <path d="M11 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h1V7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7h1V2zm1 12h2V2h-2v12zm-3 0V7H7v7h2zm-5 0v-3H2v3h2z" />
+                        </svg>
+                        <span class="side-menu__label">TPR Charts</span>
+                    </a>
+                </li>
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("Injection", "InjectionAdministration", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-thermometer-half" viewBox="0 0 16 16">
+                            <path d="M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z" />
+                            <path d="M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z" />
+                        </svg>
+                        <span class="side-menu__label">Injection Administration</span>
+                    </a>
+                </li>
+            }
+            if (isPhysicianOrders)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("PhysicianOrders", "PhysicianOrders", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-journal-medical" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v.634l.549-.317a.5.5 0 1 1 .5.866L9 6l.549.317a.5.5 0 1 1-.5.866L8.5 6.866V7.5a.5.5 0 0 1-1 0v-.634l-.549.317a.5.5 0 1 1-.5-.866L7 6l-.549-.317a.5.5 0 0 1 .5-.866l.549.317V4.5A.5.5 0 0 1 8 4zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z" />
+                            <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z" />
+                            <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z" />
+                        </svg>
+                        <span class="side-menu__label">Physician Orders</span>
+                    </a>
+                </li>
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("LaboratoryRadiology", "LaboratoryRadiology", new { area = "NurseStation" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-funnel" viewBox="0 0 16 16">
+                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2h-11z" />
+                        </svg>
+                        <span class="side-menu__label">Laboratory & Radiology</span>
+                    </a>
+                </li>
+            }
+        }
+    </ul>
+
+    <ul class="side-menu app-sidebar3 emrtabs" id="emrtabs">
+        <li class="side-item side-item-category">Nurse Station</li>
+        <li class="slide">
+            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-thermometer-half" viewBox="0 0 16 16">
+                    <path d="M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z" />
+                    <path d="M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z" />
+                </svg>
+                <span class="side-menu__label">Nurse Station</span><i class="angle fe fe-chevron-right"></i>
+            </a>
+            @if (isNurseStationMenu)
+            {
+                <ul class="slide-menu">
+                    @if (isHPI)
+                    {
+                        <li>
+                            <a href="@Url.Action("HistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })" class="slide-item">
+                                HPI
+                            </a>
+                        </li>
+                    }
+                    @if (isAllergies)
+                    {
+                        <li>
+                            <a href="@Url.Action("Allergies", "Allergies", new { area = "NurseStation" })" class="slide-item">
+                                Allergies
+                                <span class="badge bg-danger  side-badge  ms-5">Required</span>
+                            </a>
+                        </li>
+                    }
+                    @if (isPastHistory)
+                    {
+                        <li>
+                            <a href="@Url.Action("PastHistory", "PastHistory", new { area = "NurseStation" })" class="slide-item">
+                                Past History
+                                <span class="badge bg-danger  side-badge  ms-5">Required</span>
+                            </a>
+                        </li>
+                    }
+                    @if (isReviewofSystems)
+                    {
+                        <li>
+                            <a href="@Url.Action("ReviewofSystems", "ReviewofSystems", new { area = "NurseStation" })" class="slide-item">
+                                Review of Systems
+                            </a>
+                        </li>
+                    }
+                    @if (isPhysicalExamination)
+                    {
+                        <li>
+                            <a href="@Url.Action("PhysicalExamination", "PhysicalExamination", new { area = "NurseStation" })" class="slide-item">
+                                Physical Examination
+                            </a>
+                        </li>
+                    }
+                    @if (isNurseNotes)
+                    {
+                        <li>
+                            <a href="@Url.Action("NurseNotes", "NurseNotes", new { area = "NurseStation" })" class="slide-item">
+                                Nurse Notes
+                            </a>
+                        </li>
+                    }
+                    @if (isVitalSign)
+                    {
+                        <li>
+                            <a href="@Url.Action("VitalSigns", "VitalSigns", new { area = "NurseStation" })" class="slide-item">
+                                Vital Signs
+                                <span class="badge bg-danger  side-badge ms-5">Required</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="@Url.Action("TPRCharts", "TPRCharts", new { area = "NurseStation" })" class="slide-item">
+                                TPR Charts
+                            </a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Injection", "InjectionAdministration", new { area = "NurseStation" })" class="slide-item">
+                                Injection Administration
+                            </a>
+                        </li>
+                    }
+                    @if (isVitalSign)
+                    {
+                        <li>
+                            <a href="@Url.Action("PhysicianOrders", "PhysicianOrders", new { area = "NurseStation" })" class="slide-item">
+                                Physician Orders
+                            </a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("LaboratoryRadiology", "LaboratoryRadiology", new { area = "NurseStation" })" class="slide-item">
+                                Laboratory & Radiology
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </li>
+        @{
+            if (!string.IsNullOrEmpty(emr.emp_dept_name))
+            {
+                if (emr.emp_dept_name.Trim().ToLower().Equals("dental"))
+                {
+                    <li class="side-item side-item-category">Dental Station</li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <span class="material-symbols-outlined side-menu__icon " style="padding: 0px; font-size: 26px;">
+                                dentistry
+                            </span>
+                            <span class="side-menu__label">Dental Station</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            @{
+                                if (isPainScale)
+                                {
+                                    <li>
+                                        <a href="@Url.Action("PainScale", "PainScale", new { area = "EMR" })" class="slide-item">
+                                            Pain Measurment
+                                        </a>
+                                    </li>
+                                }
+                                if (isChiefComplaints)
+                                {
+                                    <li>
+                                        <a href="@Url.Action("CheifComplaints", "CheifComplaints", new { area = "EMR" })" class="slide-item">
+                                            <span class="side-menu__label">Complaints</span>
+                                            <span class="badge bg-danger  side-badge ms-2" style="font-size:9px;">Required</span>
+                                            <i class="angle fe fe-chevron-right"></i>
+                                        </a>
+
+                                    </li>
+
+                                }
+                                if (isOralExamination)
+                                {
+                                    <li>
+                                        <a href="@Url.Action("IntraOralSoftTissue", "OralExamination", new { area = "EMR" })" class="slide-item">
+                                            Intra Oral Soft Tissue
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="@Url.Action("IntraOralHardTissue", "OralExamination", new { area = "EMR" })" class="slide-item">
+                                            Intra Oral Hard Tissue
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="@Url.Action("ExtraOralExam", "OralExamination", new { area = "EMR" })" class="slide-item">
+                                            Extra Oral Examination
+                                        </a>
+                                    </li>
+                                }
+                                if (isDentalHistory)
+                                {
+                                    <li>
+                                        <a href="@Url.Action("DentalHistory", "DentalHistory", new { area = "EMR" })" class="slide-item">
+                                            Dental History
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="@Url.Action("MedicalHistory", "DentalHistory", new { area = "EMR" })" class="slide-item">
+                                            Medical History
+                                        </a>
+                                    </li>
+                                }
+                                if (isHPI)
+                                {
+                                    <li>
+                                        <a href="@Url.Action("HistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })" class="slide-item">
+                                            History of PresentIllness
+                                        </a>
+                                    </li>
+                                }
+                            }
+                        </ul>
+                    </li>
+
+                }
+            }
+        }
+
+        @{
+            if (!string.IsNullOrEmpty(emr.emp_dept_name))
+            {
+                if (!emr.emp_dept_name.Trim().ToLower().Equals("dental"))
+                {
+                    <li class="side-item side-item-category">Doctor Evaluation</li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-clipboard-heart-fill" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M6.5 0A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3Zm3 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Z" />
+                                <path fill-rule="evenodd" d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1A2.5 2.5 0 0 1 9.5 5h-3A2.5 2.5 0 0 1 4 2.5v-1Zm4 5.982c1.664-1.673 5.825 1.254 0 5.018-5.825-3.764-1.664-6.69 0-5.018Z" />
+                            </svg>
+                            <span class="side-menu__label">Doctor Evaluation</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            @if (isChiefComplaints)
+                            {
+                                <li>
+                                    <a href="@Url.Action("CheifComplaints", "CheifComplaints", new { area = "EMR" })" class="slide-item">
+                                        Complaints
+                                        <span class="badge bg-danger  side-badge ms-5">Required</span>
+                                    </a>
+                                </li>
+                            }
+
+                            @if (isGeneralExamination)
+                            {
+                                <li>
+                                    <a href="@Url.Action("GeneralExamination", "GeneralExamination", new { area = "EMR" })" class="slide-item">
+                                        General Examination
+                                    </a>
+                                </li>
+                            }
+                            @if (isRespiratorySystem)
+                            {
+                                <li>
+                                    <a href="@Url.Action("RespiratorySystem", "RespiratorySystem", new { area = "EMR" })" class="slide-item">
+                                        Respiratory System
+                                    </a>
+                                </li>
+                            }
+                            @if (isCardioVascular)
+                            {
+                                <li>
+                                    <a href="@Url.Action("CardioVascular", "CardioVascular", new { area = "EMR" })" class="slide-item">
+                                        Cardio Vascular
+                                    </a>
+                                </li>
+                            }
+                            @if (isGastroIntestinal)
+                            {
+                                <li>
+                                    <a href="@Url.Action("GastroIntestinal", "GastroIntestinal", new { area = "EMR" })" class="slide-item">
+                                        Gastro Intestinal
+                                    </a>
+                                </li>
+                            }
+                            @if (isGenitoUrinary)
+                            {
+                                <li>
+                                    <a href="@Url.Action("GenitoUrinary", "GenitoUrinary", new { area = "EMR" })" class="slide-item">
+                                        Genito Urinary
+                                    </a>
+                                </li>
+
+                            }
+                            @if (isCentralNervous)
+                            {
+                                <li>
+                                    <a href="@Url.Action("CentralNervous", "CentralNervous", new { area = "EMR" })" class="slide-item">
+                                        Central Nervous
+                                    </a>
+                                </li>
+                            }
+                            @if (isMusculoSkeletal)
+                            {
+                                <li>
+                                    <a href="@Url.Action("MusculoSkeletal", "MusculoSkeletal", new { area = "EMR" })" class="slide-item">
+                                        Musculo Skeletal
+                                    </a>
+                                </li>
+                            }
+                            @if (isHPI)
+                            {
+                                <li>
+                                    <a href="@Url.Action("HistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })" class="slide-item">
+                                        HPI
+                                    </a>
+                                </li>
+                            }
+                            @if (isPainScale)
+                            {
+                                <li>
+                                    <a href="@Url.Action("PainScale", "PainScale", new { area = "EMR" })" class="slide-item">
+                                        Pain Measurment
+                                    </a>
+                                </li>
+                            }
+                            @if (isPainScale)
+                            {
+                                <li>
+                                    <a href="@Url.Action("Examination", "Examination", new { area = "EMR" })" class="slide-item">
+                                        Examination
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </li>
+                    <li class="side-item side-item-category d-none">Consultation EMR</li>
+                    <li class="slide d-none">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-clipboard2-pulse" viewBox="0 0 16 16">
+                                <path d="M9.5 0a.5.5 0 0 1 .5.5.5.5 0 0 0 .5.5.5.5 0 0 1 .5.5V2a.5.5 0 0 1-.5.5h-5A.5.5 0 0 1 5 2v-.5a.5.5 0 0 1 .5-.5.5.5 0 0 0 .5-.5.5.5 0 0 1 .5-.5h3Z" />
+                                <path d="M3 2.5a.5.5 0 0 1 .5-.5H4a.5.5 0 0 0 0-1h-.5A1.5 1.5 0 0 0 2 2.5v12A1.5 1.5 0 0 0 3.5 16h9a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 12.5 1H12a.5.5 0 0 0 0 1h.5a.5.5 0 0 1 .5.5v12a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-12Z" />
+                                <path d="M9.979 5.356a.5.5 0 0 0-.968.04L7.92 10.49l-.94-3.135a.5.5 0 0 0-.926-.08L4.69 10H4.5a.5.5 0 0 0 0 1H5a.5.5 0 0 0 .447-.276l.936-1.873 1.138 3.793a.5.5 0 0 0 .968-.04L9.58 7.51l.94 3.135A.5.5 0 0 0 11 11h.5a.5.5 0 0 0 0-1h-.128L9.979 5.356Z" />
+                            </svg>
+                            <span class="side-menu__label">Consultation EMR</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("Consultation", "ConsultationEMR", new { area = "EMR" })" class="slide-item">
+                                    Consultation EMR
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+            }
+            <li class="side-item side-item-category text-danger">Diagnosis / Treatments &amp; Procedures / Prescriptions</li>
+            if (isDiagnosis)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-universal-access" viewBox="0 0 16 16">
+                            <path d="M9.5 1.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM6 5.5l-4.535-.442A.531.531 0 0 1 1.531 4H14.47a.531.531 0 0 1 .066 1.058L10 5.5V9l.452 6.42a.535.535 0 0 1-1.053.174L8.243 9.97c-.064-.252-.422-.252-.486 0l-1.156 5.624a.535.535 0 0 1-1.053-.174L6 9V5.5Z" />
+                        </svg>
+                        <span class="side-menu__label">Diagnosis</span>
+                        <span class="badge bg-danger  side-badge ms-2" style="font-size:9px;">Required</span>
+                        <i class="angle fe fe-chevron-right"></i>
+                    </a>
+                    <ul class="slide-menu">
+                        @if (isNarrativeDiagnosis)
+                        {
+                            <li>
+                                <a href="@Url.Action("NarrativeDiagnosis", "NarrativeDiagnosis", new { area = "EMR" })" class="slide-item">
+                                    Narrative Diagnosis
+                                </a>
+                            </li>
+                        }
+                        @if (isPatientDiagnosis)
+                        {
+                            <li>
+                                <a href="@Url.Action("PatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })" class="slide-item">
+                                    Diagnosis
+                                </a>
+                            </li>
+                        }
+                        @if (isDiagnosisFavourites)
+                        {
+                            <li>
+                                <a href="@Url.Action("DiagnosisFavourites", "DiagnosisFavourites", new { area = "EMR" })" class="slide-item">
+                                    Favourites
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </li>
+            }
+            if (isPatientTreatments)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-capsule" viewBox="0 0 16 16">
+                            <path d="M1.828 8.9 8.9 1.827a4 4 0 1 1 5.657 5.657l-7.07 7.071A4 4 0 1 1 1.827 8.9Zm9.128.771 2.893-2.893a3 3 0 1 0-4.243-4.242L6.713 5.429l4.243 4.242Z" />
+                        </svg>
+                        <span class="side-menu__label">Treatments</span>
+                        <span class="badge bg-danger  side-badge ms-2" style="font-size:9px;">Required</span>
+                        <i class="angle fe fe-chevron-right"></i>
+                    </a>
+                    <ul class="slide-menu">
+                        @{
+                            if (@emr.app_ic_name == "Cash")
+                            {
+                                if (@emr.emp_dept_name == "Dental")
+                                {
+                                    <li>
+                                        <a href="@Url.Action("DentCashTreatments", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                            Treatments/Procedures
+                                        </a>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li>
+                                        <a href="@Url.Action("CashTreatments", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                            Treatments/Procedures
+                                        </a>
+                                    </li>
+                                }
+                                <li>
+                                    <a href="@Url.Action("TreatmentsPlan", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                        Treatments Plan
+                                    </a>
+                                </li>
+                            }
+                            else
+                            {
+                                if (@emr.emp_dept_name == "Dental")
+                                {
+                                    <li>
+                                        <a href="@Url.Action("DentCashTreatments", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                            Treatments/Procedures
+                                        </a>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li>
+                                        <a href="@Url.Action("CashTreatments", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                            Treatments/Procedures
+                                        </a>
+                                    </li>
+                                }
+                                <li>
+                                    <a href="@Url.Action("TreatmentsPlan", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                        Treatments Plan
+                                    </a>
+                                </li>
+                                if (@emr.emp_dept_name == "Dental")
+                                {
+                                    <li>
+                                        <a href="@Url.Action("DentalTreatments", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                            Ins Treatments/Procedures
+                                        </a>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li>
+                                        <a href="@Url.Action("InsuranceTreatments", "PatientTreatments", new { area = "EMR" })" class="slide-item">
+                                            Ins Treatments/Procedures
+                                        </a>
+                                    </li>
+                                }
+                            }
+                        }
+                    </ul>
+                </li>
+            }
+            if (isPrescription)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-prescription" viewBox="0 0 16 16">
+                            <path d="M5.5 6a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V9h.293l2 2-1.147 1.146a.5.5 0 0 0 .708.708L9 11.707l1.146 1.147a.5.5 0 0 0 .708-.708L9.707 11l1.147-1.146a.5.5 0 0 0-.708-.708L9 10.293 7.695 8.987A1.5 1.5 0 0 0 7.5 6h-2ZM6 7h1.5a.5.5 0 0 1 0 1H6V7Z" />
+                            <path d="M2 1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v10.5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 14.5V4a1 1 0 0 1-1-1V1Zm2 3v10.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V4H4ZM3 3h10V1H3v2Z" />
+                        </svg>
+                        <span class="side-menu__label">Prescription</span>
+                        <span class="badge bg-danger side-badge ms-2" style="font-size:9px;">Required</span>
+                        <i class="angle fe fe-chevron-right"></i>
+                    </a>
+                    <ul class="slide-menu">
+                        @{
+                            if (@emr.app_ic_name == "Cash")
+                            {
+                                <li>
+                                    <a href="@Url.Action("Prescription", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        Cash Prescription
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("GeneralPrescription", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        General Prescription
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("PrescriptionFavourites", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        Favourite Prescriptions
+                                    </a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li>
+                                    <a href="@Url.Action("Prescription", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        Cash Prescription
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("PrescriptionInsurance", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        Ins Prescription
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("GeneralPrescription", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        General Prescription
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("PrescriptionControlled", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        Controlled Medicine
+                                        <span class="badge bg-danger side-badge m-2">Alert</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("PrescriptionFavourites", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        Favourite Prescriptions
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("eRXSubmissions", "Prescription", new { area = "EMR" })" class="slide-item">
+                                        e-RX Submissions
+                                    </a>
+                                </li>
+                            }
+                        }
+                    </ul>
+                </li>
+            }
+            if (isProgressNotes)
+            {
+                <li class="slide">
+                    <a class="side-menu__item" href="@Url.Action("ProgressNotes", "ProgressNotes", new { area = "EMR" })">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-book-half" viewBox="0 0 16 16">
+                            <path d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z" />
+                        </svg>
+                        <span class="side-menu__label"> Progress Notes</span>
+                        <span class="badge bg-danger  side-badge ms-2" style="font-size:9px;">Required</span>
+                    </a>
+                </li>
+            }
+            <li class="slide">
+                <a class="side-menu__item" href="@Url.Action("PackageOrder", "PatientTreatments", new { area = "EMR" })">
+                    <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                        Package
+                    </span>
+                    <span class="side-menu__label">Package Order</span>
+                </a>
+            </li>
+            <li class="slide">
+                <a class="side-menu__item" href="@Url.Action("ImageComparisionDocuments", "ImageComparisionDocuments", new { area = "EMR" })">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-pdf side-menu__icon" viewBox="0 0 16 16">
+                        <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1" />
+                        <path d="M4.603 12.087a.8.8 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645 20 20 0 0 0 1.062-2.227 7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.187-.012.395-.047.614-.084.51-.27 1.134-.52 1.794a11 11 0 0 0 .98 1.686 5.8 5.8 0 0 1 1.334.05c.364.065.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.86.86 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.7 5.7 0 0 1-.911-.95 11.6 11.6 0 0 0-1.997.406 11.3 11.3 0 0 1-1.021 1.51c-.29.35-.608.655-.926.787a.8.8 0 0 1-.58.029m1.379-1.901q-.25.115-.459.238c-.328.194-.541.383-.647.547-.094.145-.096.25-.04.361q.016.032.026.044l.035-.012c.137-.056.355-.235.635-.572a8 8 0 0 0 .45-.606m1.64-1.33a13 13 0 0 1 1.01-.193 12 12 0 0 1-.51-.858 21 21 0 0 1-.5 1.05zm2.446.45q.226.244.435.41c.24.19.407.253.498.256a.1.1 0 0 0 .07-.015.3.3 0 0 0 .094-.125.44.44 0 0 0 .059-.2.1.1 0 0 0-.026-.063c-.052-.062-.2-.152-.518-.209a4 4 0 0 0-.612-.053zM8.078 5.8a7 7 0 0 0 .2-.828q.046-.282.038-.465a.6.6 0 0 0-.032-.198.5.5 0 0 0-.145.04c-.087.035-.158.106-.196.283-.04.192-.03.469.046.822q.036.167.09.346z" />
+                    </svg>
+                    <span class="side-menu__label">Image Comparison</span>
+                </a>
+            </li>
+            <li class="slide">
+                <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-boxes" viewBox="0 0 16 16">
+                        <path d="M7.752.066a.5.5 0 0 1 .496 0l3.75 2.143a.5.5 0 0 1 .252.434v3.995l3.498 2A.5.5 0 0 1 16 9.07v4.286a.5.5 0 0 1-.252.434l-3.75 2.143a.5.5 0 0 1-.496 0l-3.502-2-3.502 2.001a.5.5 0 0 1-.496 0l-3.75-2.143A.5.5 0 0 1 0 13.357V9.071a.5.5 0 0 1 .252-.434L3.75 6.638V2.643a.5.5 0 0 1 .252-.434L7.752.066ZM4.25 7.504 1.508 9.071l2.742 1.567 2.742-1.567L4.25 7.504ZM7.5 9.933l-2.75 1.571v3.134l2.75-1.571V9.933Zm1 3.134 2.75 1.571v-3.134L8.5 9.933v3.134Zm.508-3.996 2.742 1.567 2.742-1.567-2.742-1.567-2.742 1.567Zm2.242-2.433V3.504L8.5 5.076V8.21l2.75-1.572ZM7.5 8.21V5.076L4.75 3.504v3.134L7.5 8.21ZM5.258 2.643 8 4.21l2.742-1.567L8 1.076 5.258 2.643ZM15 9.933l-2.75 1.571v3.134L15 13.067V9.933ZM3.75 14.638v-3.134L1 9.933v3.134l2.75 1.571Z" />
+                    </svg>
+                    <span class="side-menu__label">Packages</span><i class="angle fe fe-chevron-right"></i>
+                </a>
+                <ul class="slide-menu">
+                    <li>
+                        <a href="@Url.Action("OnflyPackages", "Packages", new { area = "EMR" })" class="slide-item">
+                            On Fly Packages
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("TodaySession", "Packages", new { area = "EMR" })" class="slide-item">
+                            Today's Session
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        }
+
+        @{
+            if (!string.IsNullOrEmpty(emr.emp_dept_name))
+            {
+                if (emr.emp_dept_name.Trim().ToLower().Equals("dental"))
+                {
+                    <li class="side-item side-item-category">Dental Lab</li>
+
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("OPGIOPAImages", "Documents", new { area = "EMR" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-film" viewBox="0 0 16 16">
+                                <path d="M0 1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1zm4 0v6h8V1H4zm8 8H4v6h8V9zM1 1v2h2V1H1zm2 3H1v2h2V4zM1 7v2h2V7H1zm2 3H1v2h2v-2zm-2 3v2h2v-2H1zM15 1h-2v2h2V1zm-2 3v2h2V4h-2zm2 3h-2v2h2V7zm-2 3v2h2v-2h-2zm2 3h-2v2h2v-2z" />
+                            </svg>
+                            <span class="side-menu__label">OPG & IOPA Images </span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("DMFIndex", "DentalHistory", new { area = "EMR" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-hr" viewBox="0 0 16 16">
+                                <path d="M12 3H4a1 1 0 0 0-1 1v2.5H2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2.5h-1V4a1 1 0 0 0-1-1zM2 9.5h1V12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9.5h1V12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5zm-1.5-2a.5.5 0 0 0 0 1h15a.5.5 0 0 0 0-1H.5z" />
+                            </svg>
+                            <span class="side-menu__label">DMF/EX Treatment Plan </span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("DentalCharting", "DentalCharting", new { area = "EMR" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-sliders2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M10.5 1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4H1.5a.5.5 0 0 1 0-1H10V1.5a.5.5 0 0 1 .5-.5ZM12 3.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Zm-6.5 2A.5.5 0 0 1 6 6v1.5h8.5a.5.5 0 0 1 0 1H6V10a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5ZM1 8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2A.5.5 0 0 1 1 8Zm9.5 2a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V13H1.5a.5.5 0 0 1 0-1H10v-1.5a.5.5 0 0 1 .5-.5Zm1.5 2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Z" />
+                            </svg>
+                            <span class="side-menu__label">Dental Charting</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("PerioChart", "DentalCharting", new { area = "EMR" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-border-style" viewBox="0 0 16 16">
+                                <path d="M1 3.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-1zm0 4a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1-.5-.5v-1zm0 4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm8 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-4 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm8 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-4-4a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1-.5-.5v-1z" />
+                            </svg>
+                            <span class="side-menu__label">Perio Chart</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("CrownOrder", "DentalHistory", new { area = "EMR" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-substack" viewBox="0 0 16 16">
+                                <path d="M15 3.604H1v1.891h14v-1.89ZM1 7.208V16l7-3.926L15 16V7.208H1ZM15 0H1v1.89h14V0Z" />
+                            </svg>
+                            <span class="side-menu__label">Crown Order</span>
+                        </a>
+                    </li>
+                }
+            }
+        }
+
+        @{
+            if (!string.IsNullOrEmpty(emr.emp_dept_name))
+            {
+                if (emr.emp_dept_name.Trim().ToLower().Equals("laser"))
+                {
+                    <li class="side-item side-item-category">Laser Lab</li>
+                    if (emr.pat_gender.Trim().ToLower().Equals("male"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+
+                                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                    stylus_laser_pointer
+                                </span>
+                                <span class="side-menu__label">Laser Marking</span><i class="angle fe fe-chevron-right"></i>
+                            </a>
+                            <ul class="slide-menu">
+                                <li>
+                                    <a href="@Url.Action("FaceMarkingMen", "LaserMarking", new { area = "EMR" })" class="slide-item">
+                                        Face Marking
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("BotoxPictureMen", "LaserMarking", new { area = "EMR" })" class="slide-item">
+                                        Botox Marking
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("ThreadPictureMen", "LaserMarking", new { area = "EMR" })" class="slide-item">
+                                        Thread Marking
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                    else if (emr.pat_gender.Trim().ToLower().Equals("female"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                    stylus_laser_pointer
+                                </span>
+                                <span class="side-menu__label">Laser Marking</span><i class="angle fe fe-chevron-right"></i>
+                            </a>
+                            <ul class="slide-menu">
+                                <li>
+                                    <a href="@Url.Action("FaceMarkingWomen", "LaserMarking", new { area = "EMR" })" class="slide-item">
+                                        Face Marking
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("FaceMarkingFilter", "LaserMarking", new { area = "EMR" })" class="slide-item">
+                                        Face Filter
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("BotoxPictureWomen", "LaserMarking", new { area = "EMR" })" class="slide-item">
+                                        Botox Marking
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("ThreadPictureWomen", "LaserMarking", new { area = "EMR" })" class="slide-item">
+                                        Thread Marking
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("pediatric"))
+                {
+                    <li class="side-item side-item-category">Pediatric Lab</li>
+                    if (emr.pat_gender.Trim().ToLower().Equals("male"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                    breastfeeding
+                                </span>
+
+                                <span class="side-menu__label">Growth Chart</span><i class="angle fe fe-chevron-right"></i>
+                            </a>
+                            <ul class="slide-menu">
+                                <li>
+                                    <a href="@Url.Action("GrowthChartBoyBelow2Y", "Pediatric", new { area = "EMR" })" class="slide-item">
+                                        Below 2 Yrs
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("GrowthChartBoyAbove2Y", "Pediatric", new { area = "EMR" })" class="slide-item">
+                                        Above 2 Yrs
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                    else if (emr.pat_gender.Trim().ToLower().Equals("female"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                    breastfeeding
+                                </span>
+                                <span class="side-menu__label" style="padding: 0px;">Growth Chart</span><i class="angle fe fe-chevron-right"></i>
+                            </a>
+                            <ul class="slide-menu">
+                                <li>
+                                    <a href="@Url.Action("GrowthChartGirlBelow2Y", "Pediatric", new { area = "EMR" })" class="slide-item">
+                                        Below 2 Yrs
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("GrowthChartGirlAbove2Y", "Pediatric", new { area = "EMR" })" class="slide-item">
+                                        Above 2 Yrs
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                }
+                else if ((emr.emp_dept_name.Trim().ToLower().Equals("occupational therapy")) || (emr.emp_dept_name.Trim().ToLower().Equals("speech therapy")))
+                {
+                    <li class="side-item side-item-category">Occupational &amp; Physio Therapy</li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                psychology
+                            </span>
+                            <span class="side-menu__label">Occupational</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("Cupping", "Cupping", new { area = "EMR" })" class="slide-item">
+                                    Cupping
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ApprovalRevisionRequest", "OccupationalTherapy", new { area = "EMR" })" class="slide-item">
+                                    Approval Revision Request
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FIMInstrument", "OccupationalTherapy", new { area = "EMR" })" class="slide-item">
+                                    FIM Instrument
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MonthlyEvaluation", "OccupationalTherapy", new { area = "EMR" })" class="slide-item">
+                                    Monthly Evaluation
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("InitialTherapyScreening", "OccupationalTherapy", new { area = "EMR" })" class="slide-item">
+                                    Initial occupational therapy screening
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OccupationalTherapyFormIndex", "OccupationalTherapyForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Physiotherapy And Occupational Therapy Form
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                physical_therapy
+                            </span>
+                            <span class="side-menu__label">Physio Therapy</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("ApprovalRevisionRequest", "OccupationalTherapy", new { area = "EMR" })" class="slide-item">
+                                    Approval Revision Request
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EvaluationMonthlyProgress", "OccupationalTherapy", new { area = "EMR" })" class="slide-item">
+                                    Physiotherapy evaluation/ monthly progress form
+                                </a>
+                            </li>
+
+                        </ul>
+                    </li>
+                }
+                else if ((emr.emp_dept_name.Trim().ToLower().Equals("ophthalmology")))
+                {
+                    <li class="side-item side-item-category">Ophthalmology Lab</li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                ophthalmology
+                            </span>
+                            <span class="side-menu__label">Special Eye Exam</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("OrthopticEvaluation", "Ophthalmology", new { area = "EMR" })" class="slide-item">
+                                    Approval Revision Request
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FIMInstrument", "OccupationalTherapy", new { area = "EMR" })" class="slide-item">
+                                    FIM Instrument
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OrthoEvaluationNewIndex", "OrthoEvaluationNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Orthopthic Evaluation
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PtosisEvaluationNewIndex", "PtosisEvaluationNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Ptosis Evaluation
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ColorVisionNewIndex", "ColorVisionNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Color Vision
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("RefractionFormIndex", "RefractionForm", new { area = "ConsentForms" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist side-menu__icon" viewBox="0 0 16 16">
+                                <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z" />
+                                <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0" />
+                            </svg>
+                            <span class="side-menu__label">Refraction Form</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-blockquote-left  side-menu__icon" viewBox="0 0 16 16">
+                                <path d="M2.5 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1zm5 3a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 3a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm-5 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1zm.79-5.373q.168-.117.444-.275L3.524 6q-.183.111-.452.287-.27.176-.51.428a2.4 2.4 0 0 0-.398.562Q2 7.587 2 7.969q0 .54.217.873.217.328.72.328.322 0 .504-.211a.7.7 0 0 0 .188-.463q0-.345-.211-.521-.205-.182-.568-.182h-.282q.036-.305.123-.498a1.4 1.4 0 0 1 .252-.37 2 2 0 0 1 .346-.298zm2.167 0q.17-.117.445-.275L5.692 6q-.183.111-.452.287-.27.176-.51.428a2.4 2.4 0 0 0-.398.562q-.165.31-.164.692 0 .54.217.873.217.328.72.328.322 0 .504-.211a.7.7 0 0 0 .188-.463q0-.345-.211-.521-.205-.182-.568-.182h-.282a1.8 1.8 0 0 1 .118-.492q.087-.194.257-.375a2 2 0 0 1 .346-.3z" />
+                            </svg>
+                            <span class="side-menu__label">Discharge Summary</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("DischargeSummaryEyleaIndex", "DischargeSummaryEylea", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary Eylea Injection
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeSummaryForCclIndex", "DischargeSummaryForCcl", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary For Ccl + Fcat
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeCrossLinkingNewIndex", "DischargeCrossLinkingNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary For Corneal CollagenCross Linking
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeChalazionIncisionNewIndex", "DischargeChalazionIncisionNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary For Chalazion Incision And Curettage
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeConjunctivalNewIndex", "DischargeConjunctivalNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary For Conjunctival Cyst Excision
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeSummaryLaserNewIndex", "DischargeSummaryLaserNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary For Laser
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeUltralasekNewIndex", "DischargeUltralasekNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary For Ultralasek Treatment Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeUltralasikTreatmentNewIndex", "DischargeUltralasikTreatmentNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary For Ultralasik Treatment Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeLucentisNewIndex", "DischargeLucentisNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary Lucentis Injection
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargeSummaryOzurdexNewIndex", "DischargeSummaryOzurdexNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Summary Ozurdex Injection
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-stickies  side-menu__icon" viewBox="0 0 16 16">
+                                <path d="M1.5 0A1.5 1.5 0 0 0 0 1.5V13a1 1 0 0 0 1 1V1.5a.5.5 0 0 1 .5-.5H14a1 1 0 0 0-1-1z" />
+                                <path d="M3.5 2A1.5 1.5 0 0 0 2 3.5v11A1.5 1.5 0 0 0 3.5 16h6.086a1.5 1.5 0 0 0 1.06-.44l4.915-4.914A1.5 1.5 0 0 0 16 9.586V3.5A1.5 1.5 0 0 0 14.5 2zM3 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5V9h-4.5A1.5 1.5 0 0 0 9 10.5V15H3.5a.5.5 0 0 1-.5-.5zm7 11.293V10.5a.5.5 0 0 1 .5-.5h4.293z" />
+                            </svg>
+                            <span class="side-menu__label">Operative Notes</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("OperativeCollagenCrossLinkingNewIndex", "OperativeCollagenCrossLinkingNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Linking Fcat Treatment
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("CrossLinkingTreatmentNewIndex", "CrossLinkingTreatmentNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Corneal Collagen Cross Linking
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ConjunctivalCystExcisionNewIndex", "ConjunctivalCystExcisionNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Conjunctival Cyst Excision
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("KenakortInjectionNewIndex", "KenakortInjectionNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Kenakort Injection
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OperativeLucentisInjectionNewIndex", "OperativeLucentisInjectionNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Lucentis Injection
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OperativeUltralasekNewIndex", "OperativeUltralasekNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Ultralasek Treatment Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OperativeUltralasikNewIndex", "OperativeUltralasikNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Ultralasik Treatment Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OperativeEyleaInjectionNewIndex", "OperativeEyleaInjectionNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Eylea Injection
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OperativeOzurdexInjectionNewIndex", "OperativeOzurdexInjectionNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Ozurdex Injection
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eyeglasses side-menu__icon" viewBox="0 0 16 16">
+                                <path d="M4 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4m2.625.547a3 3 0 0 0-5.584.953H.5a.5.5 0 0 0 0 1h.541A3 3 0 0 0 7 8a1 1 0 0 1 2 0 3 3 0 0 0 5.959.5h.541a.5.5 0 0 0 0-1h-.541a3 3 0 0 0-5.584-.953A2 2 0 0 0 8 6c-.532 0-1.016.208-1.375.547M14 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0" />
+                            </svg>
+                            <span class="side-menu__label">Glasses/Lens Pres.</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("ContactLensIndex", "ContactLens", new { area = "ConsentForms" })" class="slide-item">
+                                    Final Prescription - Contact Lenses
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FinalGlassesIndex", "FinalGlasses", new { area = "ConsentForms" })" class="slide-item">
+                                    Final Prescription - Glasses
+                                </a>
+                            </li>
+
+
+                        </ul>
+                    </li>
+
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-activity  side-menu__icon" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M6 2a.5.5 0 0 1 .47.33L10 12.036l1.53-4.208A.5.5 0 0 1 12 7.5h3.5a.5.5 0 0 1 0 1h-3.15l-1.88 5.17a.5.5 0 0 1-.94 0L6 3.964 4.47 8.171A.5.5 0 0 1 4 8.5H.5a.5.5 0 0 1 0-1h3.15l1.88-5.17A.5.5 0 0 1 6 2" />
+                            </svg>
+                            <span class="side-menu__label">Surgery Data</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("OperativeCheckListIndex", "OperativeCheckList", new { area = "ConsentForms" })" class="slide-item">
+                                    Pre - Operative Check - List
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DischargePlanIndex", "DischargePlan", new { area = "ConsentForms" })" class="slide-item">
+                                    Discharge Plan Of Care
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("NomogramDataIndex", "NomogramData", new { area = "ConsentForms" })" class="slide-item">
+                                    Nomogram Data
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else if ((emr.emp_dept_name.Trim().ToLower().Equals("ent")))
+                {
+                    <li class="side-item side-item-category">ENT Lab</li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("Vestibular", "ENT", new { area = "EMR" })">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                hearing
+                            </span>
+                            <span class="side-menu__label">Exam-Ear</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("ENTExamNose", "ENT", new { area = "EMR" })">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                oxygen_saturation
+                            </span>
+                            <span class="side-menu__label">Exam-Nose</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("ENTExamThroat", "ENT", new { area = "EMR" })">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                endocrinology
+                            </span>
+
+                            <span class="side-menu__label">Exam-Throat</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("AudiologyNote", "ENT", new { area = "EMR" })">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                text_to_speech
+                            </span>
+                            <span class="side-menu__label">Audiology Note</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                ent
+                            </span>
+                            <span class="side-menu__label">ENT Reports</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("EarMicroscopy", "ENT", new { area = "EMR" })" class="slide-item">
+                                    <span class="side-menu__label"> Ear Microscopy</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("NasalEndoscopy", "ENT", new { area = "EMR" })" class="slide-item">
+                                    <span class="side-menu__label"> Nasal Endoscopy</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FibropticLaryngoscopy", "ENT", new { area = "EMR" })" class="slide-item">
+                                    <span class="side-menu__label"> Fibroptic Laryngoscopy</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("AudiologyNote", "ENT", new { area = "EMR" })">
+                            <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                text_to_speech
+                            </span>
+                            <span class="side-menu__label">Audiology Note</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("PhysicalExamEntNewIndex", "PhysicalExamEntNew", new { area = "ConsentForms" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shadows side-menu__icon" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-8 7a.5.5 0 0 1 0-1h3.5q.048 0 .093.009A7 7 0 0 0 12.9 13H8a.5.5 0 0 1 0-1h5.745q.331-.474.581-1H8a.5.5 0 0 1 0-1h6.71a7 7 0 0 0 .22-1H8a.5.5 0 0 1 0-1h7q0-.51-.07-1H8a.5.5 0 0 1 0-1h6.71a7 7 0 0 0-.384-1H8a.5.5 0 0 1 0-1h5.745a7 7 0 0 0-.846-1H8a.5.5 0 0 1 0-1h3.608A7 7 0 1 0 8 15" />
+                            </svg>
+                            <span class="side-menu__label">ENT Form</span>
+                        </a>
+                    </li>
+                }
+                else if ((emr.emp_dept_name.Trim().ToLower().Equals("dermatology")) || (emr.emp_dept_name.Trim().ToLower().Equals("laser")))
+                {
+                    <li class="side-item side-item-category">Dermatology/Laser Lab</li>
+                    if (emr.emp_dept_name.Trim().ToLower().Equals("dermatology"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" href="@Url.Action("DermaNotes", "Dermatology", new { area = "EMR" })">
+                                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                                    dermatology
+                                </span>
+                                <span class="side-menu__label">Dermatology Notes</span>
+                            </a>
+                        </li>
+                    }
+                    <li class="slide">
+                        <a class="side-menu__item" href="@Url.Action("LaserTherapySheet", "LaserTherapySheet", new { area = "EMR" })">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-post side-menu__icon" viewBox="0 0 16 16">
+                                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z" />
+                                <path d="M4 6.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5H7a.5.5 0 0 1 0 1H4.5a.5.5 0 0 1-.5-.5" />
+                            </svg>
+                            <span class="side-menu__label">Laser Therapy Sheet</span>
+                        </a>
+                    </li>
+                }
+            }
+        }
+
+
+        <li class="side-item side-item-category">Medical Information Hub</li>
+        <li class="slide">
+            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-journal-medical" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v.634l.549-.317a.5.5 0 1 1 .5.866L9 6l.549.317a.5.5 0 1 1-.5.866L8.5 6.866V7.5a.5.5 0 0 1-1 0v-.634l-.549.317a.5.5 0 1 1-.5-.866L7 6l-.549-.317a.5.5 0 0 1 .5-.866l.549.317V4.5A.5.5 0 0 1 8 4zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z" />
+                    <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z" />
+                    <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z" />
+                </svg>
+                <span class="side-menu__label">HealthCare Docs.</span><i class="angle fe fe-chevron-right"></i>
+            </a>
+            <ul class="slide-menu">
+                <li>
+                    <a href="@Url.Action("Addendum", "Addendum", new { area = "EMR" })" class="slide-item">
+                        Addendum
+                    </a>
+                </li>
+
+                <li>
+                    <a href="@Url.Action("MedicalDecision", "MedicalDecision", new { area = "EMR" })" class="slide-item">
+                        Medical Decision
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Documents", "Documents", new { area = "EMR" })" class="slide-item">
+                        Documents
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("JustificationLetter", "JustificationLetter", new { area = "EMR" })" class="slide-item">
+                        Justification Letter
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("PhysicianQuery", "PhysicianQuery", new { area = "EMR" })" class="slide-item">
+                        Physician Query
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("PhysicianNursingQuery", "PhysicianQuery", new { area = "EMR" })" class="slide-item">
+                        Physician /Nursing  Query
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("HealthDeclaration", "JustificationLetter", new { area = "EMR" })" class="slide-item">
+                        Health Declaration
+                    </a>
+                </li>
+            </ul>
+        </li>
+        <li class="slide">
+            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                    vaccines
+                </span>
+                <span class="side-menu__label">Vaccination</span><i class="angle fe fe-chevron-right"></i>
+            </a>
+            <ul class="slide-menu">
+                <li>
+                    <a href="@Url.Action("Vaccination", "Vaccination", new { area = "EMR" })" class="slide-item">
+                        <span class="side-menu__label">Vaccination</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("VaccinationRecord", "Vaccination", new { area = "EMR" })" class="slide-item">
+                        Vaccination Record
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("Vaccination2", "Vaccination", new { area = "EMR" })" class="slide-item">
+                        Vaccination-2
+                    </a>
+                </li>
+            </ul>
+        </li>
+        <li class="slide">
+            <a class="side-menu__item" href="@Url.Action("RadiologyRequest", "RadiologyRequest", new { area = "EMR" })">
+                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                    radiology
+                </span>
+                <span class="side-menu__label">Radiology Request</span>
+            </a>
+        </li>
+        <li class="slide">
+            <a class="side-menu__item" href="@Url.Action("Referal", "OtherForms", new { area = "EMR" })">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-circle-square  side-menu__icon" viewBox="0 0 16 16">
+                    <path d="M0 6a6 6 0 1 1 12 0A6 6 0 0 1 0 6" />
+                    <path d="M12.93 5h1.57a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-1.57a7 7 0 0 1-1-.22v1.79A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 4h-1.79q.145.486.22 1" />
+                </svg>
+                <span class="side-menu__label">Referral Ack.</span>
+            </a>
+        </li>
+        <li class="slide">
+            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                <span class="material-symbols-outlined side-menu__icon" style="padding: 0px; font-size: 26px;">
+                    sick
+                </span>
+                <span class="side-menu__label">Sick Leave</span><i class="angle fe fe-chevron-right"></i>
+            </a>
+            <ul class="slide-menu">
+                <li>
+                    <a href="@Url.Action("SickLeaveGeneral", "SickLeave", new { area = "EMR" })" class="slide-item">
+                        <span class="side-menu__label">General</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("SickLeaveMOH", "SickLeave", new { area = "EMR" })" class="slide-item">
+                        <span class="side-menu__label">MOH</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="@Url.Action("SickLeaveDHA", "SickLeave", new { area = "EMR" })" class="slide-item">
+                        <span class="side-menu__label">DHA</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        <li class="slide">
+            <a class="side-menu__item" href="@Url.Action("ReimbursementFormsMain", "ReimbursementFormsMain", new { area = "EMRForms" })">
+                <span class="material-symbols-outlined  side-menu__icon" style="padding: 0px; font-size: 26px;">
+                    assignment_return
+                </span>
+                <span class="side-menu__label">Reimbersment forms</span>
+            </a>
+        </li>
+
+        @{
+            if (!string.IsNullOrEmpty(emr.emp_dept_name))
+            {
+                if (emr.emp_dept_name.Trim().ToLower().Equals("dental"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Dental Consents</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("DentalExternalFormConsentIndex", "DentalExternalFormConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Dental External Referral Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DentalInternalFormConsentIndex", "DentalInternalFormConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Dental Internal Referral Form
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="@Url.Action("CrownBridgeIndex", "CrownBridge", new { area = "ConsentForms" })" class="slide-item">
+                                    Crown and Bridge Prosthetics
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DentalImplantsIndex", "DentalImplants", new { area = "ConsentForms" })" class="slide-item">
+                                    Dental Implants
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DentalSurgeryIndex", "DentalSurgery", new { area = "ConsentForms" })" class="slide-item">
+                                    Dental Surgery
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ToothFillingsIndex", "ToothFillings", new { area = "ConsentForms" })" class="slide-item">
+                                    Tooth Fillings
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OrthodonticConsentIndex", "OrthodonticConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Orthodontics Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("RootCanalIndex", "RootCanal", new { area = "ConsentForms" })" class="slide-item">
+                                    Root Canal
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ToothWhiteningIndex", "ToothWhitening", new { area = "ConsentForms" })" class="slide-item">
+                                    Teeth Whitening Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ConsentVeneersIndex", "ConsentVeneers", new { area = "ConsentForms" })" class="slide-item">
+                                    Consent Veneers
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PatientConsentIndex", "PatientConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Patient Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ImplantConsentIndex", "ImplantConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Implant Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ImplantPostIndex", "ImplantPost", new { area = "ConsentForms" })" class="slide-item">
+                                    Implant Post Instructions
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OrthoConsentIndex", "OrthoConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Ortho Consent TREATMENT CONSENT FORM
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OrthoInstructionsIndex", "OrthoInstructions", new { area = "ConsentForms" })" class="slide-item">
+                                    Ortho Instructions
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OrthoElasticIndex", "OrthoElastic", new { area = "ConsentForms" })" class="slide-item">
+                                    Ortho Elastic Instructions
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("AfterSurgeryIndex", "AfterSurgery", new { area = "ConsentForms" })" class="slide-item">
+                                    Surgery Post Instructions
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MedicalConsentIndex", "MedicalConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Medical Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MedicalConsentNewIndex", "MedicalConsentNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Medical Consent II
+                                </a>
+                            </li>
+                            <li>
+                                <a href="javascript.void(0)" class="slide-item" style="color: red; font-size:12px; font-style: italic; font-weight: 800; pointer-events: none;">
+                                    Consent Forms in Arabic - نماذج الموافقة العربية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("CrownArabicIndex", "CrownArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    Crown - موافقة المريض على بدء علاج التيجان والجسور
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DentalImplantsArabicIndex", "DentalImplantsArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    Dental Implants - موافقة المريض على بدء علاج زراعة الأسنان
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DentalSurgeryArabicIndex", "DentalSurgeryArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    DentalSurgery - موافقة المريض على بدء علاج جراحة الأسنان
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ToothFillingsArabicIndex", "ToothFillingsArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    Tooth Filling - موافقة المريض على بدء علاج حشوات الأسنان
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ConsentOrthoArbIndex", "ConsentOrthoArb", new { area = "ConsentForms" })" class="slide-item">
+                                    Ortho - موافقة المريض علىبدء علاج العصب
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("RootCanalArabicIndex", "RootCanalArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    Root Canal - موافقة المريض علىبدء علاج العصب
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("TeethWhiteningArbIndex", "TeethWhiteningArb", new { area = "ConsentForms" })" class="slide-item">
+                                    Teeth Whitening - موافقة المريض على بدء علاج تبييض الأسنان
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("VeneersConsentIndex", "VeneersConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Veneers - موافقة المريض على بدء القشرة الخزفية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PatientConsentArabicIndex", "PatientConsentArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    Patient Consent - نموذج موافقة المريض
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DentalImplantConsentArabicIndex", "DentalImplantConsentArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    Implant Consent - موافقة الزرع
+                                </a>
+                            </li>
+                            @*<li>
+            <a href="@Url.Action("DentalExternalFormConsentIndex", "DentalExternalFormConsent", new { area = "ConsentForms" })" class="slide-item">
+                Dental External Referral Form -ڈینٹل ایکسٹرنل ریفرل فارم
+            </a>
+        </li>*@
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("laser"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Laser Consents</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("GeneralConsentIndex", "GeneralConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    General Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("CarboxyTherapyIndex", "CarboxyTherapy", new { area = "ConsentForms" })" class="slide-item">
+                                    Carboxy Therapy Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("CoolsculptingConsentIndex", "CoolsculptingConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Coolsculpting Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LesionRemovalIndex", "LesionRemoval", new { area = "ConsentForms" })" class="slide-item">
+                                    Lesion Removal Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("IsotretinoinConsentIndex", "IsotretinoinConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Isotretinoin Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MicroInformedIndex", "MicroInformed", new { area = "ConsentForms" })" class="slide-item">
+                                    Microdermabrasion Informed Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("SublimeConsentIndex", "SublimeConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Sublime Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("VelashapeInformedIndex", "VelashapeInformed", new { area = "ConsentForms" })" class="slide-item">
+                                    Velashape Informed Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FacialConsentIndex", "FacialConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Facial Treatment Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserHairIndex", "LaserHair", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Hair Removal Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FillerConsentIndex", "FillerConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Filler Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("TattoRemovalIndex", "TattoRemoval", new { area = "ConsentForms" })" class="slide-item">
+                                    Tatto Removal Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("BotoxConsentIndex", "BotoxConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Botox/Dysport Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EmatrixIndex", "Ematrix", new { area = "ConsentForms" })" class="slide-item">
+                                    Ematrix Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("Ematrix1Index", "Ematrix1", new { area = "ConsentForms" })" class="slide-item">
+                                    Ematrix Consent II
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("CarbonPeelIndex", "CarbonPeel", new { area = "ConsentForms" })" class="slide-item">
+                                    Carbon Peel Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserHairBleachingIndex", "LaserHairBleaching", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Hair Bleaching
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MesotherapyIndex", "Mesotherapy", new { area = "ConsentForms" })" class="slide-item">
+                                    Mesotherapy Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PrpConsentIndex", "PrpConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    PRP Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ThreadLiftIndex", "ThreadLift", new { area = "ConsentForms" })" class="slide-item">
+                                    Thread Lift Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("VascularConsentIndex", "VascularConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Vascular & Pigmented Lesions Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("CavitationConsentIndex", "CavitationConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Cavitation Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("SocialConsentIndex", "SocialConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Social Media Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PhotoConsentIndex", "PhotoConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Photo Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("BodyWrapIndex", "BodyWrap", new { area = "ConsentForms" })" class="slide-item">
+                                    Body Wrap Informed Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserLighteningIndex", "LaserLightening", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Lightening Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("IntimatePeelIndex", "IntimatePeel", new { area = "ConsentForms" })" class="slide-item">
+                                    Intimate Peel Informed
+                                </a>
+                            </li>
+                            @*<li>
+                                    <a href="@Url.Action("DmaxThreadLiftingIndex", "DmaxThreadLifting", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax-Thread Lifting Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxPrpConsentIndex", "DmaxPrpConsent", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax-Prp Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxMesotherapyConsentIndex", "DmaxMesotherapyConsent", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax-Mesotherapy Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxBotoxIndex", "DmaxBotox", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax - Botox Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxCarbonIndex", "DmaxCarbon", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax - Carbon Laser Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxFillerIndex", "DmaxFiller", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax - Filler Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxGeniusIndex", "DmaxGenius", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax - Dermapen/Microneedling/Morpheus8/Genius Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxToothIndex", "DmaxTooth", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax - Consent for Tooth Extraction
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxCrownBridgeIndex", "DmaxCrownBridge", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax - Informed Consent for Crown and Bridge Prosthetics
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxEndodonticIndex", "DmaxEndodontic", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax - Consent for Endodontic Procedures
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxLaserTreatmentIndex", "DmaxLaserTreatment", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax-Laser Treatment Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxInformedConsentIndex", "DmaxInformedConsent", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax-Informed Consent Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxHydrafacialTreatmentIndex", "DmaxHydrafacialTreatment", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax-Hydrafacial Treatment Informed Consent
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("DmaxFractionalLaserIndex", "DmaxFractionalLaser", new { area = "ConsentForms" })" class="slide-item">
+                                        Dmax-Fractional Laser Consent Form
+                                    </a>
+                                </li>*@
+                            <li>
+                                <a href="@Url.Action("ImageComparisionIndex", "ImageComparision", new { area = "ConsentForms" })" class="slide-item">
+                                    Image Comparision
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("hijama"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Hijama Consents</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("HijjamaConsentIndex", "HijjamaConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Hijjama Assessment
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PatientRecordConsentIndex", "PatientRecordConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Patient Record
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("WeightManagementConsentIndex", "WeightManagementConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Weight Management Evaluation
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PhysiotherapyAssessmentIndex", "PhysiotherapyAssessment", new { area = "ConsentForms" })" class="slide-item">
+                                    Physiotherapy Assessment
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("SlimmingConsentIndex", "SlimmingConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Slimming Sheet
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserSessionIndex", "LaserSession", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Session Record
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("SlimmingMachinesIndex", "SlimmingMachines", new { area = "ConsentForms" })" class="slide-item">
+                                    Slimming Machines & Patient Concerned Areas
+                                </a>
+                            </li>
+                            <li>
+                                <a href="javascript.void(0)" class="slide-item" style="color: red; font-size:12px; font-style: italic; font-weight: 800; pointer-events: none;">
+                                    Consent Forms in Arabic - نماذج الموافقة العربية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("AlopeciaConsentIndex", "AlopeciaConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Alopecia Treatment - نموذج الموافقة على علاج الثعلبة
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FacialFillerIndex", "FacialFiller", new { area = "ConsentForms" })" class="slide-item">
+                                    Facial Filler / RRS Long Lasting / Botox - حشو الوجه / RRS طويل الأمد / نموذج الموافقة على البوتوكس
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("HijjamaTherapyIndex", "HijjamaTherapy", new { area = "ConsentForms" })" class="slide-item">
+                                    Hijjama Therapy - نموذج الموافقة على العلاج بالحجامة
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("HydraFacialIndex", "HydraFacial", new { area = "ConsentForms" })" class="slide-item">
+                                    Hydra Facial - نموذج موافقة هيدرا الوجه
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DripTherapyIndex", "DripTherapy", new { area = "ConsentForms" })" class="slide-item">
+                                    IV Drip Therapy - نموذج الموافقة على العلاج بالتنقيط الوريدي
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LipolysisInjectionIndex", "LipolysisInjection", new { area = "ConsentForms" })" class="slide-item">
+                                    Lipolysis Injection - نموذج الموافقة على حقن تحلل الدهون
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MassageTherapyIndex", "MassageTherapy", new { area = "ConsentForms" })" class="slide-item">
+                                    Massage Therapy - نموذج الموافقة على العلاج بالتدليك
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DermatologyGeneralIndex", "DermatologyGeneral", new { area = "ConsentForms" })" class="slide-item">
+                                    Dermatology General - نموذج الموافقة العامة للأمراض الجلدية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserAssessmentIndex", "LaserAssessment", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Assessment - نموذج تقييم الليزر
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserConsentIndex", "LaserConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Consent - نموذج موافقة الليزر
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("WeightReductionConsentIndex", "WeightReductionConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Weight Loss Program -نموذج الموافقة على برنامج فقدان الوزن
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("VirtueRfConsentIndex", "VirtueRfConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Virtue Rf Model -نموذج الموافقة على نموذج Virtue Rf
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("RegeneraConsentIndex", "RegeneraConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Regenera Treatment -نموذج الموافقة على علاج ريجينيرا
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PrpPeelingConsentIndex", "PrpPeelingConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Prp- Peeling+Mesotherapy + Fiber Subsicion + Hair Filler -استمارة موافقة Prp- تقشير + ميزوثيرابي + حقن الألياف + حشو الشعر
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ProfhiloConsentIndex", "ProfhiloConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Profhilo/Royal Needle - نموذج الموافقة على بروفايلو/رويال نيدل
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ProfoundConsentIndex", "ProfoundConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Profhilo/Profound - بروفيلو/نموذج الموافقة العميقة
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PhysiotherapyConsentIndex", "PhysiotherapyConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Physiotherapy - نموذج موافقة العلاج الطبيعي
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MicroneedlingConsentIndex", "MicroneedlingConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Microneedling - نموذج الموافقة على الوخز بالإبر الدقيقة
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("dermatology"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Derma Consents</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("PrpConsentDermaIndex", "PrpConsentDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    PRP Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ElectrocauteryDermaIndex", "ElectrocauteryDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Electrocautery (Electrocoaguiation)
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ThreadLiftDermaIndex", "ThreadLiftDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Thread Lift Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("TattoRemovalDermaIndex", "TattoRemovalDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Tatto Removal
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserVeinDermaIndex", "LaserVeinDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Vein Removal
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PhotoConsentDermaIndex", "PhotoConsentDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Photograph/Media Consent And Release
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("InformedConsentBotoxIndex", "InformedConsentBotox", new { area = "ConsentForms" })" class="slide-item">
+                                    Botox Botulinum Injections
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FillerInformedIndex", "FillerInformed", new { area = "ConsentForms" })" class="slide-item">
+                                    Derma Filler
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="@Url.Action("ChemicalPeelingIndex", "ChemicalPeeling", new { area = "ConsentForms" })" class="slide-item">
+                                    Chemical Peeling
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FacialTreatmentDermaIndex", "FacialTreatmentDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Facial Treatment
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PatientLaserHairRemovalDermaIndex", "PatientLaserHairRemovalDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Patient's Checklist For Laser Hair Removal
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserHairRemovalIndex", "LaserHairRemoval", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Hair Removal Treatment
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("AftercareLeafletFormIndex", "AftercareLeafletForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Aftercare Leaflet
+                                    <span class="badge bg-info side-badge ms-2">New</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DermalFillersIndex", "DermalFillers", new { area = "ConsentForms" })" class="slide-item">
+                                    Temporary Dermal Fillers - Hyaluronic Acid (Face)
+                                    <span class="badge bg-info side-badge ms-2">New</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("InjectablesTreatmentRecordsIndex", "InjectablesTreatmentRecords", new { area = "ConsentForms" })" class="slide-item">
+                                    Injectables Treatment Records
+                                    <span class="badge bg-info side-badge ms-2">New</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MedicalHistoryNewIndex", "MedicalHistoryNew", new { area = "ConsentForms" })" class="slide-item">
+                                    Medical History
+                                    <span class="badge bg-info side-badge ms-2">New</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("TreatmentRecordSheetIndex", "TreatmentRecordSheet", new { area = "ConsentForms" })" class="slide-item">
+                                    Treatment Record Sheet
+                                    <span class="badge bg-info side-badge ms-2">New</span>
+
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="@Url.Action("BotoxConstantFormIndex", "BotoxConstantForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Botulinum Toxin Informed Consent (Upper Face)
+                                    <span class="badge bg-info side-badge ms-2">New</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxBotoxIndex", "DmaxBotox", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax - Botox Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxCarbonIndex", "DmaxCarbon", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax - Carbon Laser Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxFillerIndex", "DmaxFiller", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax - Filler Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxGeniusIndex", "DmaxGenius", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax - Dermapen/Microneedling/Morpheus8/Genius Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxToothIndex", "DmaxTooth", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax - Consent for Tooth Extraction
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxCrownBridgeIndex", "DmaxCrownBridge", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax - Informed Consent for Crown and Bridge Prosthetics
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxEndodonticIndex", "DmaxEndodontic", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax - Consent for Endodontic Procedures
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxThreadLiftingIndex", "DmaxThreadLifting", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax-Thread Lifting Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxPrpConsentIndex", "DmaxPrpConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax-Prp Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxMesotherapyConsentIndex", "DmaxMesotherapyConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax-Mesotherapy Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxLaserTreatmentIndex", "DmaxLaserTreatment", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax-Laser Treatment Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxInformedConsentIndex", "DmaxInformedConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax-Informed Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxHydrafacialTreatmentIndex", "DmaxHydrafacialTreatment", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax-Hydrafacial Treatment Informed Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DmaxFractionalLaserIndex", "DmaxFractionalLaser", new { area = "ConsentForms" })" class="slide-item">
+                                    Dmax-Fractional Laser Consent Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="javascript.void(0)" class="slide-item" style="color: red; font-size:12px; font-style: italic; font-weight: 800; pointer-events: none;">
+                                    Consent Forms in Arabic - نماذج الموافقة العربية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LaserHairArbDermaIndex", "LaserHairArbDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Laser Hair Removal -نموذج الموافقة على إزالة الشعر بالليزر  باللغة العربية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PdoArabicDermaIndex", "PdoArabicDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    PDO - شركة تنمية نفط عمان-العربية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ElectroArabicDermaIndex", "ElectroArabicDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Electrocautery (Electrocoaguiation) - Arabic - الكي الكهربائي (التخثير الكهربائي)-عربي
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FillerInformedArbIndex", "FillerInformedArb", new { area = "ConsentForms" })" class="slide-item">
+                                    Derma Filler Informed Consent Arabic - ديرما حشو الموافقة المستنيرة العربية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("FacialConsentArbDermaIndex", "FacialConsentArbDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Facial Treatment -الموافقة على علاج الوجه
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MediaConsentArbDermaIndex", "MediaConsentArbDerma", new { area = "ConsentForms" })" class="slide-item">
+                                    Media - موافقة وسائل الإعلام العربية
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ConsentBotoxArbIndex", "ConsentBotoxArb", new { area = "ConsentForms" })" class="slide-item">
+                                    Botox - الموافقة على البوتوكس العربي
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ChemicalPeelingArbIndex", "ChemicalPeelingArb", new { area = "ConsentForms" })" class="slide-item">
+                                    Chemical Peeling - نموذج الموافقة على التقشير الكيميائي عربي
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("AfterOperationIndex", "AfterOperation", new { area = "ConsentForms" })" class="slide-item">
+                                    Instructions after Operation - تعليمات بعد العملية
+                                    <span class="badge bg-info side-badge ms-2">أخرى</span>
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="@Url.Action("BotoxArabicIndex", "BotoxArabic", new { area = "ConsentForms" })" class="slide-item">
+                                    Consent Botox - كونسنت البوتوكس بالعربي
+                                    <span class="badge bg-info side-badge ms-2">أخرى</span>
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="@Url.Action("FillerInjectionIndex", "FillerInjection", new { area = "ConsentForms" })" class="slide-item">
+                                    Temporary Filler Injection consent form - (نموذج موافقة الحقن المؤقت (الفلر
+                                    <span class="badge bg-info side-badge ms-2">أخرى</span>
+                                </a>
+                            </li>
+
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("ophthalmology"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye  side-menu__icon" viewBox="0 0 16 16">
+                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                            </svg>
+                            <span class="side-menu__label">Ophthalmology Consents</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("CclEnglishIndex", "CclEnglish", new { area = "ConsentForms" })" class="slide-item">
+                                    CCL English Consent
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EnhancementProcedureIndex", "EnhancementProcedure", new { area = "ConsentForms" })" class="slide-item">
+                                    Enhancement Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EyleaInjectionIndex", "EyleaInjection", new { area = "ConsentForms" })" class="slide-item">
+                                    Intravitreal Eylea Injection Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LasikProcedureIndex", "LasikProcedure", new { area = "ConsentForms" })" class="slide-item">
+                                    Lasik/Lasek Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LucentisInjectionIndex", "LucentisInjection", new { area = "ConsentForms" })" class="slide-item">
+                                    Intravitreal Lucentis Injection Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("MonovisionResidualIndex", "MonovisionResidual", new { area = "ConsentForms" })" class="slide-item">
+                                    Monovision with Residual
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("SurgicalActIndex", "SurgicalAct", new { area = "ConsentForms" })" class="slide-item">
+                                    Surgical Act
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("OzurdexInjectionIndex", "OzurdexInjection", new { area = "ConsentForms" })" class="slide-item">
+                                    Intravitreal Ozurdex Injection Procedure
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ParsPlanaIndex", "ParsPlana", new { area = "ConsentForms" })" class="slide-item">
+                                    Pars Plana Vitrectomy
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("IntraocularLensIndex", "IntraocularLens", new { area = "ConsentForms" })" class="slide-item">
+                                    Phacoemulsification + Intraocular Lens
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("BlepharotomyDrainageIndex", "BlepharotomyDrainage", new { area = "ConsentForms" })" class="slide-item">
+                                    Blepharotomy And Drainage
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ExcisionMultipleIndex", "ExcisionMultiple", new { area = "ConsentForms" })" class="slide-item">
+                                    Excision Of Multiple Chalazion
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ConsentChalizionIndex", "ConsentChalizion", new { area = "ConsentForms" })" class="slide-item">
+                                    Consent Form For Excision Of Chalazion
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ConsentBlephrotomyIndex", "ConsentBlephrotomy", new { area = "ConsentForms" })" class="slide-item">
+                                    Consent Form For Blephrotomy
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EpilationConsentIndex", "EpilationConsent", new { area = "ConsentForms" })" class="slide-item">
+                                    Epilation
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("SlipLampIndex", "SlipLamp", new { area = "ConsentForms" })" class="slide-item">
+                                    Under Slip-Lamp
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PunctalPlugsIndex", "PunctalPlugs", new { area = "ConsentForms" })" class="slide-item">
+                                    Punctal Plugs
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EyeForm1Index", "EyeForm1", new { area = "ConsentForms" })" class="slide-item">
+                                    Template 1
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EyeForm2Index", "EyeForm2", new { area = "ConsentForms" })" class="slide-item">
+                                    Template 2
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EyeFormNew4Index", "EyeFormNew4", new { area = "ConsentForms" })" class="slide-item">
+                                    Template 4
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EyeFormNew3Index", "EyeFormNew3", new { area = "ConsentForms" })" class="slide-item">
+                                    Template 3
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("cardiology"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Cardiology Consents</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("RadiologyReportIndex", "RadiologyReport", new { area = "ConsentForms" })" class="slide-item">
+                                    Radiology Report
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("StressTestIndex", "StressTest", new { area = "ConsentForms" })" class="slide-item">
+                                    Stress Test
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("EchocardiogramIndex", "Echocardiogram", new { area = "ConsentForms" })" class="slide-item">
+                                    Echocardiogram Report
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("gynaecology"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Gynaecology Consents</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("PhysicalExamFormIndex", "PhysicalExamForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Physical Exam
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ColposcopyFormIndex", "ColposcopyForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Colposcopy Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ColposcopyIndex", "Colposcopy", new { area = "ConsentForms" })" class="slide-item">
+                                    Colposcopy
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ColposcopyReferralIndex", "ColposcopyReferral", new { area = "ConsentForms" })" class="slide-item">
+                                    Colposcopy Referral
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("InfertilityFormIndex", "InfertilityForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Infertility Patient History
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("PregnancyFormIndex", "PregnancyForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Pregnancy
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("GynExamFormIndex", "GynExamForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Gyn Exam
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("speech therapy"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Speech Therapy</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("RevisionRequestFormIndex", "RevisionRequestForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Approval Revision Request Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("InitialEvaluationFormIndex", "InitialEvaluationForm", new { area = "ConsentForms" })" class="slide-item">
+                                    InitialEvaluation
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("LanguageProgressFormIndex", "LanguageProgressForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Progress Form
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("SpeechProgressChartIndex", "SpeechProgressChart", new { area = "ConsentForms" })" class="slide-item">
+                                    Speech Therapy Data
+                                </a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("DamanFormCombinedIndex", "DamanFormCombined", new { area = "ConsentForms" })" class="slide-item">
+                                    Daman Form Combined
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("occupational therapy"))
+                {
+                    <li class="slide">
+                        <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span class="side-menu__label">Occupational Therapy</span><i class="angle fe fe-chevron-right"></i>
+                        </a>
+                        <ul class="slide-menu">
+                            <li>
+                                <a href="@Url.Action("OccupationalTherapyFormIndex", "OccupationalTherapyForm", new { area = "ConsentForms" })" class="slide-item">
+                                    Physiotherapy And Occupational Therapy Form
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                }
+            }
+        }
+        @*@{[]
+                if (!string.IsNullOrEmpty(emr.app_ic_name))
+                {
+                    if (emr.app_ic_name.Trim().ToLower().Equals("adnic"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                    <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                                </svg>
+                                <span class="side-menu__label">Insurance Forms</span><i class="angle fe fe-chevron-right"></i>
+                            </a>
+                            <ul class="slide-menu">
+                                <li>
+                                    <a href="@Url.Action("AdnicMemberConsentIndex", "AdnicMemberConsent", new { area = "InsuranceForms" })" class="slide-item">
+                                        Adnic Member Consent
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("AdnicShifaIndex", "AdnicShifa", new { area = "InsuranceForms" })" class="slide-item">
+                                        Adnic Shifa
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("AdnicClaimIndex", "AdnicClaim", new { area = "InsuranceForms" })" class="slide-item">
+                                        Adnic Claim
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("AdnicDentalAuthIndex", "AdnicClaim", new { area = "InsuranceForms" })" class="slide-item">
+                                        Adnic Dental Auth
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                }
+            }*@
+
+        @{
+            if (!string.IsNullOrEmpty(emr.emp_dept_name))
+            {
+                if (emr.emp_dept_name.Trim().ToLower().Equals("dental"))
+                {
+                    if (emr.app_ic_name.Trim().ToLower().Equals("adnic"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                    <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                                </svg>
+                                <span class="side-menu__label">Insurance Forms</span><i class="angle fe fe-chevron-right"></i>
+                            </a>
+                            <ul class="slide-menu">
+                                <li>
+                                    <a href="@Url.Action("MedicalExpensesFormIndex", "MedicalExpensesForm", new { area = "InsuranceForms" })" class="slide-item">
+                                        Medical Expenses Claim Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("AafiyaFormDentalIndex", "AafiyaFormDental", new { area = "InsuranceForms" })" class="slide-item">
+                                        Medical Claim Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("AmityFormDentalIndex", "AmityFormDental", new { area = "InsuranceForms" })" class="slide-item">
+                                        Amity Health Medical Provider Claim form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("ReimbursementMedicalExpensesIndex", "ReimbursementMedicalExpenses", new { area = "InsuranceForms" })" class="slide-item">
+                                        Reimbursement Medical Expenses Claim Form
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("laser"))
+                {
+
+                }
+
+            }
+        }
+
+        @{
+            if (!string.IsNullOrEmpty(emr.emp_dept_name))
+            {
+                if (emr.emp_dept_name.Trim().ToLower().Equals("dental"))
+                {
+                    if (emr.app_ic_name.Trim().ToLower().Equals("adnic"))
+                    {
+                        <li class="slide">
+                            <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                    <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                                </svg>
+                                <span class="side-menu__label">Insurance Forms</span><i class="angle fe fe-chevron-right"></i>
+                            </a>
+                            <ul class="slide-menu">
+                                <li>
+                                    <a href="@Url.Action("DubaiCareClaimDentalIndex", "DubaiCareClaimDental", new { area = "InsuranceForms" })" class="slide-item">
+                                        Dubai Care Claim Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("NeuronDentalFormIndex", "NeuronDentalForm", new { area = "InsuranceForms" })" class="slide-item">
+                                        Neuron Dental Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("NasPrescriptionClaimIndex", "NasPrescriptionClaim", new { area = "InsuranceForms" })" class="slide-item">
+                                        Nas Prescription Claim Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("NasConsultationFormIndex", "NasConsultationForm", new { area = "InsuranceForms" })" class="slide-item">
+                                        Nas Form
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("NasAdviceFormIndex", "NasAdviceForm", new { area = "InsuranceForms" })" class="slide-item">
+                                        Nas Advice Form
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                    @*if (emr.app_ic_name.Trim().ToLower().Equals("Nas Insurance"))
+                        {
+                            <li class="slide">
+                                <a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="side-menu__icon bi bi-file-text" viewBox="0 0 16 16">
+                                        <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                                    </svg>
+                                    <span class="side-menu__label">Insurance Forms</span><i class="angle fe fe-chevron-right"></i>
+                                </a>
+                                <ul class="slide-menu">
+
+                                </ul>
+                            </li>
+                        }*@
+
+                }
+                else if (emr.emp_dept_name.Trim().ToLower().Equals("laser"))
+                {
+
+                }
+
+
+
+
+
+            }
+        }
+
+    </ul>
+</aside>
+

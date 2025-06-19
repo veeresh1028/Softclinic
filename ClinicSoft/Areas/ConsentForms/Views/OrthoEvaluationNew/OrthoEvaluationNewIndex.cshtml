@@ -1,0 +1,114 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "OrthoEvaluationNewIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Orthopthic Evaluation</h3>
+            </div>
+            <div class="card-body">
+                <div id="OrthoEvaluationNew_add" style="display:none">
+                </div>
+                <div id="OrthoEvaluationNew_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="OrthoEvaluationNew_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+                GetOrthoEvaluationNewInfo();
+               OrthoEvaluationNewPreviousHistory();
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetOrthoEvaluationNewInfo
+        var GetOrthoEvaluationNewInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetOrthoEvaluationNewData", "OrthoEvaluationNew", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditOrthoEvaluationNew();
+                            $("#OrthoEvaluationNew_add").hide();
+                            $("#OrthoEvaluationNew_edit").show();
+
+                        }
+                        else {
+                            $("#OrthoEvaluationNew_add").show();
+                            $("#OrthoEvaluationNew_edit").hide();
+                            AddOrthoEvaluationNew();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load OrthoEvaluationNew
+
+        //#region Add OrthoEvaluationNew
+        function AddOrthoEvaluationNew() {
+            var x = $("#OrthoEvaluationNew_add");
+            x.load("@Url.Action("CreateOrthoEvaluationNew", "OrthoEvaluationNew", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add OrthoEvaluationNew
+
+        // #region Update OrthoEvaluationNew
+        function EditOrthoEvaluationNew() {
+            var x = $("#OrthoEvaluationNew_edit");
+            x.load("@Url.Action("UpdateOrthoEvaluationNew", "OrthoEvaluationNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update OrthoEvaluationNew
+
+          // #region Histroy of OrthoEvaluationNew
+        function OrthoEvaluationNewPreviousHistory() {
+            var x = $("#OrthoEvaluationNew_history");
+            x.load("@Url.Action("OrthoEvaluationNewPreviousHistory", "OrthoEvaluationNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of OrthoEvaluationNew
+
+    </script>
+
+@*}*@

@@ -1,0 +1,474 @@
+﻿@{
+    ViewBag.Title = "Denial Codes";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary" data-lang-key="denial-codes">Denial Codes</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <a data-bs-toggle="modal" data-bs-target="#denial_code_modal" class="btn btn-secondary" onclick="addDenialCode()" data-lang-key="add-denial-code"><i class="mdi mdi-plus"></i>&nbsp;Add Denial Code</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="DenialCodeAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_denial_codes" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="code">Code</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="description">Description</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="made-by">Made By</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="created on">Created on</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="campaigns">Campaigns</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="delete">Delete</span>
+                                </th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Denial Code Modal -->
+<div class="modal fade" id="denial_code_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="denial_code_body">
+        </div>
+    </div>
+</div>
+<!-- End Denial Code Modal -->
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            GetDenialCodes();
+        });
+        //#endregion
+
+        //#region Load Denial Codes
+        var GetDenialCodes = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllDenialCodes", "DenialCodes", new { area = "Masters" })",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_denial_codes')) {
+                            table = $('#tbl_denial_codes').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_denial_codes").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "dcId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "dc_code",
+                        "render": function (data) {
+                            if (data != "") {
+                                return data;
+                            }
+                            else {
+                                return "<span class='text-muted'>N/A</span>";
+                            }
+                        }
+                    },
+                    {
+                        "className": 'text-wrap text-justify',
+                        "mData": "dc_desc"
+                    },
+                    { "mData": "dc_madeby_name" },
+                    {
+                        "mData": "dc_date_created",
+                        "render": function (dc_date_created, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(dc_date_created).format('DD-MM-YYYY HH:mm:ss');
+                            }
+                            return moment(dc_date_created).format('YYYY-MM-DD');
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "dcId",
+                        "render": function (dcId, type, full, meta) {
+                            var visible = full.actionvisible;
+                            var dc_status = full.dc_status;
+
+                            if (visible === "True") {
+                                if (full.dc_status === "Active") {
+                                    return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateStatus(\'' + dcId + '\',\' Active \')">' + dc_status + '</button>'
+                                }
+                                else if (full.dc_status === "Inactive") {
+                                    return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateStatus(\'' + dcId + '\',\'Inactive\')">' + dc_status + '</button>'
+                                }
+                                else if (full.dc_status === "Deleted") {
+                                    return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateStatus(\'' + dcId + '\',\'Deleted\')">' + dc_status + '</button>'
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    },
+                    {
+                        "mData": "dcId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (dcId, type, full, meta) {
+                            var status = full.dc_status;
+                            var visible = full.actionvisible;
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" data-bs-toggle="modal" data-bs-target="#denial_code_modal" onclick="editDenialCode(' + dcId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "dcId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (dcId, type, full, meta) {
+                            var status = full.dc_status;
+                            var visible = full.actionvisible;
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" onclick="deleteDenialCode(' + dcId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[1, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Description / Status</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Denial Codes',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Denial Codes to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Denial Codes',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Denial Codes to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Denial Codes',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Denial Codes to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Denial Codes',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Denial Codes!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_denial_codes_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Add Denial Code
+        function addDenialCode() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateDenialCode", "DenialCodes", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#denial_code_body").html(data);
+                    $("#denial_code_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Denial Code : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Denial Code
+        function editDenialCode(dcId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditDenialCodes", "DenialCodes", new { area = "Masters" })?dcId=" + dcId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#denial_code_body").html(data);
+                    $("#denial_code_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Editing Denial Code : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Update Denial Code Status
+        var updateStatus = function (dcId, dc_status) {
+            dc_status = (dc_status == "Deleted" || dc_status == "Inactive") ? "Active" : "Inactive"
+
+            Swal.fire({
+                title: "Are you sure you want to change status ?",
+                text: "This action will change the status of the selected Denial Code!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("UpdateDenialCodeStatus", "DenialCodes", new { area = "Masters" })?dcId=" + dcId + "&dc_status=" + dc_status,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetDenialCodes();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to change Denial Code Status!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Update Denial Code Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Denial Code
+        var deleteDenialCode = function (dcId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Denial Code ?",
+                text: "This action will delete this Denial Code!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteDenialCode", "DenialCodes", new { area = "Masters" })?dcId=' + dcId +'&dc_status=Deleted',
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetDenialCodes();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete Denial Codes!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Denial Code! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region UI / UX Functions
+        var alertPlaceholder = document.getElementById("DenialCodeAlert");
+        function alert(e, t) {
+            var l = document.createElement("div");
+            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+        }
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+         //#endregion
+    </script>
+}

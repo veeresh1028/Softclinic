@@ -1,0 +1,217 @@
+﻿@model BusinessEntities.Common.Queries
+<style>
+    #sizeU {
+        max-width: 600px;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update Designation</h5>
+    <button type="button" class="btn-close btnCloseEdit" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Edit_Desig" autocomplete="off" ondrop="return false;" oncut="return false;">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.res_query)
+
+        <div class="row">
+            <div class="col-lg-12 col-xl-12 col-md-12 col-sm-12">
+                <div class="card">
+                    
+                    <div class="card-body">
+                        <div>          
+                            <div class="form-group">
+                                <div class="row ">
+                                    <label class="col-sm-2 form-label">Response</label>
+                                    <div class="col-sm-10">
+                                        <div id="res_desc">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-sm-flex">
+                        <div class="mt-2 mb-2">
+                            <a href="javascript:void(0)" id="attachBtn" class="btn btn-icon btn-light btn-svg bg-primary-transparent" data-bs-toggle="tooltip" title="" data-bs-original-title="Attach"><i class="fe fe-paperclip text-primary"></i></a>
+                            <input type="file" id="fileInput" style="display: none;" multiple>
+                        </div>
+                        <div class="btn-list ms-auto">
+                            <button type="button" class="btn text-primary btn-outline-light btn-space br-7" id="btn_Reset_CoderQuery">Cancel</button>
+                            <button type="submit" class="btn text-primary btn-outline-light br-7" id="btn_Insert_CoderQuery">Reply message <i class="fa fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>        
+    </form>
+</div>
+<script type="text/javascript">
+    //#region Partial View Onload
+    var quillc;
+    var selectedFiles;
+
+    $(function () {
+            $("#attachBtn").click(function () {
+                // Trigger the click event of the hidden file input
+                $("#fileInput").click();
+            });
+            
+            var icons = Quill.import('ui/icons');
+            icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+            icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+            icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+            icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+            icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+            icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+            var toolbarOptions = [
+                [{
+                    'header': [1, 2, 3, 4, 5, 6, false]
+                }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{
+                    'list': 'ordered'
+                }, {
+                    'list': 'bullet'
+                }]
+
+            ];
+
+            quillc = new Quill('#res_desc', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+            });
+                      
+
+        });
+    //#endregion 
+   
+    
+    //#region Reset
+        $('#btn_Reset_CoderQuery').on('click', function (e) {
+            e.preventDefault();
+            clearControls();
+        });
+    //#endregion Reset
+
+    //#region Clear Controls
+        var clearControls = function () {
+            quillc.root.innerHTML = "";
+            $("#res_desc").val("").trigger("change");
+        }
+    //#endregion
+
+    //#region Insert Button Click
+        $('#btn_Insert_CoderQuery').on('click', function (e) {
+            e.preventDefault();
+            var isvalid = true;
+
+            if (quillc.getText().trim().length == 0) {
+                $("#res_desc").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#res_desc"));
+                isvalid = false;
+            }
+            if (isvalid) {
+                $('#btn_Insert_CoderQuery').removeClass("btn btn-success");
+                $('#btn_Insert_CoderQuery').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_CoderQuery').html("Saving the Record....");
+
+                var fileInput = document.getElementById('fileInput');
+
+                // Create FormData object
+                var formData = new FormData();
+                formData.append("resId", 0);
+                formData.append("res_query", $("#res_query").val());
+                formData.append("res_desc", $("#res_desc").val());
+                formData.append("file", fileInput.files[0]);
+                formData.append("__RequestVerificationToken", $('input[name="__RequestVerificationToken"]').val());
+
+                console.log(formData);
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertResponses", "Queries", new { area = "Common" })",
+                    dataType: 'JSON',
+                    data: formData,
+                    contentType: false, // Ensure this is set to false
+                    processData: false, // Ensure this is set to false
+                    success: function (data) {
+                        $('#btn_Insert_CoderQuery').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_CoderQuery').addClass("btn btn-success");
+                        $('#btn_Insert_CoderQuery').html("Add");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Coder Queries Added Successfully!", "success");
+                                clearControls();
+                                Timeout();
+                                GetResponses();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. Coder Queries Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Insert_CoderQuery').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_CoderQuery').addClass("btn btn-success");
+                        $('#btn_Insert_CoderQuery').html("Add");
+                        Timeout();
+                    }
+                });
+            }
+        });
+     //#endregion Insert Button Click
+
+    $("#fileInput").change(function () {
+        // Access the selected files using this.files
+        selectedFiles = this.files;
+
+        // Do something with the selected files, such as displaying their names
+        for (var i = 0; i < selectedFiles.length; i++) {
+            console.log("Selected File: " + selectedFiles[i].name);
+        }
+
+    });
+</script>

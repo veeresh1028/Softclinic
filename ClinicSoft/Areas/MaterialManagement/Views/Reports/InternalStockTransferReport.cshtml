@@ -1,0 +1,620 @@
+﻿
+@model IEnumerable<BusinessEntities.Accounts.MaterialManagement.DirectStockTransfer>
+@{
+    ViewBag.Title = "Accounts & Material Management - Branch Stock Transfer Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Branch Stock Transfer Report</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">            
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>           
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <input type="hidden" id="hi_branch_selected" value="0" />
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Transfer From Branch</label>
+                                @Html.DropDownList("select_branch_from", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Any Select", new { @class = "form-select select2" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">To Branch</label>
+                                @Html.DropDownList("select_branch_to", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Any Select", new { @class = "form-select select2" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Ref No#</label>
+                            </div>
+                            <input id="txt_refno" class="form-control" placeholder="Enter Ref no." type="text" autocomplete="off">
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Item Name / Code</label>
+                            </div>
+                            <input id="txt_item_code" class="form-control" placeholder="Enter Item name or code" type="text" autocomplete="off">
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date From</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date To</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Status<small>(es)</small></label>
+                                <select id="select_status" class="form-control mb-4" multiple="multiple"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="DirectTransferAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-status bg-blue"></div>
+            <div class="card-body">
+
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_directstocktransfer" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Ref No</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">From Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">To Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Item</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Batch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Qty/UoM</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Description</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Made by</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Item Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Item Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Received Qty</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Received UoM</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Received Qty2</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Received UoM2</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Received Qty3</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Received UoM3</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section myScripts{
+    <style>
+        @@media (min-width: 1124px) {
+            .dataTables_scrollHeadInner, .table {
+                width: 100% !important
+            }
+        }
+
+        .modal-lg {
+            max-width: 1500px;
+        }
+    </style>
+
+    <script>
+
+        //#region Page Load
+        $(function () {
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+            $('#select_branch_from').select2({
+                minimumResultsForSearch: '',
+                placeholder: 'Any Branch',
+                width: '100%'
+            });
+            $('#select_branch_to').select2({
+                minimumResultsForSearch: '',
+                placeholder: 'Any Branch',
+                width: '100%'
+            });
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            load_status();
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+            $('#txt_refno').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9+]/g))
+                    return false;
+            });
+            var today_date = moment(new Date()).format('MM/DD/YYYY');
+            Get_DirectStockTransfer(today_date, today_date);
+
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+        });
+        //#endregion
+
+        //#region load status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Any Status',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+            $('#select_status')[0].sumo.add("New", "New");
+            $('#select_status')[0].sumo.add("Transfered", "Transfered");
+            $('#select_status')[0].sumo.add("Cancelled", "Cancelled");
+            $('#select_status')[0].sumo.add("Deleted", "Deleted");
+
+            $('#select_status')[0].sumo.reload();
+        };
+        //#endregion
+
+        //#region Filter on Button Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            let isValid = true;
+            var from_date = moment($('#select_date_from').val().trim(), "DD-MMMM-YYYY");
+            var to_date = moment($('#select_date_to').val().trim(), "DD-MMMM-YYYY");
+            // Check if Date From is a valid Date
+            if (from_date != null && from_date != 0 && from_date != "" && from_date != undefined) {
+                if (!from_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid From Date!"
+                    });
+                }
+            }
+            // Check if Date To is a valid Date
+            if (to_date != null && to_date != 0 && to_date != "" && to_date != undefined) {
+                if (!to_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid To Date!"
+                    });
+                }
+            }
+            if ((from_date != null && from_date != 0 && from_date != "" && from_date != undefined) && (to_date != null && to_date != 0 && to_date != "" && to_date != undefined)) {
+                if (from_date.isValid() && to_date.isValid()) {
+                    if (to_date.diff(from_date, 'days') < 0) {
+                        isValid = false;
+                        var index = [];
+                        index.push("select_date_from_app");
+                        index.push("select_date_to_app");
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+
+                        e.stopPropagation();
+
+                        return $.growl.error({
+                            title: "Error!",
+                            message: "Filter From Date should be less than To Date!"
+                        });
+                    }
+                }
+            }
+            if (isValid) {
+                search_DirectStockTransfer();
+            }
+        });
+        //#endregion
+
+        //#region Load Direct Stock Transfer Data
+        function Get_DirectStockTransfer(fromdate, todate) {
+            var _data = {
+                "std_from_branch": $('#select_branch_from').val().toString(),
+                "std_to_branch": $('#select_branch_to').val().toString(),
+                "std_refno": $('#txt_refno').val().trim(),
+                "item_code": $('#txt_item_code').val().trim(),
+                "std_status": $('#select_status').val().toString(),
+                "from_date": fromdate,
+                "to_date": todate
+            }
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDirectStockTransfer", "StockTransfer", new { area = "MaterialManagement"})",
+                dataType: 'json',
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    $('#searchFilter').collapse('hide');
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_directstocktransfer')) {
+                            table = $('#tbl_directstocktransfer').DataTable();
+                           table.clear();
+                           table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    $('#progress-loader').hide();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $('#progress-loader').hide();
+                    $('#RowsCountToast').hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_directstocktransfer").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [                    
+                    {
+                        "mData": "std_refno",
+                    },
+                    {
+                        "mData": "std_date",
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "from_branch_name"
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "to_branch_name"
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "std_itemId",
+                        "render": function (std_itemId, type, full, meta) {
+                            return '<span class="text-info">' + full.std_item_code + " </span> <br><span> " + full.item_name + '</span>'
+                        }
+                    },
+                    {
+                        "mData": "std_item_batch",
+                        "orderable": false,
+                        "searchable": false,
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "std_oqty",
+                        "render": function (std_oqty, type, full, meta) {
+                            return '<span>' + full.std_oqty + " - " + full.std_ouom + '</span>'
+                        }
+                    },
+                    {
+                        "mData": "std_notes",
+                        "orderable": false,
+                        "searchable": false,
+                    },
+                    {
+                        "mData": "madeby",
+                        "orderable": false,
+                        "searchable": false,
+                    },
+                    {
+                        "mData": "stdId",
+                        "className": 'text-center',
+                        "render": function (stdId, type, full, meta) {
+                            var std_status = full.std_status;
+                            if (std_status === "New") {
+                                return '<span class="text-success fw-bold">New</span>'
+                            }
+                            else if (std_status === "Transfered") {
+                                return '<span class="text-warning fw-bold">Transfered</span>'
+                            }
+                            else {
+                                return '<span class="text-danger fw-bold">' + std_status +'</span>'
+                            }
+                        }
+                    },
+                    {
+                        "mData": "item_name",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+                    {
+                        "mData": "std_item_code",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+                    {
+                        "mData": "std_rqty",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+                    {
+                        "mData": "std_item_uom",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+                    {
+                        "mData": "std_rqty2",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+                    {
+                        "mData": "std_item_uom2",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+                    {
+                        "mData": "std_rqty3",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+                    {
+                        "mData": "std_item_uom3",
+                        "orderable": false,
+                        "searchable": false,
+                        "visible": false,
+                    },
+
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order:[[1, 'desc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Branch Stock Transfers Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 9, 10, 5, 11, 12, 13, 15, 16, 17, 7, 8, 9]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Branch Stock Transfers Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 9, 10, 5, 11, 12, 13, 15, 16, 17, 7, 8, 9]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Branch Stock Transfers Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 9, 10, 5, 11, 12, 13, 15, 16, 17, 7, 8, 9]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Branch Stock Transfers Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 9, 10, 5, 11, 12, 13, 15, 16, 17, 7, 8, 9]
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    zeroRecords: "No Record Match - Sorry",
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Date / Branch / Item </span>',
+                    sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_',
+                },
+                "drawCallback": function () {
+                    $("#tbl_directstocktransfer tr").each(function () {
+                        if ($(this).find("td:eq(10)").text() === "Deleted" || $(this).find("td:eq(10)").text() === "Transfered") {
+                            $($(this)).find("td:eq(0)").find("input[type='checkbox']").remove();
+                        }
+
+                    });
+                },
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+                    var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                    // Total Amount
+                    //_total = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    //$(api.column(4).footer()).html(numFormat(_total));
+
+                }
+            });
+            table.buttons().container().appendTo('#tbl_directstocktransfer_wrapper .col-md-6:eq(0)');
+
+        }
+        //#endregion Bind Datatable
+        
+        //#region Search Branch Transfer
+        var search_DirectStockTransfer = function ()
+        {
+            var from_date = $('#select_date_from').val().trim();
+            var to_date = $('#select_date_to').val().trim();
+            Get_DirectStockTransfer(from_date, to_date);
+        }
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion Alert Timeout
+            
+        //#region Remove Valiate Error Class Timeout
+        function Error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 4200);
+        }
+    //#endregion
+    </script>
+}

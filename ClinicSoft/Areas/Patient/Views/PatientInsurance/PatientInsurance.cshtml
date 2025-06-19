@@ -1,0 +1,688 @@
+﻿@model List<BusinessEntities.Patient.PatientInsurance>
+<div class="card" id="myPartialViewContainer">
+    <div class="card-body p-1">
+        <div class="row">
+            <div class="col-md-12 d-flex justify-content-center">
+                <div id="PatientAlert"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-10">
+                <small>
+                    <span class="text-primary">
+                        COPAY - <strong>Co.Payment</strong> | D-COP - <strong>Routine Dental Co.Payment</strong>  | HD-COP - <strong>High Prof Dental Co.Payment</strong> | IPD-COP - <strong>Specialist Consultation</strong> |  <br />
+                        D-DED - <strong>Dental Consultation</strong> | I-DED - <strong>Laboratory</strong> | R-DED - <strong>Radiology</strong> | M-DED - <strong>Meternity</strong> | P-DED - <strong>Pharmacy</strong>
+                    </span>
+                </small>
+            </div>
+            <div class="col-md-2">
+                <div class="btn-list text-right">
+                    <button type="button" class="btn btn-secondary btn-sm mb-1" id="btn_new_pat_insurance"><i class="mdi mdi-plus"></i> &nbsp;Add New Insurance</button>
+                </div>
+            </div>
+        </div>
+        <div class="table-responsive" style="min-height:unset;">
+            <table id="dtTable2" class="table table-striped table-bordered text-wrap" style="width:100%">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #6c6c6c; border-color: #6c6c6c;">
+                        <th class="border-bottom-0 font-weight-semibold text-white text-end">Card(Front)</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Card(Back)</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Insurance</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Payer</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Network</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Card #</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Policy #</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Issued</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Expired</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Limit</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Ceiling</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">COPAY</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">D-COP</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">HD-COP</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">IPD-COP</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">D-DED</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">I-DED</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">R-DED</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">M-DED</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">P-DED</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- Modal Create Patient Insurance -->
+<div class="modal fade" id="create_patient_insurance_model" data-bs-backdrop="static" data-bs-keyboard="false" data-modal-from="patient" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="create_patient_insurance_model_body">
+        </div>
+    </div>
+</div>
+<!-- End Create Patient Insurance -->
+<!-- Modal Create Patient Insurance -->
+<div class="modal fade" id="edit_patient_insurance_model" data-bs-backdrop="static" data-bs-keyboard="false" data-modal-from="patient" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="edit_patient_insurance_model_body">
+        </div>
+    </div>
+</div>
+<!-- End Create Patient Insurance -->
+<!-- Modal View Document -->
+<div class="modal fade" id="view_doc_modal" data-bs-backdrop="static" data-bs-keyboard="false" data-modal-from="patient" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="view_doc_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal View Document-->
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        GetPatientsInsurances();
+
+        localStorage.setItem("patId", "@Model[0].pi_patient");
+        localStorage.setItem("pat_info", "@Model[0].pat_name" + "(" + "@Model[0].pat_code" + ")");
+    });
+    //#endregion
+
+    //#region Load Patients
+    var GetPatientsInsurances = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetPatientInsurancesById_Json", "PatientInsurance", new { area = "Patient" })?patId=" + @Model[0].pi_patient,
+            dataType: 'json',
+            success: function (response) {
+
+                if (response != null && response != undefined) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#dtTable2')) {
+                        table = $('#dtTable2').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        BindDataTable(response);
+                    }
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind DataTable
+    var BindDataTable = function (response) {
+        var table = $("#dtTable2").DataTable({
+            processing: true,
+            paging: false,
+            ordering: false,
+            info: false,
+            "searching": false,
+            "retrieve": true,
+            lengthChange: false,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "pi_image" },
+                { "mData": "pi_image2" },
+                { "mData": "is_ic_name" },
+                { "mData": "is_ip_name" },
+                { "mData": "is_title" },
+                { "mData": "pi_insno" },
+                { "mData": "pi_polocyno" },
+                { "mData": "pi_idate" },
+                { "mData": "pi_edate" },
+                { "mData": "pi_limit" },
+                { "mData": "pi_ceiling" },
+                { "mData": "pi_copay" },
+                { "mData": "pi_dcopay" },
+                { "mData": "pi_hdcopay" },
+                { "mData": "pi_ip_dcopay" },
+                { "mData": "pi_dded" },
+                { "mData": "pi_ided" },
+                { "mData": "pi_rded" },
+                { "mData": "pi_mded" },
+                { "mData": "pi_pded" },
+                { "mData": "pi_status" },
+                { "mData": "piId" },
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "className": "fs-13 text-center",
+                    "render": function (data, type, full, meta) {
+                        if (data == null || data == "" || data == undefined)
+                        {
+                            return '<i class="fa fa-exclamation-triangle text-warning"></i>';
+                        }
+                        else
+                        {
+                            return '<a href="/Patient/PatientInsurance/DownloadFile?type=ins_front&id=' + full.piId + '">' +
+                                        '<i class="fa fa-cloud-download text-green"></i>' +
+                                    '</a>' +
+                                    '<span onclick="view_doc(\'ins_front\',' + full.piId + ')">' +
+                                        '<i class="fa fa-search-plus text-blue ms-2"></i>' +
+                                    '</span>';
+                        }
+                    }
+                },
+                {
+                    "aTargets": [1],
+                    "className": "fs-13 text-center",
+                    "render": function (data, type, full, meta) {
+                        if (data == null || data == "" || data == undefined) {
+                            return '<i class="fa fa-exclamation-triangle text-warning"></i>';
+                        }
+                        else {
+                            return '<a href="/Patient/PatientInsurance/DownloadFile?type=ins_back&id=' + full.piId + '">' +
+                                '<i class="fa fa-cloud-download text-green"></i>' +
+                                '</a>' +
+                                '<span onclick="view_doc(\'ins_back\',' + full.piId + ')">' +
+                                '<i class="fa fa-search-plus text-blue ms-2"></i>' +
+                                '</span>';
+                        }
+                    }
+                },
+                {
+                    "aTargets": [2],
+                    "className": "fs-13 text-center",
+                    "render": function (data, type, full, meta) {
+                            return "<span class='text-primary font-weight-semibold'>"+data+"</span><br />"+
+                                "<small class='text-info text-center font-weight-semibold'>(" + full.is_ic_code +")</small>";
+                    }
+                },
+                {
+                    "aTargets": [3],
+                    "className": "fs-13 text-center",
+                    "render": function (data, type, full, meta) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span><br />" +
+                            "<small class='text-info text-center font-weight-semibold'>(" + full.is_ip_code + ")</small>";
+                    }
+                },
+                {
+                    "aTargets": [4],
+                    "className": "fs-13 text-center"
+                },
+                {
+                    "aTargets": [5],
+                    "className": "fs-13 text-center"
+                },
+                {
+                    "aTargets": [6],
+                    "className": "fs-13 text-center"
+                },
+                {
+                    "aTargets": [7],
+                    "className": "fs-13 text-center",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                            return moment(data).format("DD/MM/YYYY");
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [8],
+                    "className": "fs-13 text-center",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                            return moment(data).format("DD/MM/YYYY");
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [9],
+                    "className": "fs-13 text-end"
+                },
+                {
+                    "aTargets": [10],
+                    "className": "fs-13 text-end"
+                },
+                {
+                    "aTargets": [11],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data +"</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_copay_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_copay_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [12],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_dcopay_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_dcopay_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [13],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_hdcopay_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_hdcopay_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [14],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_ip_dcopay_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_ip_dcopay_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [15],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_dded_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_dded_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [16],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_ided_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_ided_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [17],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_rded_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_rded_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [18],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                        return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                            "<small class='text-info font-weight-semibold'>(" + full.pi_mded_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_mded_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [19],
+                    "className": "fs-13 text-end",
+                    "render": function (data, type, full, meta) {
+                        if (!(full.is_ic_name.toLowerCase().trim().includes("cash"))) {
+                            return "<span class='text-primary font-weight-semibold'>" + data + "</span>" +
+                                "<small class='text-info font-weight-semibold'>(" + full.pi_pded_type + ")</small> <br />" +
+                                "<small class='text-danger font-weight-semibold'>Limit :" + full.pi_pded_limit + "</small>";
+                        }
+                        else {
+                            return "N/A";
+                        }
+                    }
+                },
+                {
+                    "aTargets": [20],
+                    "className": "fs-13 text-center",
+                    "render": function (dcId, type, full, meta) {
+                        var isAllocated = full.isAllocated;
+                        var pi_status = full.pi_status.toLowerCase().trim();
+                        var is_ic_name = full.is_ic_name.toLowerCase().trim();
+
+                        if (is_ic_name.includes("cash")) {
+                            if (isAllocated === 0) {
+                                if (pi_status === "active") {
+                                    return '<button type="button" class="badge rounded-pill text-success mt-2 border-success" style="width: 60px;">Active</button>'
+
+                                }
+                                else if (pi_status === "inactive") {
+                                    return '<button type="button" class="badge rounded-pill text-warning mt-2 border-warning" style="width: 60px;">Inactive</button>'
+
+                                }
+                                else if (pi_status === "deleted") {
+                                    return '<button type="button" class="badge rounded-pill text-danger mt-2 border-danger" style="width: 60px;">Deleted</button>'
+
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                        else {
+                            if (isAllocated === 0) {
+                                if (pi_status === "active") {
+                                    return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="UpdateStatus(\'' + full.piId + '\',\'Active\')">Active</button>'
+
+                                }
+                                else if (pi_status === "inactive") {
+                                    return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="UpdateStatus(\'' + full.piId + '\',\'Inactive\')">Inactive</button>'
+
+                                }
+                                else if (pi_status === "deleted") {
+                                    return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="UpdateStatus(\'' + full.piId + '\',\'Deleted\')">Deleted</button>'
+
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    }
+                },
+                {
+                    "aTargets": [21],
+                    "className": "text-end",
+                    "render": function (data, type, full, meta) {
+                        var html_links = "";
+                        var is_ic_name = full.is_ic_name.toLowerCase().trim();
+                        var pi_status = full.pi_status.toLowerCase().trim();
+                        var isAllocated = full.isAllocated;
+
+                        if (!(is_ic_name.includes("cash"))) {
+                            html_links += '<div class="dropdown">' +
+                                '<a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (isAllocated == 0) {
+                                if ((pi_status.trim() == "active") || (pi_status == "inactive")) {
+                                    if ((pi_status.trim() == "active")) {
+                                        html_links += '<a class="dropdown-item text-dark fw-bold" onclick="EditPatientInsurance(' + data + ')" href="javascript:void(0)">' +
+                                            '<i class="fe fe-edit-2 text-success" style="font-size: 15px;"></i>&nbsp;Edit' +
+                                            '</a>' +
+                                            '<a class="dropdown-item text-dark fw-bold" onclick="DeletePatientInsurance(' + data + ')" href="javascript:void(0)"> ' +
+                                            '<i class="fe fe-trash text-danger" style="font-size: 15px;"></i>&nbsp;Delete</a>';
+                                    }
+                                    else if ((pi_status == "inactive")) {
+                                        html_links += '<a class="dropdown-item text-dark fw-bold" onclick="DeletePatientInsurance(' + data + ')" href="javascript:void(0)"> ' +
+                                            '<i class="fe fe-trash text-danger" style="font-size: 15px;"></i>&nbsp;Delete</a>';
+                                    }
+
+                                    html_links += '</div></div>';
+                                }
+                            }
+                            else {
+                                if ((pi_status.trim() == "active")) {
+                                    html_links += '<a class="dropdown-item text-dark fw-bold" onclick="EditPatientInsurance(' + data + ')" href="javascript:void(0)">' +
+                                        '<i class="fe fe-edit-2 text-success" style="font-size: 15px;"></i>&nbsp;Edit' +
+                                        '</a></div></div>';
+                                }
+                            }
+                        }
+
+                        return html_links;
+                    }
+                }
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            }
+        });
+        table.buttons().container()
+            .appendTo('#dtTable2_wrapper .col-md-6:eq(0)');
+    }
+    //#endregion
+
+    //#region View Doc Modal
+    var view_doc = function (type, id) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("ViewDocument", "PatientInsurance", new { area = "Patient" })?type=" + type + "&id=" + id,
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $("#view_doc_modal_body").html(data);
+                $("#view_doc_modal").modal("show");
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Create Patient Insurance
+    $("#btn_new_pat_insurance").click(function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreatePatientInsurance", "PatientInsurance", new { area = "Patient" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#create_patient_insurance_model').attr("data-modal-from", "appointment-list");
+                $("#create_patient_insurance_model_body").html(data);
+                $("#create_patient_insurance_model").modal("show");
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    });
+    //#endregion
+
+    //#region Edit Patient Insurance
+    var EditPatientInsurance = function (piId) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("EditPatientInsurance", "PatientInsurance", new { area = "Patient" })?piId=" + piId,
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $("#edit_patient_insurance_model_body").html(data);
+                $("#edit_patient_insurance_model").modal("show");
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Delete Patient Insurance
+    var DeletePatientInsurance = function (piId) {
+        Swal.fire({
+            title: "Are you sure you want to Delete this Insurance ?",
+            text: "This action will delete the patient insurance!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("DeletePatientInsurance", "PatientInsurance", new { area = "Patient" })?piId=" + piId,
+                    dataType: "json",
+                    success: function (data) {
+                        console.log(data)
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Insurance Deleted Successfully!!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                })
+                                GetPatientsInsurances();
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to Delete Insurance!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to perform this action!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+        });
+    };
+    //#endregion
+
+    //#region Update Status Function
+    var UpdateStatus = function (piId, status) {
+        status = (status == "Deleted" || status == "Inactive") ? "Active" : "Inactive"
+
+        Swal.fire({
+            title: "Are you sure you want to change status ?",
+            text: "This action will change the status of the selected Patient Insurance!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: "@Url.Action("UpdateInsuranceStatus", "PatientInsurance", new { area = "Patient" })?piId=" + piId + "&status=" + status,
+                    type: "GET",
+                    dataType: "JSON",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                if (data.message == 1) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Status Changed Successfully!!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    })
+                                    GetPatientsInsurances();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Change Status!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                if (data.message == -1) {
+                                    Swal.fire({
+                                        title: "Warning!",
+                                        text: "An active Insurance Detail with the same details already exists!",
+                                        icon: "warning",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    })
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Change Status!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                        }
+                        else{
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to perform this action!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Update Insurance Status! Please refresh the Page and Try Again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        })
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+</script>

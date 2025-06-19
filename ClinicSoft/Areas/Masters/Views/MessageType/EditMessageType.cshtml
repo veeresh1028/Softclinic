@@ -1,0 +1,393 @@
+﻿@model BusinessEntities.Masters.MessageType
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update Message Type</h5>
+    <button type="button" class="btn-close btnCloseEdit" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Edit_Message_Type" autocomplete="off" ondrop="return false;" oncut="return false;">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.mtId)
+        <div class="row">
+            <div class="col-sm-12 col-md-6 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.mt_branch, new SelectList(Model.BranchList, "id", "text"), new { @class = "form-select select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Message Type&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.mt_type, new { @class = "form-control", @placeholder = "Ex : Test", @maxlength = "80" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label">Designation&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.mt_desig, new List<SelectListItem> { }, "Select Designation", new { @class = "form-select mb-2 select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Employee&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.mt_emp, new List<SelectListItem> { }, "Select Employee", new { @class = "form-select mb-2 select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label">TAT&nbsp;<span class="text-danger"><small>(min.)</small> *</span></label>
+                    @Html.TextBoxFor(m => m.mt_tat, new { @class = "form-control", @placeholder = "Ex : 60", @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorEdit"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseEdit" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+
+        $("#mt_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Edit_Message_Type')
+        });
+
+        $("#mt_desig").select2({
+            placeholder: 'Select Designation',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_Edit_Message_Type'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#mt_emp").select2({
+            placeholder: 'Select Employees',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_Edit_Message_Type'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        load_employees();
+
+        load_designations();
+
+        validation();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Edit_Message_Type").validate({
+            focusInvalid: true,
+            rules:
+            {
+                mt_type: {
+                    required: true
+                },
+                mt_branch: {
+                    required: true,
+                },
+                mt_desig: {
+                    required: true
+                },
+                mt_emp: {
+                    required: true
+                },
+                mt_tat: {
+                    required: true,
+                }
+            },
+            messages: {
+                mt_type: {
+                    required: "Enter Type"
+                },
+                mt_branch: {
+                    required: "Select Branch",
+                },
+                mt_desig: {
+                    required: "Select Designation"
+                },
+                mt_emp: {
+                    required: "Select Employee"
+                },
+                mt_tat: {
+                    required: "Enter TAT",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#mt_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#mt_desig').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#mt_tat').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#mt_emp').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#mt_tat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+        $("#mt_tat").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#mt_tat").val(0.00);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Validate Decimal
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : evt.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Load Designations
+    var load_designations = function (desiId) {
+        $.ajax({
+            url: '@Url.Action("GetDesignations", "MessageType", new { area = "Masters" })?desiId=' + desiId,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#mt_desig').empty();
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === @Model.mt_desig) ? true : false, (parseInt(response[j].Value) === @Model.mt_desig) ? true : false);
+                        $('#mt_desig').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Load Employees
+    var load_employees = function () {
+        $.ajax({
+            url: '@Url.Action("GetEmployees", "MessageType", new { area = "Masters" })?emp_desig=' + $('#mt_desig').val(),
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#mt_emp').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === @Model.mt_emp) ? true : false, (parseInt(response[j].Value) === @Model.mt_emp) ? true : false);
+                        $('#mt_emp').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Designation Select Event
+    $('#mt_desig').on('select2:select', function (e) {
+        load_employees();
+    });
+    //#endregion
+
+    //#region Update Message Type Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Edit_Message_Type").valid()) {
+
+            $('#btn_Update').removeClass("btn btn-warning");
+            $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+            $('#btn_Update').parent().addClass("curdrop");
+            $('.btnCloseEdit').addClass("disabled");
+            $('#btn_Update').html("Saving Changes... Please Wait");
+
+            var _dataUpdate = {
+                "mtId": $("#mtId").val(),
+                "mt_type": $("#mt_type").val().trim(),
+                "mt_branch": $("#mt_branch").val(),
+                "mt_desig": $("#mt_desig").val(),
+                "mt_emp": $("#mt_emp").val(),
+                "mt_tat": $("#mt_tat").val(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "Post",
+                url: "@Url.Action("UpdateMessageType", "MessageType", new {area = "Masters" })",
+                dataType: 'JSON',
+                data: _dataUpdate,
+                success: function (data) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    if (data.isSuccess) {
+                        if (data.isUpdated) {
+                            GetMessageTypes();
+                            alert("<i class='fe fe-check-circle text-white'></i> Message Type Updated Successfully!", "success");
+                            $('#message_type_modal').modal('toggle');
+                            Timeout();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Message Type Already Exists with the same details!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorEdit").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+
+                        $("#errorEdit").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    $('#message_type_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

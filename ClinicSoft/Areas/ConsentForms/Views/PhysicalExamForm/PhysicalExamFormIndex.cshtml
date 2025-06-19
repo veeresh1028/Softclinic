@@ -1,0 +1,105 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Physical Exam Form";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"> Physical Exam Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="PhysicalExamForm_add" style="display:none">
+                </div>
+                <div id="PhysicalExamForm_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="PhysicalExamForm_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetPhysicalExamFormInfo();
+        PhysicalExamFormPreviousHistory();
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetPhysicalExamFormInfo
+    var GetPhysicalExamFormInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetPhysicalExamFormData", "PhysicalExamForm", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditPhysicalExamForm();
+                        $("#PhysicalExamForm_add").hide();
+                        $("#PhysicalExamForm_edit").show();
+
+                    }
+                    else {
+                        $("#PhysicalExamForm_add").show();
+                        $("#PhysicalExamForm_edit").hide();
+                        AddPhysicalExamForm();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load PhysicalExamForm
+
+    //#region Add PhysicalExamForm
+    function AddPhysicalExamForm() {
+        var x = $("#PhysicalExamForm_add");
+        x.load("@Url.Action("CreatePhysicalExamForm", "PhysicalExamForm", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add PhysicalExamForm
+
+    //#region Update PhysicalExamForm
+    function EditPhysicalExamForm() {
+        var x = $("#PhysicalExamForm_edit");
+        x.load("@Url.Action("UpdatePhysicalExamForm", "PhysicalExamForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update PhysicalExamForm
+
+    //#region Histroy of PhysicalExamForm
+    function PhysicalExamFormPreviousHistory() {
+        var x = $("#PhysicalExamForm_history");
+        x.load("@Url.Action("PhysicalExamFormPreviousHistory", "PhysicalExamForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

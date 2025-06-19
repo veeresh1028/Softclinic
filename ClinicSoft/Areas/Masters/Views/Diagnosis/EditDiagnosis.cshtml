@@ -1,0 +1,286 @@
+﻿@model BusinessEntities.Masters.Diagnosis
+<style>
+    #sizeU {
+        max-width: 800px;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update Diagnosis</h5>
+    <button type="button" class="btn-close btnCloseEdit" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_EditDiag" >
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.diagId)
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Department&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownList("diag_dept", new SelectList(Model.departmentlist, "deptId", "department"), "Please Select", new { @class = "form-select select2", @required = "", @id = "udiag_dept" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Code&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.diag_code, new { @class = "form-control", @placeholder = "Enter Code", @required = "", @id = "udiag_code", @maxlength = "10" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">ICD Type&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.diag_class, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Text="ICD 9.0", Value = "ICD 9.0" },
+                        new SelectListItem{ Text="ICD 10.0", Value = "ICD 10.0" },
+                    }, "Please Select", new { @class = "form-select select2", @required = "", @id = "udiag_class" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Diagnosis&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.diag_name, new { @class = "form-control", @placeholder = "Ex : Typhoid Pneumonia", @required = "", @id = "udiag_name", @maxlength = "140" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Notes</label>
+                    @Html.TextAreaFor(m => m.diag_notes, new { @class = "form-control", @placeholder = "Ex : One of the most responsible cause of Pneumonia is called Streptococcus Pneumoniae, it is...", @id = "udiag_notes", @maxlength = "250" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorEdit"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseEdit" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    //#region On Document Ready
+    $(function () {
+        $('#udiag_dept').select2({
+            minimumResultsForSearch: '',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_EditDiag'),
+            width: '100%'
+        });
+
+        $('#udiag_class').select2({
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_EditDiag'),
+            width: '100%'
+        });
+
+        validation();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_EditDiag").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "diag_dept": {
+                    required: true
+                },
+                "diag_code": {
+                    required: true
+                },
+                "diag_class": {
+                    required: true
+                },
+                "diag_name": {
+                    required: true
+                }
+            },
+            messages: {
+                "diag_dept": {
+                    required: "Please Select Department"
+                },
+                "diag_code": {
+                    required: "Enter Diagnosis Code"
+                },
+                "diag_class": {
+                    required: "Please Select ICD Type"
+                },
+                "diag_name": {
+                    required: "Enter Diagnosis"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#udiag_dept').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#udiag_class').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Update Diagnosis Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_EditDiag").valid()) {
+            $('#btn_Update').removeClass("btn btn-warning");
+            $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+            $('#btn_Update').parent().addClass("curdrop");
+            $('.btnCloseEdit').addClass("disabled");
+            $('#btn_Update').html("Saving Changes... Please Wait");
+
+            var formData = new FormData();
+            var diagId = $('#diagId').val();
+            var diag_dept = $('#udiag_dept :selected').val();
+            var diag_name = $('#udiag_name').val().trim();
+            var diag_code = $('#udiag_code').val().trim();
+            var diag_class = $('#udiag_class').val();
+            var diag_notes = $('#udiag_notes').val();
+            var __RequestVerificationToken = $('input[name="__RequestVerificationToken"]').val();
+
+            formData.append("diagId", diagId);
+            formData.append("diag_dept", diag_dept);
+            formData.append("diag_code", diag_code);
+            formData.append("diag_name", diag_name);
+            formData.append("diag_class", diag_class);
+            formData.append("diag_notes", diag_notes);
+            formData.append("__RequestVerificationToken", __RequestVerificationToken);
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateDiagnosis", "Diagnosis", new { area = "Masters" })",
+                data: formData,
+                dataType: 'json',
+                processData: false,
+                contentType: false,
+                cache: false,
+                success: function (data) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    if (data.isSuccess) {
+                        if (data.isUpdated) {
+                            GetDiagnosis();
+                            var alertPlaceholder = document.getElementById("DiagnosisAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Diagnosis Updated Successfully!", "success");
+
+                            $('#update_diag_modal').modal('toggle');
+                            Timeout();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Diagnosis Already Exists with the same name!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorEdit").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+                        $("#errorEdit").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    $('#update_diag_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else
+        {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

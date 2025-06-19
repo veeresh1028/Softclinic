@@ -1,0 +1,829 @@
+﻿@model List<BusinessEntities.Accounts.Accounting.AssetsDepreciations>
+@{
+    var item_code = "";
+    var item_name = "";
+    var p_date = "";
+    var branch_name = "";
+    var asset_status = "";
+    var faId = 0;
+    var method_type = "";
+    var life_span = 0;
+}
+@if (Model != null && Model.Count > 0)
+{
+    var model = Model.First();
+    item_code = model.item_code;
+    item_name = model.item_name;
+    p_date = model.fa_pdate;
+    branch_name = model.branch_name;
+    asset_status = model.fa_status;
+    faId = model.ad_faId;
+    method_type = model.fa_method;
+    int.TryParse(model.fa_life_span.ToString(), out life_span);
+}
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Fixed Asset Monthly Depreciation</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <div class="row mb-3">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <span class="text-warning fs-16 semibold-text">@branch_name</span>
+            <span class="text-success fs-16 semibold-text"> [@item_code - @item_name] </span>
+            <span class="text-info fs-16 semibold-text">Purchase Date : @p_date</span>
+        </div>
+    </div>
+    <form id="form_Adddeprication" autocomplete="off">
+        @Html.AntiForgeryToken()
+        @if (asset_status == "Active")
+        {
+            <div class="row mb-5" id="divPost">
+                <div class="col-sm-12 col-md-6 col-lg-2">
+                    <select class="form-control" id="post_month" multiple="multiple"></select>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-10">
+                    <button id="btnPost" class="btn btn-cyan">Post For Next Month</button>
+                    <div class="btn-group" style="margin-right : 0.85rem!important;">
+                        <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
+                            Action <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu">
+                            <li class="dropdown-plus-title">
+                                Choose Any Action
+                                <b class="fa fa-angle-up" aria-hidden="true"></b>
+                            </li>
+                            <li class="fs-13 text-dark"><a href="javascript:void(0);" onclick="action_change('Fully Depreciated');"><i class="fe fe-battery text-warning fs-12 fw-bold"></i>&nbsp; Depreciated</a></li>
+                            <li class="fs-13 text-dark"><a href="javascript:void(0);" onclick="action_change('Sold Out');"><i class="fe fe-move text-indigo fs-12 fw-bold"></i>&nbsp; Sold</a></li>
+                        </ul>
+                    </div>
+                    <label id="next_posted_dt" class="d-none"></label>
+                </div>
+            </div>
+        }
+    </form>
+
+    <div class="row mt-2 mb-2">
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div id="DepreciationAlert"></div>
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorCreate_da"></div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="table-responsive">
+            <table id="tbl_depre" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Month</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Year</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Beginning Value</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Monthly Depreciation Expense</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Accumulated Depreciation</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Ending Value</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th class="text-right fs-17 text-primary font-weight-bold">Total :</th>
+                        <th class="text-end fs-16 font-weight-bold"></th>
+                        <th class="text-end fs-16 font-weight-bold"></th>
+                        <th class="text-end fs-16 font-weight-bold"></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EFFECTS -->
+<div class="modal fade" id="modal_action">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <form id="action_form" autocomplete="off">
+            <div class="modal-content modal-content-demo" style="box-shadow: 4px 9px 9px 7px #c5c1c1 !important; border: 3px solid #90adcf; border-radius: 10px !important; ">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                    <label id="lbl_action_name"></label>                    
+                        </h6><button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="row">
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-black pull-left font-weight-semibold"><span id="lbl_type"></span> &nbsp;<span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" placeholder="select date" maxlength="18" id="action_date" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12 col-md-12 col-lg-12">
+                            <div class="custom-controls-stacked">
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" name="example-checkbox1" id="chk_action" value="checked" checked>
+                                    <span class="custom-control-label fs-14 font-weight-semibold">Post / Remove the depreciation entries till selected date.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <label id="lbl_action_type" class="d-none"></label>
+                    <button class="btn btn-success" type="submit" id="btn_action_post">Save changes</button> <button class="btn btn-outline-danger" data-bs-dismiss="modal" type="button">Close</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var logs_array = [];
+
+    //#region Page Load
+    $(function () {
+        $('#next_posted_dt').text('');
+        logs_array = @Html.Raw(Json.Encode(Model));
+        $('#action_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: '@p_date',
+            endDate: new Date()
+        });
+        $("#action_date").bootstrapdatepicker("setDate", "today");
+        from_validation();
+        BindDataTable(logs_array);
+    });
+    //#endregion
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+
+        var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+        var table = $("#tbl_depre").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            "pageLength": 50,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "adId",
+                    "searchable": false,
+                    "visible":false
+                },
+                {
+                    "mData": "ad_month"
+                },
+                {
+                    "mData": "ad_year",
+                },
+                {
+                    "mData": "ad_ending_value",
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (ad_ending_value, type, full, meta) {
+                        return parseFloat(full.ad_depreciation_expense + ad_ending_value);
+                    }
+                },
+                {
+                    "mData": "ad_depreciation_expense",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-end fs-12",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ad_accumulated_depreciation",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-end fs-12",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ad_ending_value",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-end fs-12",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "fa_status",
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (data, type, full, meta) {
+                        return '';
+                    }
+                }
+            ],
+            columnDefs: [
+                {
+                    targets: [7],
+                    "visible": function (data, type, full, meta) {
+                        return full.fa_status !== "Fully Depreciated";
+                    }
+                }
+            ],
+            order: [[0, 'asc']],
+            buttons: [
+                {
+                    className:'btn btn-secondary',
+                    extend: 'excel',
+                    title: 'Fixed Asset Monthly Depreciation Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                },
+                {
+                    className: 'btn btn-secondary',
+                    extend: 'pdf',
+                    title: 'Fixed Asset Monthly Depreciation Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                },
+                {
+                    className: 'btn btn-secondary',
+                    extend: 'csv',
+                    title: 'Fixed Asset Monthly Depreciation Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                },
+                {
+                    className: 'btn btn-secondary',
+                    extend: 'print',
+                    title: 'Fixed Asset Monthly Depreciation Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record(s) Found",
+                infoEmpty: "No Record(s) Available",
+                scrollX: "100%",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Month / Year</span>',
+                sEmptyTable: '<span class="text-secondary">No Record(s) Available Based On Request</span>',
+                lengthMenu: '_MENU_ ',
+            },
+            "rowCallback": rowCallback,
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+
+                //const total_price = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(2).footer()).html(numberRenderer(total_price.toFixed(2)));
+
+                const total_resi_val = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(4).footer()).html(numberRenderer(total_resi_val.toFixed(2)));
+
+                //const total_acc_dep = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numberRenderer(total_acc_dep.toFixed(2)));
+
+                //const total_end_val = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numberRenderer(total_end_val.toFixed(2)));
+
+
+            }
+        });
+
+        table.buttons().container().appendTo('#tbl_depre_wrapper .col-md-6:eq(0)');
+
+        resizedt();
+    }
+
+    // Define rowCallback function outside DataTable initialization
+    var rowCallback = function (row, data) {
+        var table = this.api();
+        var rowIndex = table.row(row).index();
+
+        if (data.fa_status !== "Active") {
+            $('#divPost').addClass('d-none');
+            $(row).find('td:eq(6)').hide();
+            table.column(6).visible(false, false);
+        }
+        else {
+
+            // Check if it's the last row
+            if (rowIndex === table.rows().count() - 1) {
+                let ad_Id = data.adId;
+                let month = data.ad_month;
+                let year = data.ad_year;
+                $(row).find('td:eq(6)').html('');
+
+                if (data.fa_status === "Active")
+                    $(row).find('td:eq(6)').append(`<button class="btn btn-outline-danger btn-sm" onclick="deleteDepreciation(${ad_Id})">Delete</button>`);
+                else
+                    $('#divPost').addClass('d-none');
+
+                load_months(month, year, table.rows().count());
+            }
+        }
+    };
+    //#endregion
+
+    //#region Load Depreciation Posting Months
+    var load_months = function (month, year, row_count) {
+        $('#post_month').SumoSelect({
+            placeholder: 'Select Months',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Enter here.',
+            selectAll: true
+        });
+
+        $('#post_month').html('');
+        $('#post_month')[0].sumo.reload();
+        let _date = moment(`${month}/01/${year}`, 'MM/DD/YYYY'); // Initialize as a moment object
+
+        let last_date = moment(`${month}/01/${year}`, 'MM/DD/YYYY');
+
+        $('#next_posted_dt').text(last_date.add(1, 'months').format('MM/DD/YYYY'));
+
+        const cmonth = @life_span - row_count;
+
+        if ('@method_type' === "Straight Line") {
+            for (let i = 0; i < cmonth; i++) {
+                _date.add(1, 'months'); // Add months directly to the moment object
+                $('#post_month')[0].sumo.add(_date.format('MM/DD/YYYY'), _date.format('MM/YYYY'));
+            }
+        } else {
+            const endDate = moment().add(2, 'months');
+            console.log(endDate);
+            while (_date.isSameOrBefore(endDate, 'day')) {
+                _date.add(1, 'months');
+                $('#post_month')[0].sumo.add(_date.format('MM/DD/YYYY'), _date.format('MM/YYYY'));
+            }
+        }
+        $('#post_month')[0].sumo.reload();
+
+
+    };
+    //#endregion
+
+    //#region Depreciation Delete onClick
+    var deleteDepreciation = function (id) {
+
+        if (id !== null && id !== undefined && id !== "") {
+            Swal.fire({
+                title: "Are you sure you want to Delete ?",
+                html: "This action will <b class='text-danger fs-22'>Permanetly Delete</b> selected entry!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("ChangeAssetDepreciationStatus", "FixedAssets", new { area = "Accounts" })?adId=' + id + "&status=Deleted&faId=" + @faId,
+                        type: "POST",
+                        dataType: "json",
+                        async: false,
+                        success: function (data) {
+                            if (data.isUpdated) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Status Changed Successfully!!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+
+                                    if (data.list != "") {
+                                        var table;
+                                        if ($.fn.dataTable.isDataTable('#tbl_depre')) {
+                                            table = $('#tbl_depre').DataTable();
+                                            table.clear();
+                                            table.rows.add(data.list).draw();
+                                        }
+                                        else {
+                                            BindDataTable(data.list);
+                                        }
+                                    }
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: data.message + "!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to perform this action!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                }
+            });
+
+        }
+    };
+    //#endregion
+
+    //#region Action Button Controls
+    var action_change = function (status) {
+        $("#lbl_action_type").text(status);
+        if (status === "Fully Depreciated") {
+            $("#lbl_action_name").text("Depreiation Detail");
+            $("#lbl_type").text("Depreciated Date");
+        }
+        else {
+            $("#lbl_action_name").text("Sold Detail");
+            $("#lbl_type").text("Sold Date");
+        }
+        $("#modal_action").modal("show");
+
+    }
+    //#endregion
+
+    //#region Depreciation Month Posting onClick
+    $('#btn_action_post').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#action_form').valid()) {
+            let action_date = $('#action_date').val().trim();
+
+            if (action_date !== undefined && action_date !== "") {
+                Swal.fire({
+                    title: "Question",
+                    html: "Are you sure you want to change the status to <br> <b class='text-warning fs-22'>" + $('#lbl_action_type').text().trim() + "</b> !",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        if ('@asset_status' === "Active" && '@faId' > 0) {
+                            $.ajax({
+                                url: '@Url.Action("ChangeFixedAssetStatus", "FixedAssets", new { area = "Accounts" })?faId=' + @faId + "&fa_branch=1&status=" + $('#lbl_action_type').text().trim() + "&action_date=" + action_date + "&post_check=" + $("#chk_action").prop("checked"),
+                                type: "POST",
+                                dataType: "json",
+                                async: false,
+                                success: function (data) {
+                                    if (data.isUpdated) {
+                                        if (data.success) {
+                                            Swal.fire({
+                                                title: "Success!",
+                                                text: "Status Changed Successfully!!",
+                                                icon: "success",
+                                                showCancelButton: 0,
+                                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                            });
+                                            $("#modal_action").modal("toggle");
+                                            $('#depreciation_modal').modal('toggle');
+                                            load_filters();
+                                        }
+                                        else {
+                                            Swal.fire({
+                                                title: "Error!",
+                                                text: data.message + "!",
+                                                icon: "error",
+                                                showCancelButton: 0,
+                                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                            });
+                                        }
+                                    }
+                                    else {
+                                        Swal.fire({
+                                            title: "Access Denied!",
+                                            text: "You do not have enough privileges to perform this action!",
+                                            icon: "error",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                        });
+                                    }
+                                },
+                                error: function (xhr) {
+                                    console.log("Error : " + xhr.statusText);
+                                }
+                            });
+                        }
+
+                    }
+                });
+            }
+
+        }
+        else {
+            $('#lbl_type').text('error');
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+
+    });
+    //#endregion
+
+    //#region Adding Validation on Fields
+    var from_validation = function () {
+        $("#action_form").validate({
+            focusInvalid: true,
+            rules:
+            {
+                action_date: {
+                    required: true
+                }
+            },
+            messages: {
+                action_date: {
+                    required: "Select Action Date"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#action_date').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+    }
+    //#endregion
+
+    //#region Depreciation Month Posting onClick
+    $('#btnPost').on('click', function (e) {
+        e.preventDefault();
+        //if (id !== null && id !== undefined && id !== "") {
+
+        if ($('#post_month').val().length > 0) {
+            let next_posted_date = $('#next_posted_dt').text();
+            var selected_dates = $('#post_month').val();
+
+            // Check next depreciated date and current selected date is equal or not
+            let isSequential = false;
+            if (next_posted_date === selected_dates[0]) {
+                // Check if dates are in proper sequence without skipping
+                let currentDate = moment(next_posted_date, 'MM/DD/YYYY');
+                for (let i = 0; i < selected_dates.length; i++) {
+
+                    if (next_posted_date === selected_dates[i]) {
+                        currentDate.add(1, 'months');
+                        next_posted_date = currentDate.format('MM/DD/YYYY');
+                        isSequential = true;
+                    }
+                    else {
+                        isSequential = false;
+                        break;
+                    }
+                }
+
+            }
+            else {
+                isSequential = false;
+            }
+
+            // Check if Sequence is true or false
+            if (isSequential) {
+
+                Swal.fire({
+                    title: "Are you sure you want to Post ?",
+                    html: "This action will <b class='text-danger fs-22'>Post Depreciation</b> of selected months!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        //Insert Selected Months to DB
+                        var _dataInsert = {
+                            "faId": '@faId',
+                            "months": $('#post_month').val().length,
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("InsertDepreciationMonths", "FixedAssets", new { area = "Accounts" })",
+                            dataType: "json",
+                            data: _dataInsert,
+                            beforeSend: function () {
+                                $('#btnPost').removeClass("btn btn-cyan");
+                                $('#btnPost').addClass("btn btn-cyan btn-loaders btn-icon");
+                                $('#btnPost').html("Posting....");
+                            },
+                            success: function (data) {
+                                $('#btnPost').removeClass("btn btn-cyan btn-loaders btn-icon");
+                                $('#btnPost').addClass("btn btn-cyan");
+                                $('#btnPost').html("Post For Next Month");
+
+                                if (data.isInserted > 0) {
+
+                                    //Rebinding DataTable with new Depreciation months
+                                    if (data.list != "") {
+                                        var table;
+                                        if ($.fn.dataTable.isDataTable('#tbl_depre')) {
+                                            table = $('#tbl_depre').DataTable();
+                                            table.clear();
+                                            table.rows.add(data.list).draw();
+                                        }
+                                        else {
+                                            BindDataTable(data.list);
+                                        }
+                                    }
+
+                                    customAlert("<i class='fe fe-check-circle text-white'></i> Depreciation Posted Successfully!", "success");
+                                    Timeout();
+                                }
+                                else {
+                                    $("#errorCreate_da").html('');
+
+                                    if (data.message == "Error While Posting Depreciation!" || data.message == "Depreciation Already Exists!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+
+                                        $("#errorCreate_da").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+
+                                        html += "</ul></div></div>";
+
+                                        $("#errorCreate_da").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btnPost').removeClass("btn btn-cyan btn-loaders btn-icon");
+                                $('#btnPost').addClass("btn btn-cyan");
+                                $('#btnPost').html("Post For Next Month");
+                                 console.log(xhr);
+                                alert("Failed to Create Fixed Asset!");
+                                Timeout();
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+                //alert(`<i class='fe fe-stop-circle text-white'></i> Not allowed! You have skipped ${moment(next_posted_date, 'MM/DD/YYYY').format('MM/YYYY') }`, "error");
+                Swal.fire({
+                    title: "Error!",
+                    text: `Not allowed! You have skipped the month of ${moment(next_posted_date, 'MM/DD/YYYY').format('MM/YYYY')}`,
+                    icon: "error",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+
+        }
+        else {
+            Swal.fire({
+                title: "Warning!",
+                text: "Select at least one month to post the depreciation.",
+                icon: "warning",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+            });
+        }
+
+        //}
+    });
+    //#endregion
+
+    //#region Alter Holder
+    var _alertPlaceholder = document.getElementById("DepreciationAlert");
+    function customAlert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', _alertPlaceholder.append(l)
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout2() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+
+    //#region UI Controls
+    function resizedt() {
+        setTimeout(function () {
+            var tables = $.fn.dataTable.tables({ visible: true, api: true });
+            if (tables) {
+                $('#tbl_depre').DataTable().columns.adjust();
+            }
+        }, 500);
+    }
+    //#endregion
+
+</script>

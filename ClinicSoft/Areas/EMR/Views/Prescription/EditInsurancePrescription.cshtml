@@ -1,0 +1,679 @@
+﻿@model BusinessEntities.EMR.Prescription
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_EditINSPresc" class="needs-validation" >
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.preId)
+    @Html.HiddenFor(m => m.pre_appId)
+
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-4">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">
+                    Medicine&nbsp;
+                    <span class="text-danger font-weight-semibold">*</span>
+                    <label class="custom-switch pull-right">
+                        <input type="checkbox" class="custom-switch-input" id="check_fav" name="check_fav" value="1">
+                        <span class="custom-switch-indicator"></span>
+                        <small class="custom-switch-description bg-danger-light" style="color: #003aa3 !important;">Check to Search from Favorites</small>
+                    </label>
+                </label>
+                @Html.DropDownListFor(m => m.pre_medicine, new List<SelectListItem> { }, "Search Medicine", new { @class = "form-select  mb-2 select2", @id = "uipre_medicine" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-4 col-lg-2">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Route of Admin&nbsp;<span class="text-danger">*</span></label>
+                @Html.DropDownListFor(m => m.pre_temp6, new List<SelectListItem> { }, "Search Route of Admin", new { @class = "form-select  mb-2 select2", @id = "uipre_temp6" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-1">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Use</label>
+                @Html.TextBoxFor(m => m.pre_temp3, new { @class = "form-control", @placeholder = "1.00", maxlength = 5, @id = "uipre_temp3" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-2">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Units</label>
+                @Html.DropDownListFor(m => m.pre_type, new List<SelectListItem> { }, "Search Units", new { @class = "form-select  mb-2 select2", @id = "uipre_type" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-1">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Frequency&nbsp;</label>
+                @Html.TextBoxFor(m => m.pre_temp4, new { @class = "form-control", @placeholder = "1.00", maxlength = 5, @id = "uipre_temp4" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-2">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Type&nbsp;</label>
+                @Html.DropDownListFor(m => m.pre_temp5, new List<SelectListItem>
+                {
+                   new SelectListItem{ Text="Day", Value = "Day" },
+                   new SelectListItem{ Text="Week", Value = "Week" },
+                   new SelectListItem{ Text="Hour", Value = "Hour" },
+                   new SelectListItem{ Text="Once", Value = "Once" },
+                   new SelectListItem{ Text="Month", Value = "Month" },
+                   new SelectListItem{ Text="Year", Value = "Year" },
+                }, "Select Type", new { @class = "form-select select2", @id = "uipre_temp5" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-2">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">For&nbsp;</label>
+                @Html.DropDownListFor(m => m.pre_temp1, new List<SelectListItem> { }, "Search Prescription", new { @class = "form-select  mb-2 select2", @id = "uipre_temp1" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-1">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Duration&nbsp;<span class="text-danger">*</span></label>
+                @Html.TextBoxFor(m => m.pre_duration, new { @class = "form-control", @placeholder = "1.00", maxlength = 5, @id = "uipre_duration" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-2 col-lg-1">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Quantity &nbsp;<span class="text-danger">*</span></label>
+                @Html.TextBoxFor(m => m.pre_qty, new { @class = "form-control", @placeholder = "1.00", maxlength = 5, @id = "uipre_qty" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-7 col-lg-7">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Instructions&nbsp;</label>
+                @Html.TextAreaFor(m => m.pre_instr, new { @class = "form-control", @placeholder = "Enter Instructions", @row = "1", @id = "uipre_instr" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-1 col-lg-1 d-none">
+            <div class="form-group mb-2">
+                <label class="form-label text-black">Add To Favorite&nbsp;</label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left mb-2">
+                    <label class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" name="uichkyes" value="True">
+                        <span class="custom-control-label"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-warning" id="btn_Update_Prescription">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_Edit">Close</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Partial View Onload
+    $(function () {
+        $('#btn_Close_Edit').click(function () {
+            $("#inspresc_add").show();
+            $('#inspresc_edit').hide();
+        });
+
+        $("#uipre_temp5").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_EditINSPresc'),
+        });
+
+        $("#uipre_type").select2({
+            placeholder: 'Select Units',
+            width: '100%',
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_EditINSPresc'),
+            ajax: {
+                url: '@Url.Action("GetPrescriptionType", "Prescription", new { area = "EMR" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: "",
+                        type: 1
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#uipre_temp1").select2({
+            placeholder: 'Select For',
+            width: '100%',
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_EditINSPresc'),
+            ajax: {
+                url: '@Url.Action("GetPrescriptionType", "Prescription", new { area = "EMR" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: "",
+                        type: 2
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#uipre_temp6").select2({
+            placeholder: 'Select Route of Admin',
+            width: '100%',
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_EditINSPresc'),
+            ajax: {
+                url: '@Url.Action("GetRouteOfAdmin", "Prescription", new { area = "EMR" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: "",
+                        flag: "@emr.app_category"
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#uipre_medicine").select2({
+            placeholder: 'Select Medicine',
+            width: '100%',
+            minimumInputLength: 3,
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_EditINSPresc'),
+            ajax: {
+                url: '@Url.Action("GetMedicine", "Prescription", new { area = "EMR" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                        type: $("input[name='check_fav']:checked").val(),
+                        plan: "@emr.app_category",
+                        pre_doctor: "@emr.app_doctor"
+                    };
+                },
+                processResults: function (data) {
+                    console.log(data);
+
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+
+        validate();
+
+        setmedicine("@Model.pre_medicine");
+
+        setRouteofAdmin("@Model.pre_temp6");
+
+        setUnits("@Model.pre_type");
+
+        setFor("@Model.pre_temp1");
+    });
+    //#endregion
+
+    //#region Set medicine
+    var setmedicine = function (pre_medicine) {
+        $.ajax({
+            url: '@Url.Action("GetMedicine", "Prescription", new { area = "EMR" })?query=' + pre_medicine + "&type=" + "&plan=" + "@emr.app_category" + "&pre_doctor=" + "@emr.app_doctor",
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#uipre_medicine').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[0].text, response[0].id, false, false);
+
+                        $('#uipre_medicine').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Set Route of Admin
+    var setRouteofAdmin = function (pre_temp6) {
+        $.ajax({
+            url: '@Url.Action("GetRouteOfAdmin", "Prescription", new { area = "EMR" })?query=' + pre_temp6 + "&flag=",
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#uipre_temp6').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[0].text, response[0].id, false, false);
+
+                        $('#uipre_temp6').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Set Units
+    var setUnits = function (pre_type) {
+        $.ajax({
+            url: '@Url.Action("GetPrescriptionType", "Prescription", new { area = "EMR" })?query=' + pre_type + "&type=1",
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#uipre_type').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[0].text, response[0].id, false, false);
+
+                        $('#uipre_type').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Set Units
+    var setFor = function (pre_temp1) {
+        $.ajax({
+            url: '@Url.Action("GetPrescriptionType", "Prescription", new { area = "EMR" })?query=' + pre_temp1 + "&type=2",
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#uipre_temp1').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[0].text, response[0].id, false, false);
+
+                        $('#uipre_temp1').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Validation Initialization
+    var validate = function () {
+        $("#form_EditINSPresc").validate({
+            rules: {
+                uipre_medicine: {
+                    required: true
+                },
+                uipre_duration: {
+                    required: true,
+                    min: 1
+                },
+                uipre_qty: {
+                    required: true,
+                    min: 1
+                },
+                uipre_temp6: {
+                    required: true
+                }
+            },
+            messages: {
+                uipre_medicine: {
+                    required: "Please Select Medicine"
+                },
+                uipre_duration: {
+                    required: "Enter Duration",
+                    min: "Min 1 Duration"
+                },
+                uipre_qty: {
+                    required: "Enter Quantity",
+                    min: "Min 1 Quantity"
+                },
+                uipre_temp6: {
+                    required: "Select Route Of Admin"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#uipre_medicine').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $("#uipre_temp3").keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+        $('#uipre_temp4').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+        $('#uipre_duration').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+        $('#uipre_qty').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+        $('#uipre_medicine').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uipre_temp6').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $("#uipre_temp3").focusout(function () {
+            var val = parseFloat($(this).val());
+
+            if (val >= 1) {
+                ecalculation();
+            }
+        });
+
+        $("#uipre_temp4").focusout(function () {
+            var val = parseFloat($(this).val());
+
+            if (val >= 1) {
+                ecalculation();
+            }
+        });
+
+        $("#uipre_duration").focusout(function () {
+            var val = parseFloat($(this).val());
+
+            if (val >= 1) {
+                ecalculation();
+            }
+        });
+
+        $("#uipre_qty").focusout(function () {
+            var val = parseFloat($(this).val());
+
+            if (val >= 1) {
+                ecalculation();
+            }
+        });
+
+        $('#uipre_temp5').on('select2:select', function (e) {
+            ecalculation();
+        });
+
+        $('#uipre_type').on('select2:select', function (e) {
+            ecalculation();
+        });
+
+        $('#uipre_temp1').on('select2:select', function (e) {
+            ecalculation();
+        });
+    }
+    //#endregion
+
+    //#region Generate Instructions
+    var ecalculation = function () {
+        var pre__temp3 = $("#uipre_temp3").val();
+        var pre__temp4 = $("#uipre_temp4").val();
+        var pre__duration = $("#uipre_duration").val();
+
+        var type = "";
+        var fr = "";
+
+        if ($("#uipre_type").val() != "") {
+            type = $("#uipre_type :selected").text();
+        }
+        else {
+            type = "Unit(s)";
+        }
+
+        if ($("#uipre_temp1").val() != "") {
+            fr = $("#uipre_temp1 :selected").text();
+        }
+
+        var pre_qty = $("#uipre_qty").val();
+
+        if (type == "Tablets") {
+            pre_qty = parseFloat(pre__temp4) * parseFloat(pre__duration) * parseFloat(pre__temp3);
+        }
+
+        $("#uipre_qty").val(pre_qty);
+
+        var instr = "Take " + $("#uipre_temp3").val() + " " + type + ", " + $("#uipre_temp4").val() + " Time(s) per " + $("#uipre_temp5").val() + " For " + $("#uipre_duration").val() + " Day(s) " + fr;
+
+        $("#uipre_instr").val(instr);
+    }
+    //#endregion
+
+    //#region Update Button Click
+    $('#btn_Update_Prescription').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_EditINSPresc").valid()) {
+            $('#btn_Update_Prescription').removeClass("btn btn-success");
+            $('#btn_Update_Prescription').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Update_Prescription').html("Updating the Record....");
+
+            var uichkyes_ = false;
+            uichkyes_ = $("input[name='uichkyes']:checked").val();
+            var instr = "";
+
+            if ($("#uipre_instr").val() == "") {
+                instr = "Take " + $("#uipre_temp3").val() + " " + type + ", " + $("#uipre_temp4").val() + " Time(s) per " + $("#uipre_temp5").val() + " For " + $("#uipre_duration").val() + " Day(s) " + fr;
+            }
+            else {
+                instr = $("#uipre_instr").val().trim();
+            }
+
+            var _dataUpdate = {
+                "preId": @Model.preId,
+                "pre_appId": $("#pre_appId").val(),
+                "pre_medicine": $("#uipre_medicine").val(),
+                "pre_type": $("#uipre_type").val(),
+                "pre_qty": $("#uipre_qty").val(),
+                "pre_qtype": "",
+                "pre_duration": $("#uipre_duration").val(),
+                "pre_temp1": $("#uipre_temp1").val(),
+                "pre_temp2": 0,
+                "pre_temp3": $("#uipre_temp3").val(),
+                "pre_temp4": $("#uipre_temp4").val(),
+                "pre_temp5": $("#uipre_temp5").val(),
+                "pre_temp6": $("#uipre_temp6").val(),
+                "pre_oc_code": 'NW',
+                "pre_oc_type": 'New order/service',
+                "pre_ra_code": 'AP',
+                "pre_ra_type": 'Apply Externally',
+                "pre_med_type": 'Insurance',
+                "pre_instr": instr,
+                "uichkyes": uichkyes_,
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdatePrescription", "Prescription", new { area = "EMR" })",
+                dataType: 'json',
+                data: _dataUpdate,
+                success: function (data) {
+                    $('#inspresc_edit').hide();
+                    $('#btn_Update_Prescription').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_Prescription').addClass("btn btn-success");
+                    $('#btn_Update_Prescription').html("Save Changes");
+
+                    if (data.isSuccess) {
+                        addInsurancePrescription(0);
+
+                        GetInsurancePrescription();
+
+                        var alertPlaceholder = document.getElementById("errorIns");
+
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+
+                        alert("<i class='fe fe-check-circle text-white'></i> Insurance Prescription Updated Successfully!", "success");
+
+                        clearControlsEdit();
+
+                        Timeout();
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Validation Error! Please validate before you submit the form!&nbsp;</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+
+                        $("#errorIns").html(html);
+
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update_Prescription').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_Prescription').addClass("btn btn-success");
+                    $('#btn_Update_Prescription').html("Save Changes");
+                    console.log(xhr);
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Clear Controls
+    var clearControlsEdit = function () {
+        $("#uipre_instr").val("");
+        $("#uipre_temp3").val("");
+        $("#uipre_temp4").val("");
+        $("#uipre_duration").val("");
+        $("#uipre_qty").val("");
+        $("#uipre_medicine").val("").trigger("change");
+        $("#uipre_temp6").val("").trigger("change");
+        $("#uipre_temp5").val("").trigger("change");
+        $("#uipre_type").val("").trigger("change");
+        $("#uipre_temp1").val("").trigger("change");
+        $('#check_fav').attr('checked', false);
+        $("#uichkyes").prop("checked", false);
+    }
+    //#endregion
+</script>

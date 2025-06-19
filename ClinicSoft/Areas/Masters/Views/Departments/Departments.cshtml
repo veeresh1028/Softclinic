@@ -1,0 +1,489 @@
+﻿@{
+    ViewBag.Title = "Employee Departments";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary" data-lang-key="departments">Departments</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <a data-bs-toggle="modal" data-bs-target="#create_dept_modal" class="btn btn-secondary" onclick="addDepartment()" data-lang-key="add-department"><i class="mdi mdi-plus" ></i>&nbsp;Add Department</a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="DepartmentAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_departments" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="departments">Departments</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="category">Category</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="status">Status</span>
+                                    
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="edit">Edit</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="delete">Delete</span></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Create Department Modal -->
+<div class="modal fade" id="create_dept_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="sizeC">
+        <div class="modal-content" id="create_dept_body">
+        </div>
+    </div>
+</div>
+<!-- End Create Department Modal -->
+<!-- Update Department Modal -->
+<div class="modal fade" id="update_dept_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="sizeU">
+        <div class="modal-content" id="update_dept_body">
+        </div>
+    </div>
+</div>
+<!-- End Update Department Modal -->
+<!-- Employeewise Department Modal -->
+<div class="modal fade" id="emp_dept_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="sizeV">
+        <div class="modal-content" id="emp_dept_body">
+        </div>
+    </div>
+</div>
+<!-- End Employeewise Department Modal -->
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Departments
+            GetDepartments();
+        });
+        //#endregion
+
+        //#region Load Departments
+        var GetDepartments = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllDepartments", "Departments", new { area = "Masters" })",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_departments')) {
+                            table = $('#tbl_departments').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else
+                        {
+                            BindDataTable(response);
+                        }
+                    }
+                    else
+                    {
+                        console.log("Access Denied! You're not authorized to view the records");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to load Departments! Error : " + xhr.statusText);
+                }
+            })
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_departments").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "deptId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "className": "font-weight-bold text-info text-capitalize",
+                        "mData": "department",
+                        "render": function (data, type, full, meta) {
+                            var deptId = full.deptId;
+                            return '<a data-bs-toggle="modal" data-bs-target="#emp_dept_modal" onclick="viewEmpDepartment(' + deptId + ')">' + data + '</a>';
+                        }
+                    },
+                    {
+                        "className": "font-weight-semibold",
+                        "mData": "dept_flag"
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "deptId",
+                        "render": function (deptId, type, full, meta) {
+                            var visible = full.actionvisible;
+                            var dept_status = full.dept_status;
+
+                            if (visible === "True") {
+                                if (dept_status === "Active") {
+                                    return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateStatus(\'' + deptId + '\',\' Active \')">Active</button>'
+                                }
+                                else if (dept_status === "Inactive") {
+                                    return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateStatus(\'' + deptId + '\',\'Inactive\')">Inactive</button>'
+                                }
+                                else if (dept_status === "Deleted") {
+
+                                    return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateStatus(\'' + deptId + '\',\'Deleted\')">Deleted</button>'
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else{
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    },
+                    {
+                        "mData": "deptId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (data, type, full, meta) {
+                            var status = full.dept_status;
+                            var visible = full.actionvisible;
+
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" data-bs-toggle="modal" data-bs-target="#update_dept_modal" onclick="editDepartment(' + data + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "deptId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (deptId, type, full, meta) {
+                            var status = full.dept_status;
+                            var visible = full.actionvisible;
+
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" onclick="deleteDepartment(' + deptId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[1, 'asc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Departments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Departments to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Departments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Departments to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Departments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Departments to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Departments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Departments!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Department / Category / Status</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                }
+            });
+            table.buttons().container().appendTo('#tbl_departments_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Add Department
+        function addDepartment() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateDepartment", "Departments", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#create_dept_body").html(data);
+                    $("#create_dept_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Creating Department : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Department
+        function editDepartment(deptId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditDepartment", "Departments", new { area = "Masters" })?deptId=" + deptId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#update_dept_body").html(data);
+                    $("#update_dept_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Editing Department : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Department
+        var deleteDepartment = function (deptId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Department ?",
+                text: "This action will delete this Department!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteDepartment", "Departments", new { area = "Masters" })?deptId=' + deptId+'&dept_status=Deleted',
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            console.log(data)
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetDepartments();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete departments!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Error while Deleting Department! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Update Status
+        var updateStatus = function (deptId, dept_status) {
+            dept_status = (dept_status == "Deleted" || dept_status == "Inactive") ? "Active" : "Inactive"
+
+            Swal.fire({
+                title: "Are you sure you want to change the status ?",
+                text: "This action will change the status of the selected Department!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("UpdateDepartmentStatus", "Departments", new { area = "Masters" })?deptId=" + deptId + "&dept_status=" + dept_status,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetDepartments();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to change the status!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Error while changing status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region View Employees Departmentswise
+        function viewEmpDepartment(deptId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ViewEmpDepartment", "Departments", new { area = "Masters" })?deptId=" + deptId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#emp_dept_body").html(data);
+                    $("#emp_dept_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Viewing Employeewise Departments : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

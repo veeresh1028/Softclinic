@@ -1,0 +1,913 @@
+﻿@model BusinessEntities.Masters.EmployeeRoasters
+<style>
+    a:not([href]):not([tabindex]) {
+        color: #5a72e8;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Employee Time Rosters for <span class="badge bg-primary-light-1 text-uppercase"> @Model.er_employee_name</span></h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <p class="card-title-desc btn-group-justified d-flex justify-content-between">
+        <span class="text-danger font-weight-semibold" style="font-size:smaller">Required fields are marked with *</span>
+        <a id="btnAddRoster" class="btn btn-outline-secondary"><i class="mdi mdi-plus-circle"></i>&nbsp;Add Roster</a>
+    </p>
+    <div id="addRoaster">
+        <form id="form_Add_Roster" autocomplete="off" class="" ondrop="return false;" onpaste="return false;" oncut="return false;">
+            @Html.HiddenFor(m => m.er_employee)
+            @Html.AntiForgeryToken()
+            <div class="row mb-2">
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="form-group mb-3">
+                        <label class="form-label">Working Branch&nbsp;<span class="text-danger">*</span></label>
+                        @Html.DropDownListFor(m => m.er_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2" })
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="form-group mb-2">
+                        <label class="form-label">From Date&nbsp;<span class="text-danger">*</span></label>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <div class="input-group-text">
+                                <i class="fe fe-calendar"></i>
+                            </div>
+                        </div>
+                        @Html.TextBoxFor(model => model.er_fdate, new { @class = "form-control", @placeholder = "Select From Date" })
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="form-group mb-2">
+                        <label class="form-label">Till Date</label>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <div class="input-group-text">
+                                <i class="fe fe-calendar"></i>
+                            </div>
+                        </div>
+                        @Html.TextBoxFor(model => model.er_tdate, new { @class = "form-control", @placeholder = "Select Till Date" })
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="form-group mb-3">
+                        <label class="form-label">Working Day(s)&nbsp;<span class="text-danger">*</span></label>
+                        @Html.DropDownListFor(m => m.er_day, new List<SelectListItem>
+                        {
+                            new SelectListItem{ Value="Monday", Text="Monday"},
+                            new SelectListItem{ Value="Tuesday", Text="Tuesday"},
+                            new SelectListItem{ Value="Wednesday", Text="Wednesday"},
+                            new SelectListItem{ Value="Thursday", Text="Thursday"},
+                            new SelectListItem{ Value="Friday", Text="Friday"},
+                            new SelectListItem{ Value="Saturday", Text="Saturday"},
+                            new SelectListItem{ Value="Sunday", Text="Sunday"}
+                        }, new { @class = "form-select select2 mb-4", @multiple = "" })
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="form-group mb-3">
+                        <label class="form-label">Type(s)&nbsp;<span class="text-danger">*</span></label>
+                        @Html.DropDownListFor(m => m.er_type, new List<SelectListItem>
+                        {
+                            new SelectListItem{ Value="Normal", Text="Normal"},
+                            new SelectListItem{ Value="Meetings", Text="Meetings"},
+                            new SelectListItem{ Value="Reserved", Text="Reserved"},
+                            new SelectListItem{ Value="Plastic Surgery", Text="Plastic Surgery"},
+                            new SelectListItem{ Value="Implants", Text="Implants"},
+                            new SelectListItem{ Value="Implants", Text="New Patient G.D"},
+                            new SelectListItem{ Value="Co. Managed", Text="Co. Managed"},
+                            new SelectListItem{ Value="Pedo New Pat.", Text="Pedo New Pat."}
+                        }, new { @class = "form-select select2 mb-4" })
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-2 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label">From Time&nbsp;<span class="text-danger">*</span></label>
+                        <select class="form-control select2" id="er_ftime">
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-2 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label">To Time&nbsp;<span class="text-danger">*</span></label>
+                        <select class="form-control select2" id="er_ttime">
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-2 mt-2">
+                <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                    <div class="btn-list btn-animation">
+                        <button type="submit" class="btn btn-success" id="btn_Create_Roster">Create Roster</button>
+                        <button class="btn btn-outline-danger btnCloseCreate" id="btn_Create_Close">Close</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div id="editRoaster"></div>
+    <div class="row">
+        <div class="col-md-12 col-lg-12">
+            <div class="panel-group accordion-panel" role="tablist" aria-multiselectable="true">
+                <div class="panel panel-default active">
+                    <div class="panel-heading " role="tab" id="doc_roasters">
+                        <h4 class="panel-title">
+                            <a role="button" data-bs-toggle="collapse" data-parent="#accordion1" href="#pnl_doc_roasters" aria-expanded="true" aria-controls="pnl_doc_roasters">
+                                <i class="fa fa-plus-circle me-2"></i>Employee Rosters
+                                <span class="float-end"><i class="fe fe-chevrons-down"></i></span>
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="pnl_doc_roasters" class="panel-collapse collapse" role="tabpanel" aria-labelledby="doc_roasters">
+                        <div class="panel-body">
+                            <div class="table-responsive" style="min-height:unset;">
+                                <table id="tbl_doc_rosters" class="table table-bordered text-nowrap resize-table" style="width:100%;">
+                                    <thead>
+                                        <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                                            <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">Day</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">From Date</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">To Date</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">From Time</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">To Time</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                            <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    //#region Page Load
+    $(function () {
+        GetRosters();
+
+        $("#er_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_Add_Roster'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#er_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Add_Roster'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#er_ftime").select2({
+            placeholder: 'Select From Time',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 5,
+            dropdownParent: $('#form_Add_Roster'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#er_ttime").select2({
+            placeholder: 'Select Till Time',
+            width: '100%',
+            maximumInputLength: 5,
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_Add_Roster'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $('#er_fdate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: new Date()
+        });
+        $("#er_fdate").bootstrapdatepicker("setDate", "today");
+
+        $('#er_tdate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: new Date()
+        });
+        $("#er_tdate").bootstrapdatepicker("setDate", "");
+
+        $('#er_day').SumoSelect({
+            placeholder: 'Select Working Day(s)',
+            captionFormat: '{0} Working Day(s) Selected',
+            captionFormatAllSelected: 'All {0} Working Day(s) selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true
+        });
+
+        $("#er_branch").prop("selectedIndex", 1).trigger("change");
+
+        validation();
+    });
+    //#endregion
+
+    //#region On Branch Select
+    $('#er_branch').on('change', function () {
+        if ($(this).val() != "" && $('#er_branch').val() != "") {
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetTimeBasedOnBranch", "Employees", new { area = "Masters" })?setId=' + $(this).val(),
+                dataType: 'json',
+                success: function (response) {
+                    if (response.length > 0) {
+                        $('#er_ftime').empty();
+                        $('#er_ttime').empty();
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id);
+                            $('#er_ftime').append(newOption).trigger('change');
+                        });
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id, true, true);
+                            $('#er_ttime').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Time Slots! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+    });
+    //#endregion
+
+    //#region Get Employee Rosters
+    var GetRosters = function () {
+        var empId = "@Model.er_employee";
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetEmployeeRosters", "Employees", new { area = "Masters" })?empId=" + empId,
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_doc_rosters')) {
+                        table = $('#tbl_doc_rosters').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        BindRosters(response);
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed to Load! Error Message : " + xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Load Datatable
+    var BindRosters = function (response) {
+        var table = $('#tbl_doc_rosters').DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "set_company" },
+                { "mData": "er_day" },
+                { "mData": "er_type" },
+                {
+                    "mData": "er_fdate",
+                    "render": function (er_fdate, type, full, meta) {
+                        if (type === 'display' || type === 'filter') {
+                            return moment(er_fdate).format("DD-MM-YYYY");
+                        }
+                        return moment(er_fdate).format("YYYY-MM-DD");
+                    }
+                },
+                {
+                    "mData": "er_tdate",
+                    "render": function (er_tdate, type, full, meta) {
+                        if (type === 'display' || type === 'filter') {
+                            return moment(er_tdate).format("DD-MM-YYYY");
+                        }
+                        return moment(er_tdate).format("YYYY-MM-DD");
+                    }
+                },
+                {
+                    "mData": "ftime",
+                    "render": function (ftime) {
+                        if (ftime != "") {
+                            return ftime
+                        }
+                        else {
+                            return '<span class="text-muted">N/A</span>'
+                        }
+                    }
+                },
+                {
+                    "mData": "ttime",
+                    "render": function (ttime) {
+                        if (ttime != "") {
+                            return ttime
+                        }
+                        else {
+                            return '<span class="text-muted">N/A</span>'
+                        }
+                    }
+                },
+                {
+                    "className": 'text-center',
+                    "mData": "erId",
+                    "render": function (erId, type, full, meta) {
+                        var er_status = full.er_status;
+
+                        if (er_status === "Active") {
+                            return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateRosterStatus(\'' + erId + '\',\' Active \')">' + er_status + '</button>'
+                        }
+                        else if (er_status === "Inactive") {
+                            return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateRosterStatus(\'' + erId + '\',\'Inactive\')">' + er_status + '</button>'
+                        }
+                        else if (er_status === "Deleted") {
+                            return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateRosterStatus(\'' + erId + '\',\'Deleted\')">' + er_status + '</button>'
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "className": 'text-center',
+                    "mData": "erId",
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (erId) {
+                        return '<a onclick="editRoster(' + erId +')"><i class="fe fe-edit-2 text-success curpointer"></i></a>'
+                    }
+                },
+            ],
+            lengthChange: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    className: 'btn-secondary',
+                    title: 'Employee Rosters for @Model.er_employee_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported @Model.er_employee_name's Roster to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn-secondary',
+                    title: 'Employee Rosters for @Model.er_employee_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported @Model.er_employee_name's Roster to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn-secondary',
+                    title: 'Employee Rosters for @Model.er_employee_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported @Model.er_employee_name's Roster to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    className: 'btn-secondary',
+                    title: 'Employee Rosters for @Model.er_employee_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed @Model.er_employee_name's Roster!");
+                    }
+                }
+            ],
+            order: [[1, 'asc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Branch / Day / Type / Date / Time</span>',
+                lengthMenu: '_MENU_ ',
+            }
+        });
+        table.buttons().container().appendTo('#tbl_doc_rosters_wrapper .col-md-6:eq(0)');
+    }
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Add_Roster").validate({
+            focusInvalid: true,
+            rules:
+            {
+                er_branch: {
+                    required: true
+                },
+                er_fdate: {
+                    required: true
+                },
+                er_ftime: {
+                    required: true
+                },
+                er_ttime: {
+                    required: true
+                },
+                er_day: {
+                    required: true
+                },
+                er_type: {
+                    required: true
+                }
+            },
+            messages: {
+                er_branch: {
+                    required: "Select Branch"
+                },
+                er_fdate: {
+                    required: "Select From Date"
+                },
+                er_ftime: {
+                    required: "Select From time"
+                },
+                er_ttime: {
+                    required: "Select To time"
+                },
+                er_day: {
+                    required: "Select Working Day(s)"
+                },
+                er_type: {
+                    required: "Select the Followup Type"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#er_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#er_fdate').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#er_ftime').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#er_ttime').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#er_day').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#er_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#er_fdate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+        $('#er_tdate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+    };
+    //#endregion
+
+    //#region Button Add / Close Roster
+    $('#btnAddRoster').on('click', function (e) {
+        e.preventDefault();
+        $('#addRoaster').show();
+        $('#editRoaster').hide();
+    });
+
+    $('#btn_Create_Close').on('click', function (e) {
+        e.preventDefault();
+        $('#addRoaster').hide();
+    });
+    //#endregion
+
+    //#region Create Employee Roster
+    $('#btn_Create_Roster').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Add_Roster").valid()) {
+
+            $('#btn_Create_Roster').removeClass("btn btn-success");
+            $('#btn_Create_Roster').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Create_Roster').parent().addClass("curdrop");
+            $('.btnCloseCreate').addClass("disabled");
+            $('#btn_Create_Close').addClass("disabled");
+            $('#btn_Create_Roster').html("Creating... Please Wait");
+
+            let isValid = true;
+            let app_f = moment($("#er_fdate").val(), "DD-MMMM-YYYY");
+            let app_t = moment($("#er_tdate").val(), "DD-MMMM-YYYY");
+            // Check if Date From is a valid Date
+            if ($("#er_fdate").val() != null && $("#er_fdate").val() != 0 && $("#er_fdate").val() != "" && $("#er_fdate").val() != undefined) {
+                if (!app_f.isValid()) {
+                    isValid = false;
+                    stopLoading();
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid From Date!"
+                    });
+                }
+            }
+            // Check if Date To is a valid Date
+            if ($("#er_tdate").val() != null && $("#er_tdate").val() != 0 && $("#er_tdate").val() != "" && $("#er_tdate").val() != undefined) {
+                if (!app_t.isValid()) {
+                    isValid = false;
+                    stopLoading();
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid To Date!"
+                    });
+                }
+            }
+            // Check if Time Range is valid
+            var startTime = $("#er_ftime :selected").text();
+            var endTime = $("#er_ttime :selected").text();
+            if (startTime == "00:00" && endTime == "00:00") {
+                startTime = "23:59";
+            }
+            if (endTime == "00:00") {
+                endTime = "23:59";
+            }
+            endTime = moment(endTime, "HH:mm");
+            startTime = moment(startTime, "HH:mm");
+            if (endTime.diff(startTime, 'minutes') <= 0) {
+                isValid = false;
+                var index = [];
+                index.push("er_ftime");
+                index.push("er_ttime");
+
+                $.each(index, function (i, v) {
+                    if (index[i] != null && index[i] != "") {
+                        var elem = $("#" + index[i]);
+                        if (elem.hasClass("select2-hidden-accessible")) {
+                            $("#select2-" + elem.attr("id") + "-container").parent().addClass(' error');
+                        }
+                        else {
+                            $(elem).removeClass("is-invalid");
+                        }
+
+                        setTimeout(function () {
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass(' error');
+                            }
+                            else {
+                                $(elem).removeClass("is-invalid");
+                            }
+                        }, 5000);
+                    }
+                });
+
+                stopLoading();
+
+                e.stopPropagation();
+
+                return $.growl.error({
+                    title: "Error!",
+                    message: "Roster To Time should be greater than From Time!"
+                });
+            }
+            // Check if Date Range is valid
+            //if (($("#er_fdate").val() != null && $("#er_fdate").val() != 0 && $("#er_fdate").val() != "" && $("#er_fdate").val() != undefined) && ($("#er_tdate").val() != null && $("#er_tdate").val() != 0 && $("#er_tdate").val() != "" && $("#er_tdate").val() != undefined)) {
+            //    if (app_f.isValid() && app_t.isValid()) {
+
+            //        if (app_t.diff(app_f, 'days') <= 0) {
+            //            isValid = false;
+
+            //            var index = [];
+            //            index.push("er_fdate");
+            //            index.push("er_tdate");
+
+            //            $.each(index, function (i, v) {
+            //                if (index[i] != null && index[i] != "") {
+            //                    var elem = $("#" + index[i]);
+            //                    $(elem).addClass(" is-invalid");
+
+            //                    setTimeout(function () {
+            //                        $(elem).removeClass("is-invalid");
+            //                    }, 5000);
+            //                }
+            //            });
+
+            //            stopLoading();
+
+            //            e.stopPropagation();
+
+            //            return $.growl.error({
+            //                title: "Error!",
+            //                message: "Apointment Start Date should be less than or equal to End Date!"
+            //            });
+            //        }
+            //    }
+            //}
+            var er_tdate = $("#er_tdate").val();
+            var er_range = "Limited";
+            if (er_tdate == "") {
+                er_tdate = "2099-01-01";
+                er_range = "Unlimited";
+            }
+
+            var _roster = {
+                "er_employee"   : $("#er_employee").val(),
+                "er_branch"     : $("#er_branch :selected").val(),
+                "er_fdate"      : moment($("#er_fdate").val()).format("YYYY-MM-DD"),
+                "er_tdate"      : er_tdate,
+                "er_ftime"      : $("#er_ftime :selected").val(),
+                "er_ttime"      : $("#er_ttime :selected").val(),
+                "er_type"       : $("#er_type").val(),
+                "er_day"        : $("#er_day").val().toString(),
+                "er_range"      : er_range
+            }
+
+            if (isValid) {
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertRoster", "Employees", new { area = "Masters" })",
+                    dataType: 'json',
+                    data: _roster,
+                    success: function (response) {
+                        stopLoading();
+
+                        GetRosters();
+                        var _toast_html = "";
+
+                        if (response == "") {
+                            _toast_html = toast_html('success', 'Employee Roster', '<i class="fe fe-check-circle me-2 text-success"></i> You have successfully created the Roster(s)!');
+                        }
+                        else {
+                            var _text = response;
+
+                            var _text = 'Roster(s) already exists for the following date(s) : </br><ul class="list-group mt-2 mb-2">', liList = response, listForRemove = [];
+                            $(liList).each(function () {
+                                var text = $(this).text();
+                                if (_text.indexOf('<li class="listunorder">' + text + '</li>') == -1) {
+                                    if (text != "") {
+                                        _text += '<li class="listunorder">' + text + '</li>';
+                                    }
+                                }
+                                else {
+                                    listForRemove.push($(this));
+                                }
+                            });
+                            $(listForRemove).each(function () { $(this).remove(); });
+                            _text += '</ul><b>Note :</b> Also check time slots if available for the respective day(s)!';
+
+                            _toast_html = toast_html('warning', 'Employee Roster', _text);
+                        }
+                        clearControls();
+                        var rosterToast = document.getElementById('rosterToast');
+                        rosterToast.innerHTML = _toast_html;
+                        var toast = new bootstrap.Toast(rosterToast);
+                        toast.show();
+                    },
+                    error: function (xhr) {
+                        stopLoading();
+                        $('#employee_rosters').modal('toggle');
+                        console.log("Failed to Insert Employee Roster(s)!" + xhr);
+                    }
+                });
+            }
+            else {
+                stopLoading();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    // Stop Loading Animation
+    var stopLoading = function () {
+        $('#btn_Create_Roster').parent().removeClass("curdrop");
+        $('#btn_Create_Roster').removeClass("btn btn-success btn-loaders btn-icon");
+        $('#btn_Create_Roster').addClass("btn btn-success");
+        $('#btn_Create_Roster').html("Create Roster");
+        $('.btnCloseCreate').removeClass("disabled");
+        $('#btn_Create_Close').removeClass("disabled");
+    }
+    //#endregion
+
+    //#region Update Roster Status
+    var updateRosterStatus = function (erId, er_status) {
+        er_status = (er_status == "Deleted" || er_status == "Inactive") ? "Active" : "Inactive"
+        Swal.fire({
+            title: "Are you sure you want to change the status ?",
+            text: "This action will change the status of the selected Roster!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: "@Url.Action("UpdateEmployeeRosterStatus", "Employees", new { area = "Masters" })?erId=" + erId + "&er_status=" + er_status,
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Status Changed Successfully!!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                                GetRosters();
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to change the status! Roster with the same details already persists.",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to perform this action!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Update Roster Status! Please Try Again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        })
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Edit Roster
+    var editRoster = function (erId) {
+        $('#addRoaster').hide();
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("EditRoster", "Employees", new { area = "Masters" })?erId=" + erId + '&empId=' + $('#er_employee').val(),
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $("#editRoaster").html(data);
+                $("#editRoaster").show();
+            },
+            error: function (xhr) {
+                console.log("Error while Editing Employee : " + xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Clear Controls
+    var clearControls = function () {
+        $("#er_branch").prop("selectedIndex", 1).trigger("change");
+        $("#er_fdate").bootstrapdatepicker("setDate", "today");
+        $("#er_tdate").bootstrapdatepicker("setDate", "");
+        $("#er_type").val("Normal", "Normal").trigger("change");
+        $('#er_day')[0].sumo.unSelectAll();
+    }
+    //#endregion
+
+    //#region Toast Body
+    var toast_html = function (type, heading, content) {
+        var div = "";
+
+        if (type === "success") {
+            div = '<div class="toast-header bg-success text-white">';
+        }
+        else if (type === "error") {
+            div = '<div class="toast-header bg-danger text-white">';
+        }
+        else if (type === "info") {
+            div = '<div class="toast-header bg-info text-white">';
+        }
+        else if (type === "warning") {
+            div = '<div class="toast-header bg-warning text-white">';
+        }
+        else {
+            div = '<div class="toast-header bg-primary text-white">';
+        }
+
+        var html = div +
+            '<img src="../../assets/images/brand/favicon.png" class="rounded me-2" alt="CS9" height="16"><strong class="me-auto">' + heading + '</strong>' +
+            '<small>just now</small>' +
+            '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close">' +
+            '<span aria-hidden="true">×</span>' +
+            '</button>' +
+            '</div>' +
+            '<div class="toast-body">' +
+                content
+            '</div>';
+
+        return html;
+    }
+    //#endregion
+
+</script>

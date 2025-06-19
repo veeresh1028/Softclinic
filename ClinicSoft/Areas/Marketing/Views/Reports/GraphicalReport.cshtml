@@ -1,0 +1,559 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Enquiry Details - Graphical Report (Managed By / By Source / By Status)";
+    ViewBag.gr_active = "background: none !important; color: #664dc9 !important;";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<link href="~/assets/plugins/morris/morris.css" rel="stylesheet" />
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="graghical-report-enquiry">Enquiry Details - Graphical Report (Managed By / By Source / By Status)</span> 
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i><span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span>
+                                </label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span>
+                                </label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_from_sum" class="form-control" placeholder="Select Enquiry Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_to_sum" class="form-control" placeholder="Select Enquiry Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i>
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div id="progress-loader" style="display:none;">
+            <div class="progress progress-sm mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-5">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="manage-by">Managed By</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="morris-wrapper-demo" id="managedby_chart"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="by-source">By Source</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="morris-wrapper-demo" id="source_chart"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span data-lang-key="by-status">By Status</span> 
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="morris-wrapper-demo" id="status_chart"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Graphical Report Summary Toast -->
+    <div class="text-wrap">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="GraphicalReportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto"><span data-lang-key="graphical-report">Graphical Report</span></strong>
+                            <small><span data-lang-key="just-now">ust Now</span>J</small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body" id="toastBody">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script src="~/assets/plugins/morris/raphael-min.js"></script>
+    <script src="~/assets/plugins/morris/morris.js"></script>
+    <script>
+        //#region Page Load & Initialization
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Graphical Report
+            GetGraphicalReport(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_branches();
+
+            $('#date_from_sum').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate:'today'
+            });
+            $("#date_from_sum").bootstrapdatepicker("setDate", "today");
+
+            $('#date_to_sum').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate: 'tomorrow'
+            });
+            $("#date_to_sum").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#date_from_sum').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 17)
+                        return false;
+                }
+            });
+
+            $('#date_to_sum').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 17)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Graphical Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "") &&
+                    ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "")) {
+                    let isValid = true;
+                    let daily_frm = moment($("#date_from_sum").val());
+                    let daily_to = moment($("#date_to_sum").val());
+
+                    // Check if Date From is a valid Date
+                    if ($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "" && $("#date_from_sum").val() != undefined) {
+                        if (!daily_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "" && $("#date_to_sum").val() != undefined) {
+                        if (!daily_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "" && $("#date_from_sum").val() != undefined) && ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "" && $("#date_to_sum").val() != undefined)) {
+                        if (daily_frm.isValid() && daily_to.isValid()) {
+                            date_to_sum
+                            if (daily_to.diff(daily_frm, 'days') <= 0) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("date_from_sum");
+                                index.push("date_to_sum");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetGraphicalReport(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "From Date & To Date is required to filter record(s)!",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Reports!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Get Graphical Summary Report
+        var GetGraphicalReport = function (search_type) {
+
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "date_from"     : $('#date_from_sum').val(),
+                "date_to"       : $('#date_to_sum').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetGraphicalReports", "Reports", new { area = "Marketing" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report(s)..</b> Please wait!');
+                    $('#PatientReportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+
+                        bindManagedBy(response);
+                        bindBySource(response);
+                        bindByStatus(response);
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Filtered </b> record(s) in about <b id="etime">' + etime + '</b> ms');
+                        $('#GraphicalReportToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                setTimeout(function () {
+                    $('#GraphicalReportToast').fadeOut('fast');
+                }, 5000);
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind Managed By Chart
+        var bindManagedBy = function (response) {
+            $('#managedby_chart').empty('');
+
+            var _data = response.mbChart;
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+            var colorIndex = 0;
+
+            new Morris.Bar({
+                element: 'managedby_chart',
+                data: _data,
+                xkey: 'labels',
+                ykeys: ['total'],
+                labels: _labels,
+                stacked: true,
+                gridTextSize: 11,
+                xLabelMargin: 25,
+                hideHover: 'auto',
+                resize: true,
+                hoverCallback: function (index, options, content, row) {
+                    var label = options.data[index].labels;
+                    var total = options.data[index].total;
+                    return label + ': ' + total + ' Nos';
+                },
+                barRatio: 0.4,
+                barColors: function () {
+                    if (colorIndex < 4)
+                        return barColorsArray[++colorIndex];
+                    else {
+                        colorIndex = 0;
+                        return barColorsArray[++colorIndex];
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind By Source Chart
+        var bindBySource = function (response) {
+            $('#source_chart').empty('');
+
+            var _data = response.sourceChart;
+
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+            var colorIndex = 0;
+
+            new Morris.Bar({
+                element: 'source_chart',
+                data: _data,
+                xkey: 'labels',
+                ykeys: ['total'],
+                labels: _labels,
+                stacked: true,
+                gridTextSize: 10,
+                hideHover: 'auto',
+                resize: true,
+                xLabelMargin :25,
+                hoverCallback: function (index, options, content, row) {
+                    var label = options.data[index].labels;
+                    var total = options.data[index].total;
+                    return label + ': ' + total + ' Nos';
+                },
+                barColors: function () {
+                    if (colorIndex < 4)
+                        return barColorsArray[++colorIndex];
+                    else {
+                        colorIndex = 0;
+                        return barColorsArray[++colorIndex];
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind By Status Chart
+        var bindByStatus = function (response) {
+            $('#status_chart').empty('');
+
+            var _data = response.statusChart;
+            console.log(_data)
+            var _labels = _data.map(function (value) {
+                return value.labels;
+            });
+
+            var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+            var colorIndex = 0;
+
+            new Morris.Bar({
+                element: 'status_chart',
+                data: _data,
+                xkey: 'labels',
+                ykeys: ['total'],
+                labels: _labels,
+                stacked: true,
+                gridTextSize: 10,
+                hideHover: 'auto',
+                resize: true,
+                xLabelMargin: 25,
+                hoverCallback: function (index, options, content, row) {
+                    var label = options.data[index].labels;
+                    var total = options.data[index].total;
+                    return label + ': ' + total + ' Nos';
+                },
+                barColors: function () {
+                    if (colorIndex < 4)
+                        return barColorsArray[++colorIndex];
+                    else {
+                        colorIndex = 0;
+                        return barColorsArray[++colorIndex];
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region UI Functions
+        // Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        // Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        // Remove Error Class
+        function error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+        //#endregion
+    </script>
+}

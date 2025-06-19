@@ -1,0 +1,1155 @@
+﻿
+@model BusinessEntities.Accounts.MaterialManagement.DirectStockTransfer
+
+<div class="modal-header py-4 px-5">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update Direct Stock Transfer</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+        </div>
+    </div>
+
+    <form id="form_EditDirectTransfer">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.from_branch_name)
+        @Html.HiddenFor(m => m.std_from_branch)
+        <div class="row">
+            <div class="col-sm-3 col-md-3 col-lg-3">
+                <div class="form-group">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DisplayFor(m => m.from_branch_name)
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-2">
+                    <label class="form-label font-weight-semibold">To Branch</label>
+                    @Html.DropDownList("ustd_to_branch", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Any Select", new { @class = "form-select select2" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">Date&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("ustd_date", Model.std_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", maxlength = "18" })
+                </div>
+            </div>
+        </div>
+        <div id="divItems">
+            <div class="row" style="border: 1px solid #0e2672; border-width: 1px 0 1px 0px;">
+                <div class="mt-5">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-sm-12 col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label text-black">Items&nbsp;<span class="text-danger">*&nbsp;<label id="lbl_message" class="fw-bold"></label></span></label>
+                                    <select class="form-control select2" id="uitem_name">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-6 col-lg-3">
+                                <div class="form-group">
+                                    <label class="form-label text-black">Batch<span class="text-danger">&nbsp;*</span></label>
+                                    <select class="form-control select2" id="uitem_batch"></select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <div class="form-group">
+                                    <label class="form-label">Qty / UoM&nbsp;<span class="text-danger">*&nbsp;<label id="lbl_qty" class="fw-bold"></label></span></label>
+                                    <div class="input-group">
+                                        <input type="text" id="uitem_qty" class="form-control" maxlength="8" onkeypress="return validateOneDecimalNumeric(this,event);" value="0" />
+                                        <div class="input-group-append" style="max-width: 70%; min-width: 50%;">
+                                            <select class="form-control select2" id="uitem_uom"></select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-6 col-lg-3">
+                                <div class="form-group">
+                                    <label class="form-label text-black">Items Description</label>
+                                    <input type="text" id="uitem_desc" class="form-control" maxlength="495" />
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label text-danger">&nbsp;<span class="text-danger" id="lbl_cal_error"></span></label>
+                                </div>
+                            </div>
+                            <div class="col-md-12 col-lg-12 d-flex justify-content-center" id="exists">
+                                <div id="ExistAlert"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div id="update_error" class="text-center" style="max-width:500px"></div>
+                </div>
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div id="ConsupmtionAlert"></div>
+                </div>
+                @if (TempData["ErrorMessage_Update"] != null)
+                {
+                    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <strong>Error!&nbsp;</strong>@TempData["ErrorMessage_Update"]
+                        </div>
+                    </div>
+                }
+                <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        <i class="fe fe-x"></i> Close
+                    </button>
+                    <label class="text-red" id="error_message"></label>
+                    <input type="hidden" id="hi_ibId" value="0" />
+                    <input type="hidden" id="hi_uom" value="0" />
+                    <input type="hidden" id="hi_uom2" value="0" />
+                    <input type="hidden" id="hi_uom3" value="0" />
+                    <input type="hidden" id="hi_mfactor" value="0" />
+                    <input type="hidden" id="hi_mfactor2" value="" />
+                    <input type="hidden" id="hi_itemId" value="0" />
+                    <input type="hidden" id="hi_ibQty" value="0" />
+                    <input type="hidden" id="hi_ibQty2" value="0" />
+                    <input type="hidden" id="hi_ibQty3" value="0" />
+                    <input type="hidden" id="hi_item_name" value="" />
+                    <input type="hidden" id="hi_item_code" value="" />
+                    <input type="hidden" id="hi_batch" value="" />
+                    <input type="hidden" id="hi_ib_cost" value="0" />
+                    <input type="hidden" id="hi_ib_cost2" value="0" />
+                    <input type="hidden" id="hi_ib_cost3" value="0" />
+                    <input type="hidden" id="hi_ib_sprice" value="0" />
+                    <input type="hidden" id="hi_ib_sprice2" value="0" />
+                    <input type="hidden" id="hi_ib_sprice3" value="0" />
+                    <input type="hidden" id="hi_item_expiry" value="0" />
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    var directTransfer_arr = [];
+
+    //#region Page Load
+    $(function () {
+        $('#ustd_to_branch').select2({
+            dropdownParent: $('#edit_DirectTransfer_body'),
+            placeholder: 'Select To Branch',
+            width: '100%'
+        });
+        $('#uitem_batch').select2({
+            dropdownParent: $('#edit_DirectTransfer_body'),
+            placeholder: 'Select Batch',
+            width: '100%'
+        });
+        $('#uitem_uom').select2({
+            dropdownParent: $('#edit_DirectTransfer_body'),
+            placeholder: 'Select UoM',
+            width: '100%'
+        });
+
+        // Get the current date
+        var currentDate = new Date();
+        // Get last year date
+        var lastYearDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
+
+        $('#ustd_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: lastYearDate,
+            endDate: currentDate
+        });
+
+        $("#ustd_date").val(moment('@Model.std_date', 'DD/MM/YYYY').format('DD-MMMM-YYYY'));
+        $('#ustd_to_branch').val('@Model.std_to_branch').trigger('change');
+        $("#uitem_name").select2({
+            placeholder: 'Select a Item',
+            width: '100%',
+            dropdownParent: $('#edit_DirectTransfer_body'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchItems", "MaterialsConsumption", new { area = "MaterialManagement" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    $('#lbl_message').text('');
+                    if ($('#scr_branch').val().trim() != "") {
+                        return {
+                            query: query.term,
+                            branch: $('#scr_branch').val(),
+                            type: 'withQty'
+                        };
+                    }
+                    else {
+                        $('#lbl_message').text('Select Branch First');
+                        return {
+                            query: '',
+                            branch: 0
+                        }
+                    }
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+        setItem('@Model.std_itemId', '@Model.std_from_branch');
+
+        $("#uitem_qty").val('@Model.std_oqty');
+        $("#uitem_desc").val('@Model.std_notes');
+        $("#hi_itemId").val('@Model.std_itemId');
+        $("#hi_batch").val('@Model.std_item_batch');
+        $("#hi_ibId").val('@Model.std_ibId');
+        $("#hi_uom").val('@Model.std_ouom');
+        $("#hi_uom2").val('@Model.std_item_uom2');
+        $("#hi_uom3").val('@Model.std_item_uom2');
+        $("#hi_mfactor").val('@Model.std_item_mfactor');
+        $("#hi_mfactor2").val('@Model.std_item_mfactor2');
+        $("#hi_item_name").val('@Model.item_name');
+        $("#hi_item_code").val('@Model.std_item_code');
+        validation();
+    });
+    //#endregion
+
+    //#region Set Item Details
+    var data = '';
+    var setItem = function (itemId, branchId) {
+        $.ajax({
+            url: '@Url.Action("SearchItems", "StockTransfer", new { area = "MaterialManagement" })?query=' + itemId + '&branch=' + branchId +'&type=withId',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+                $('#uitem_name').append(newOption).trigger('change');
+                loadBatch('@Model.std_ibId', '@Model.std_from_branch', 'withId');
+            },
+            error: function (xhr) {
+                console.log(xhr.statusText);
+            }
+        }).done(function () {
+            $('#uitem_batch').val('@Model.std_ibId').trigger('change');
+            if (data != undefined && data != null && data != '') {
+                $('#uitem_batch').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Adding Validation on Main Form
+    var validation = function () {
+        $("#form_EditDirectTransfer").validate({
+            focusInvalid: true,
+            rules:
+            {
+                ustd_to_branch: {
+                    required: true,
+                },
+                ustd_date: {
+                    required: true,
+                },
+            },
+            messages: {
+                ustd_to_branch: {
+                    required: "Select To Branch",
+                },
+                ustd_date: {
+                    required: "Select Date",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    $('#ustd_date').keypress(function (e) {
+        var charCode = (e.which) ? e.which : e.keyCode
+        if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+            return false;
+
+        }
+        else {
+            if (e.target.value.length >= 18)
+                return false;
+        }
+    });
+    //#endregion
+
+    //#region Validate Text Box with One Decimal and numeric only on Key Press
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : e.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Item Select Event
+    $('#uitem_name').on('select2:select', function (e) {
+        var data = e.params.data;
+        if ((data.id).length > 0) {
+            var branchId = $('#scr_branch').val();
+            loadBatch(data.id, branchId, 'withQty');
+        }
+    });
+
+    var loadBatch = function (item_code, branchId, type) {
+        $.ajax({
+            url: '@Url.Action("GetBatchesDetail", "MaterialsConsumption", new { area = "MaterialManagement" })?Item_code=' + item_code + "&branchId=" + branchId + "&type=" + type,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    if (response.length > 0) {
+                    $('#uitem_batch').empty();
+                    $('#uitem_batch').append('<option value="">Select Batch</option>');
+                    $('#uitem_batch').val('-1');
+                    $('#uitem_batch').trigger('change');
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id, (response[j].id === '-1') ? true : false, (response[j].id === '-1') ? true : false);
+                        $('#uitem_batch').append(newOption).trigger('change');
+                    });
+                    }
+                    else {
+                        $('#uitem_batch').empty();
+                    }
+                    AddingCalculation();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr.statusText);
+                }
+            }).done(function () {
+                //$('#select2-item_name-container').attr("title", $('#hi_item_name').val());
+                setTimeout(function () {
+                    $('#select2-item_name-container').attr("title", $('#hi_item_name').val());
+                }, 100);
+            });
+    }
+
+    //#endregion
+
+    //#region Batch Select Event
+    $('#uitem_batch').on('select2:select', function (e) {
+        var ibId = $('#uitem_batch').val();
+        if (ibId > 0) {
+            $.ajax({
+                url: '@Url.Action("ConsumedBatch_Detail", "MaterialsConsumption", new { area = "MaterialManagement" })?ibId=' + ibId,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#uitem_uom").empty();
+                    if (response.length > 0) {
+                        var item_uom = response[0].ib_uom;
+                        var item_uom2 = response[0].ib_uom2;
+                        var item_uom3 = response[0].ib_uom3;
+                        var newOption = "";
+                        newOption = new Option(item_uom, item_uom, true, true);
+                        $("#uitem_uom").append(newOption).trigger('change');
+                        if (item_uom != item_uom2) {
+                            newOption = new Option(item_uom2, item_uom2, true, true);
+                            $("#uitem_uom").append(newOption).trigger('change');
+                        }
+                        if (item_uom2 != item_uom3) {
+                            newOption = new Option(item_uom3, item_uom3, true, true);
+                            $("#uitem_uom").append(newOption).trigger('change');
+                        }
+                        $('#uitem_uom').val(response[0].ib_uom).trigger('change');
+                        $('#hi_ibQty').val(parseFloat(response[0].ib_qty).toFixed(2));
+                        $('#hi_ibQty2').val(parseFloat(response[0].ib_qty2).toFixed(2));
+                        $('#hi_ibQty3').val(parseFloat(response[0].ib_qty3).toFixed(2));
+                        $('#hi_ibId').val(response[0].ibId);
+                        $('#hi_uom').val(response[0].ib_uom);
+                        $('#hi_uom2').val(response[0].ib_uom2);
+                        $('#hi_uom3').val(response[0].ib_uom3);
+                        $('#hi_mfactor').val(response[0].ib_m_factor);
+                        $('#hi_mfactor2').val(response[0].ib_m_factor2);
+                        $('#hi_itemId').val(response[0].itemId);
+                        $('#hi_item_name').val(response[0].item_name);
+                        $('#hi_item_code').val(response[0].ib_item);
+                        $('#hi_batch').val(response[0].ib_batch);
+                        $('#hi_ib_cost').val(response[0].ib_cost);
+                        $('#hi_ib_cost2').val(response[0].ib_cost2);
+                        $('#hi_ib_cost3').val(response[0].ib_cost3);
+                        $('#hi_ib_sprice').val(response[0].ib_sprice);
+                        $('#hi_ib_sprice2').val(response[0].ib_sprice2);
+                        $('#hi_ib_sprice3').val(response[0].ib_sprice3);
+                        $('#hi_item_expiry').val(response[0].ib_edate);
+                        $('#uitem_qty').val('0');
+                    }
+                    else {
+                        $('#uitem_qty').val('0');
+                        $('#uitem_uom').val('-1').trigger('change');
+                        $('#hi_ibQty').val('0');
+                        $('#hi_ibQty2').val('0');
+                        $('#hi_ibQty3').val('0');
+                        $('#hi_uom').val('');
+                        $('#hi_uom2').val('');
+                        $('#hi_uom3').val('');
+                        $('#hi_ibId').val('');
+                    }
+                    AddingCalculation();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr.statusText);
+                }
+            }).done(function () {
+                //$('#select2-item_name-container').attr("title", $('#hi_item_name').val());
+                setTimeout(function () {
+                    $('#select2-item_name-container').attr("title", $('#hi_item_name').val());
+                }, 100);
+            });
+        }
+    });
+    //#endregion
+
+    //#region Adding Item Calculation
+    $("#uitem_qty").focusout('input', function () {
+        AddingCalculation();
+    });
+    $('#uitem_uom').on('select2:select', function (e) {
+        AddingCalculation();
+    });
+
+    var AddingCalculation = function () {
+        $("#lbl_cal_error").text("");
+        $("#lbl_qty").text("");
+        let _qty = $("#uitem_qty").val();
+        let _uom = $("#uitem_uom").val();
+        let _ibQty = $("#hi_ibQty").val();
+        let _ibQty2 = $("#hi_ibQty2").val();
+        let _ibQty3 = $("#hi_ibQty3").val();
+        let _ibuom = $("#hi_uom").val();
+        let _ibuom2 = $("#hi_uom2").val();
+        let _ibuom3 = $("#hi_uom3").val();
+        if (_uom !== undefined && _uom !== null && _uom !== "" && _uom.length > 0) {
+            if (_ibuom === undefined || _ibuom === null || _ibuom === "" ||
+                _ibuom2 === undefined || _ibuom2 === null || _ibuom2 === "" ||
+                _ibuom3 === undefined || _ibuom3 === null || _ibuom3 === "") {
+                $('#uitem_batch').parent().addClass('has-error');
+                Error_Timeout("item_batch");
+                $("#lbl_qty").text("Batch Qty Not Selected");
+            }
+            else {
+                if (_qty === "" || _qty === null || _qty === undefined) {
+                    _qty = 0;
+                    $("#uitem_qty").val("0");
+                }
+
+                if (_ibQty === "" || _ibQty === null || _ibQty === undefined) {
+                    _ibQty = 0;
+                    $("#hi_ibQty").val("0");
+                }
+
+                if (_ibQty2 === "" || _ibQty2 === null || _ibQty2 === undefined) {
+                    _ibQty2 = 0;
+                    $("#hi_ibQty2").val("0");
+                }
+
+                if (_ibQty3 === "" || _ibQty3 === null || _ibQty3 === undefined) {
+                    _ibQty3 = 0;
+                    $("#hi_ibQty3").val("0");
+                }
+
+                if (_uom === _ibuom) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty)) {
+                        $("#lbl_cal_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_cal_error").text("");
+                        $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom2) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_cal_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_cal_error").text("");
+                        $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom3) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty3)) {
+                        $("#lbl_cal_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_cal_error").text("");
+                        $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+            }
+        }
+        else {
+            $('#uitem_uom').parent().addClass('has-error');
+
+            Error_Timeout("item_uom");
+        }
+    }
+    //#endregion
+
+    //#region Bind DataTable
+    var BindDataTable = function (response) {
+        var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+        var table = $("#tbl_consumption_items").DataTable({
+            processing: true,
+            paging: false,
+            ordering: false,
+            info: false,
+            "searching": false,
+            "retrieve": true,
+            lengthChange: false,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "scr_ibId" },
+                { "mData": "item_code" },
+                {
+                    "mData": "item_name",
+                    "className": "fs-13 td_max_width"
+                },
+                { "mData": "scr_batch" },
+                { "mData": "scr_qty" },
+                {
+                    "mData": "scr_uom",
+                    "className":"text-center"
+                },
+                { "mData": "scr_desc" },
+                { "mData": "scr_ibId" }
+
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "visible": false
+                },
+                {
+                    "aTargets": [4],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [7],
+                    "className": "fs-13 text-center dt-delete",
+                    "render": function (data) {
+                        var html = "<i class='fe fe-trash text-danger curpointer' id='remove-item' style='font-size: 15px;'></i>";
+                        return html;
+                    }
+                },
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+
+
+                total_qty = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(4).footer()).html(numberRenderer1(total_qty.toFixed(2)));
+
+            }
+        });
+        table.buttons().container()
+            .appendTo('#tbl_consumption_items_wrapper .col-md-6:eq(0)');
+
+
+
+        // Remove Items From DataTable
+        table.on('click', '#remove-item', function (e) {
+            var row = $(this).parents('tr');
+            var data_row = table.row($(this).closest('tr')).data();
+
+            Swal.fire({
+                title: "Are you sure you want to delete this Item From List?",
+                text: "This action will delete this Item from Selection!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2",
+                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    directTransfer_arr = $.grep(directTransfer_arr, function (n, i) {
+                        return (n.pirId !== data_row.pirId);
+                    });
+
+                    if ($(row).hasClass('child')) {
+                        table.row($(row).prev('tr')).remove().draw();
+                    } else {
+                        table.row(row).remove().draw();
+                    }
+                    Swal.fire({
+                        title: "Success!",
+                        text: "Item Deleted Successfully!",
+                        icon: "success",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+
+
+                }
+            });
+        });
+
+        setTimeout(function () {
+            resizedt('tbl_consumption_items');
+        }, 100);
+    }
+    //#endregion
+
+    //#region Add Items To List
+    var addItemToList = function () {
+        if (ItemsValid()) {
+            var exists = false;
+
+            if (directTransfer_arr.length > 0) {
+                exists = directTransfer_arr.some(function (check) {
+                    return check.scr_ibId === $("#uitem_batch").val();
+                });
+            }
+
+            if (exists) {
+                var data = $("#uitem_batch option:selected").text();
+                data = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+
+                Swal.fire({
+                    title: "Batch Exists!",
+                    html: "<strong style='color:red;'>" + data + "</strong>.<br/> is Already Exists in list Please remove existing one and add again.",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonText: 'OK',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    buttonsStyling: !1
+                })
+            }
+            else {
+                bindItems();
+                clearData();
+            }
+        }
+        else {
+            //$('.modal-body').animate({
+            //    scrollTop: ($('.has-error').offset().top - 300)
+            //}, 2000);
+            var alertPlaceholder = document.getElementById("error");
+            function alert(e, t) {
+                var l = document.createElement("div");
+                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+            }
+            alert("<i class='fa fa-exclamation-triangle text-warning'></i>Please Fill Mandatory fields!", "warning");
+            Timeout();
+        }
+    }
+
+    //BindItems
+    var bindItems = function () {
+        var data = {
+            "stdId": 0,
+            "std_date": $("#ustd_date").val(),
+            "std_refno": '',
+            "std_itemId": $("#hi_itemId").val(),
+            "std_notes": $("#uitem_desc").val(),
+            "std_oqty": $("#uitem_qty").val(),
+            "std_ouom": $("#uitem_uom").val(),
+            "std_item_batch": $("#hi_batch").val(),
+            "std_from_branch": $("#std_from_branch").val(),
+            "std_to_branch": $("#std_to_branch").val(),
+            "std_ibId": $("#hi_ibId").val(),
+            "std_item_uom": $("#hi_uom").val(),
+            "std_item_uom2": $("#hi_uom2").val(),
+            "std_item_uom3": $("#hi_uom3").val(),
+            "std_item_mfactor": $("#hi_mfactor").val(),
+            "std_item_mfactor2": $("#hi_mfactor2").val(),
+            "item_name": $("#hi_item_name").val(),
+            "std_item_code": $("#hi_item_code").val(),
+            "std_item_cost": $("#hi_ib_cost").val(),
+            "std_item_cost2": $("#hi_ib_cost2").val(),
+            "std_item_cost3": $("#hi_ib_cost3").val(),
+            "std_item_sprice": $("#hi_ib_sprice").val(),
+            "std_item_sprice2": $("#hi_ib_sprice2").val(),
+            "std_item_sprice3": $("#hi_ib_sprice3").val(),
+            "std_item_expiry": moment($("#hi_item_expiry").val(), 'DD/MM/YYYY').format('MM/DD/YYYY')
+        }
+
+        directTransfer_arr.push(data);
+
+        GetTransferItems(directTransfer_arr);
+
+    }
+    //Load Items in DataTable
+    var GetTransferItems = function (response) {
+        if (response != null && response != undefined) {
+            var table;
+            if ($.fn.dataTable.isDataTable('#tbl_consumption_items')) {
+                table = $('#tbl_consumption_items').DataTable();
+                table.clear();
+                table.rows.add(response).draw();
+            }
+            else {
+                BindDataTable(response);
+            }
+        }
+    }
+    //#endregion
+
+    //#region Items Table Validation
+    var ItemsValid = function () {
+        let _qty = $('#uitem_qty').val().trim();
+        let _uom = $("#uitem_uom").val();
+        let _ibQty = $("#hi_ibQty").val();
+        let _ibQty2 = $("#hi_ibQty2").val();
+        let _ibQty3 = $("#hi_ibQty3").val();
+        let _ibuom = $("#hi_uom").val();
+        let _ibuom2 = $("#hi_uom2").val();
+        let _ibuom3 = $("#hi_uom3").val();
+        var count = 0;
+        if ($('#uitem_name').val() == undefined || $('#uitem_name').val() == null || $('#uitem_name').val() == '' || $('#uitem_name').val().length == 0) {
+            $("#select2-item_name-container").parent().addClass('error');
+            count++;
+            Error_Timeout("uitem_name");
+        }
+
+        if ($('#uitem_batch').val() == undefined || $('#uitem_batch').val() == null || $('#uitem_batch').val() == '' || $('#uitem_batch').val().length == 0) {
+            $("#select2-item_batch-container").parent().addClass('error');
+            count++;
+            Error_Timeout("uitem_batch");
+        }
+
+        if ($('#ustd_to_branch').val() == undefined || $('#ustd_to_branch').val() == null || $('#ustd_to_branch').val() == '' || $('#ustd_to_branch').val().length == 0) {
+            $("#select2-ustd_to_branch-container").parent().addClass('error');
+            count++;
+            Error_Timeout("ustd_to_branch");
+        }
+
+        if ($('#ustd_date').val() == undefined || $('#ustd_date').val() == null || $('#ustd_date').val() == '' || $('#ustd_date').val().length == 0) {
+            $("#ustd_date").parent().addClass('has-error');
+            count++;
+            Error_Timeout("ustd_date");
+        }
+
+        if (_qty === "" || _qty === null || _qty === undefined) {
+            $("#lbl_calculation_error").text("Qty should be more than 0");
+            $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+            count++;
+            Error_Timeout("item_qty");
+        }
+        else {
+            $("#lbl_calculation_error").text("");
+            $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+
+        if (_uom !== undefined && _uom !== null && _uom !== "" && _uom.length > 0) {
+            if (_ibuom === undefined || _ibuom === null || _ibuom === "" ||
+                _ibuom2 === undefined || _ibuom2 === null || _ibuom2 === "" ||
+                _ibuom3 === undefined || _ibuom3 === null || _ibuom3 === "") {
+                $('#uitem_batch').parent().addClass('has-error');
+                count++;
+                Error_Timeout("item_batch");
+                $("#lbl_qty").text("Batch Qty Not Selected");
+            }
+            else {
+                if (_qty === "" || _qty === null || _qty === undefined) {
+                    _qty = 0;
+                    $("#uitem_qty").val("0");
+                }
+
+                if (_ibQty === "" || _ibQty === null || _ibQty === undefined) {
+                    _ibQty = 0;
+                    $("#hi_ibQty").val("0");
+                }
+
+                if (_ibQty2 === "" || _ibQty2 === null || _ibQty2 === undefined) {
+                    _ibQty2 = 0;
+                    $("#hi_ibQty2").val("0");
+                }
+
+                if (_ibQty3 === "" || _ibQty3 === null || _ibQty3 === undefined) {
+                    _ibQty3 = 0;
+                    $("#hi_ibQty3").val("0");
+                }
+                if (_uom === _ibuom) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty)) {
+                        $("#lbl_cal_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+                        count++;
+                    }
+                    else {
+                        $("#lbl_cal_error").text("");
+                        $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom2) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_cal_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+                        count++;
+                    }
+                    else {
+                        $("#lbl_cal_error").text("");
+                        $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom3) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_cal_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+                        count++;
+                    }
+                    else {
+                        $("#lbl_cal_error").text("");
+                        $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+            }
+        }
+        else {
+            $('#uitem_uom').parent().addClass('has-error');
+            count++;
+            Error_Timeout("item_uom");
+        }
+        if (count == 0) {
+            if (_qty <= 0) {
+                $("#lbl_calculation_error").text("Qty should be more than 0");
+                $("#uitem_qty").attr("style", "border:1px solid red;color:red;");
+                count++;
+                Error_Timeout("item_qty");
+            }
+            else {
+                $("#lbl_calculation_error").text("");
+                $("#uitem_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+        }
+
+        if ($('#hi_ibId').val() == 0 || $('#hi_ibId').val() == '' ||
+            $('#hi_uom').val() == '' || $('#hi_uom').val().length == 0 ||
+            $('#hi_mfactor').val() == '' || $('#hi_mfactor').val() == 0 ||
+            $('#hi_mfactor2').val() == '' || $('#hi_mfactor2').val() == 0 ||
+            $('#hi_itemId').val() == '' || $('#hi_itemId').val() == 0 ||
+            $('#hi_batch').val() == '' || $('#hi_batch').val().length == 0
+        ) {
+            $("#select2-item_name-container").parent().addClass('error');
+            $("#select2-item_batch-container").parent().addClass('error');
+            count++;
+            Error_Timeout("item_name");
+            Error_Timeout("item_batch");
+        }
+
+        if (count > 0)
+            return false;
+        else
+            return true;
+    }
+    //#endregion
+
+    //#region Update Direct Stock Transfer on Button Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+        var t = 0;
+        if ($('#form_EditDirectTransfer').valid()) {
+            if (ItemsValid()) {
+                Swal.fire({
+                    title: "Save Changes",
+                    text: "Are you sure you want to Update Direct Stock Transfer!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-warning mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _data = {
+                            "stdId": '@Model.stdId',
+                            "std_date": $("#ustd_date").val(),
+                            "std_refno": '@Model.std_refno',
+                            "std_itemId": $("#hi_itemId").val(),
+                            "std_notes": $("#uitem_desc").val(),
+                            "std_oqty": $("#uitem_qty").val(),
+                            "std_ouom": $("#uitem_uom").val(),
+                            "std_item_batch": $("#hi_batch").val(),
+                            "std_from_branch": '@Model.std_from_branch',
+                            "std_to_branch": $("#ustd_to_branch").val(),
+                            "std_ibId": $("#hi_ibId").val(),
+                            "std_item_uom": $("#hi_uom").val(),
+                            "std_item_uom2": $("#hi_uom2").val(),
+                            "std_item_uom3": $("#hi_uom3").val(),
+                            "std_item_mfactor": $("#hi_mfactor").val(),
+                            "std_item_mfactor2": $("#hi_mfactor2").val(),
+                            "item_name": $("#hi_item_name").val(),
+                            "std_item_code": $("#hi_item_code").val(),
+                            "std_item_cost": $("#hi_ib_cost").val(),
+                            "std_item_cost2": $("#hi_ib_cost2").val(),
+                            "std_item_cost3": $("#hi_ib_cost3").val(),
+                            "std_item_sprice": $("#hi_ib_sprice").val(),
+                            "std_item_sprice2": $("#hi_ib_sprice2").val(),
+                            "std_item_sprice3": $("#hi_ib_sprice3").val(),
+                            "std_item_expiry": moment($("#hi_item_expiry").val(), 'DD/MM/YYYY').format('MM/DD/YYYY'),
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            url: '@Url.Action("UpdateDirectStockTransfer", "StockTransfer", new { area = "MaterialManagement" })',
+                            type: "POST",
+                            dataType: "json",
+                            data: _data,
+                            beforeSend: function () {
+                                $('#btn_Update').removeClass("btn btn-warning");
+                                $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').parent().addClass("curdrop");
+                                $('.btn-close').addClass("disabled");
+                                $('#btn_Update').html("Saving.. Please Wait");
+                            },
+                            async: false,
+                            success: function (data) {
+                                $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-warning");
+                                $('#btn_Update').parent().removeClass("curdrop");
+                                $('.btn-close').removeClass("disabled");
+                                $('#btn_Update').html("Save Changes");
+                                if (data.isUpdated) {
+                                    Get_DirectStockTransfer($('#ustd_date').val().trim(), $('#ustd_date').val().trim());
+                                    var alertPlaceholder = document.getElementById("DirectTransferAlert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i>Direct Stock Transfer Updated Successfully!", "success");
+                                    $('#edit_DirectTransfer_modal').modal('toggle');
+                                    Timeout();
+                                }
+                                else {
+                                    $("#update_").html('');
+                                    var error_message = data.message;
+                                    if (error_message == "Error While Updating Direct Stock Transfer!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+                                        $("#update_error").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-white' ></i>&nbsp;Validation Error.. Please correct before you Update!&nbsp;</strong><br/><ul>";
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+                                        html += "</ul></div></div>";
+                                        $("#update_error").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-warning");
+                                $('#btn_Update').parent().removeClass("curdrop");
+                                $('.btn-close').removeClass("disabled");
+                                $('#btn_Update').html("Save Changes");
+                                var alertPlaceholder = document.getElementById("DirectTransferAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Direct Stock Transfer!", "danger");
+                                $('#edit_DirectTransfer_modal').modal('toggle');
+                                Timeout();
+                            }
+                        });
+
+                    }
+                });
+            }
+            else {
+                var alertPlaceholder = document.getElementById("update_error");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-exclamation-triangle text-warning'></i>Check Item & Batch Detail and Try Again!", "warning");
+                Timeout();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+            var alertPlaceholder = document.getElementById("update_error");
+            function alert(e, t) {
+                var l = document.createElement("div");
+                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+            }
+            alert("<i class='fa fa-exclamation-triangle text-warning'></i>Fill Mandatory fields!", "warning");
+            Timeout();
+        }
+    });
+    //#endregion
+
+    //#region Clear Text Boxes Data
+    var clearData = function () {
+        $('#uitem_name').val('0').trigger('change');
+        $('#uitem_batch').val('-1').trigger('change');
+        $('#error_message').val('');
+        $('#lbl_cal_error').val('');
+        $('#lbl_qty').val('');
+        $('#lbl_message').val('');
+        $('#uitem_desc').val('');
+        $('#uitem_qty').val('0');
+        $('#uitem_uom').val('0');
+        $('#hi_ibId').val('0');
+        $('#item_ibQty').val('0');
+        $('#item_ibQty2').val('0');
+        $('#item_ibQty3').val('0');
+        $('#hi_itemId').val('0');
+        $('#hi_item_name').val('');
+        $('#hi_item_code').val('');
+        $('#hi_batch').val('');
+        $('#hi_uom').val('');
+        $('#hi_uom2').val('');
+        $('#hi_uom3').val('');
+
+    }
+    //#endregion
+
+    //#region Rest Items Detail Feilds
+    $('#btn_Reset').click(function () {
+        clearData();
+    });
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+</script>
+

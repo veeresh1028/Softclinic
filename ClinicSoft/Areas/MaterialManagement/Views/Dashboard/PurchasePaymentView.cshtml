@@ -1,0 +1,387 @@
+﻿
+
+
+@model  BusinessEntities.Accounts.MaterialManagement.PaymentList
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Payments Detail For <span class="text-azure">@Model.branch_name</span> <span class="text-cyan">[ From : @Model.from_date - From : @Model.to_date]</span></h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div id="progress-loader" style="display:none;">
+            <div class="progress progress-sm mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table id="tbl_paymentsView" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                        <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Invoice</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Supplier</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Cash</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Credit Card</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Cheque</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Chq.Detail</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Bank Transfer</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Allocated</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">MadeBy</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Posted</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Chq. Bank Name</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Chq.No</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Chq.Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th class="table_footer_align"><span class="text-right text-dark"> Total : &nbsp;</span></th>
+                        <th class="table_footer_align"></th>
+                        <th class="table_footer_align"></th>
+                        <th class="table_footer_align"></th>
+                        <th></th>
+                        <th class="table_footer_align"></th>
+                        <th class="table_footer_align"></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    $(function () {
+       var pinv_detail = @Html.Raw(Json.Encode(Model.paymentList));
+        BindPurchaseInvoices(pinv_detail);
+    });
+
+    //#region Bind Datatable
+    var BindPurchaseInvoices = function (response) {
+
+        var table = $("#tbl_paymentsView").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "payId",
+                },
+                {
+                    "className": "td_max_width",
+                    "mData": "branch_name"
+                },
+                {
+                    "mData": "pay_code",
+                },
+                {
+                    "mData": "pay_date",
+                },
+                {
+                    "className": "td_max_width",
+                    "mData": "supplier_invoice"
+                },
+                {
+                    "className": "td_max_width",
+                    "mData": "supplier_name",
+                    "className": "font-weight-bold text-info"
+                },
+                {
+                    "mData": "pay_cash",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "pay_cc",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "pay_chq",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "className": "td_max_width",
+                    "mData": "pay_chq_date",
+                    "render": function (pay_chq_date, type, full, meta) {
+                        if (full.pay_chq > 0) {
+                            if (full.pay_chq_date != '01/01/1900')
+                                return '<span class="fw-bold">' + full.pay_chq_bank + '</span> <br> <span class="text-info fw-bold">' + full.pay_chq_no + " - " + full.pay_chq_date + '</span>'
+                            else
+                                return '<span></span>'
+                        }
+                        else
+                            return '<span></span>'
+                    }
+                },
+                {
+                    "mData": "pay_bt",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "pay_allocated",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "total_paid",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "pay_status",
+                    "className": 'text-center',
+                    "render": function (pay_status, type, full, meta) {
+                        var pay_status = full.pay_status;
+                        if (pay_status === "Cleared") {
+                            return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;">Cleared</button>'
+                        }
+                        else if (pay_status === "Submitted") {
+                            return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;">Submited</button>'
+                        }
+                        else if (pay_status === "Deleted") {
+                            return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;">Deleted</button>'
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "mData": "madeby",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "payId",
+                    "className": 'text-center',
+                    "render": function (payId, type, full, meta) {
+                        var pay_status2 = full.pay_status2;
+                        if (pay_status2 === "Posted") {
+                            return '<button type="button" class="badge rounded-pill bg-primary mt-2 border-primary" style="width: 60px;">Posted</button>'
+                        }
+                        else if (pay_status2 === "Pending") {
+                            return '<button type="button" class="badge rounded-pill bg-info mt-2 border-info" style="width: 60px;">Pending</button>'
+                        }
+                        else if (pay_status2 === "Deleted") {
+                            return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;">Deleted</button>'
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "mData": "pay_chq_bank",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "pay_chq_no",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "pay_chq_date",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "pay_notes",
+                    "orderable": false,
+                    "searchable": false,
+                },
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "select-checkbox text-center inbox-small-cells",
+                    'checkboxes': {
+                        'selectRow': true
+                    }
+                },
+                {
+                    "aTargets": [6],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [7],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [8],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [10],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [11],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [12],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [14],
+                    "visible": false
+
+                },
+                {
+                    "aTargets": [16],
+                    "visible": false
+
+                },
+                {
+                    "aTargets": [17],
+                    "visible": false
+
+                },
+                {
+                    "aTargets": [18],
+                    "visible": false
+
+                },
+                {
+                    "aTargets": [19],
+                    "visible": false
+
+                },
+            ],
+            select: {
+                style: 'multi',
+                selector: 'td:first-child'
+            },
+            order: [[2, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Purchase Invoice Payments Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 10, 11, 12, 13, 14, 15, 19]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Purchase Invoice Payments Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 10, 11, 12, 13, 14, 15, 19]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Purchase Invoice Payments Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 10, 11, 12, 13, 14, 15, 19]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Purchase Invoice Payments Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 10, 11, 12, 13, 14, 15, 19]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Date / Branch / Accounts </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            "drawCallback": function () {
+                $("#tbl_invoicepayments tr").each(function () {
+                    if ($(this).find("td:eq(13)").text().trim() === "Deleted" || $(this).find("td:eq(14)").text().trim() === "Posted") {
+                        $($(this)).find("td:eq(0)").find("input[type='checkbox']").remove();
+                    }
+
+                });
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                // Total Cash
+                _cash = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(6).footer()).html(numFormat(_cash));
+
+                // Total Card
+                _card = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(7).footer()).html(numFormat(_card));
+
+                // Total Cheque
+                _chq = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(8).footer()).html(numFormat(_chq));
+
+                // Total Bank Transfer
+                total_bt = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(10).footer()).html(numFormat(total_bt));
+
+                // Total Paid
+                total_ = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(11).footer()).html(numFormat(total_));
+
+                // Total Paid
+                total_ = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(12).footer()).html(numFormat(total_));
+
+            }
+        });
+        table.buttons().container().appendTo('#tbl_paymentsView_wrapper .col-md-6:eq(0)');
+
+        resizedt_name('tbl_paymentsView');
+    }
+    //#endregion Bind Datatable
+</script>

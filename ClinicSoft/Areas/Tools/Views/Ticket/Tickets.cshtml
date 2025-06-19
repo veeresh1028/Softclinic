@@ -1,0 +1,889 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "My Tickets";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<style>
+    .mright {
+        margin-left: 5px !important;
+        border-radius: 3px !important;
+    }
+
+    .mleft {
+        margin-right: 5px !important;
+        border-radius: 3px !important;
+    }
+
+    .dataTables_scrollBody {
+        min-height: 400px !important;
+    }
+</style>
+<link href="~/assets/plugins/morris/morris.css" rel="stylesheet" />
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">My Tickets</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <input type="hidden" id="hi_branch_selected" value="0" />
+                    <div class="row">
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch</label>
+                                @Html.DropDownList("select_branch", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Please Select", new { @class = "form-select select2" })
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Priority</label>
+                                <select id="select_priority" class="form-select select2"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">To Department</label>
+                                <select id="select_department" class="form-select mb-4" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Code</label>
+                            </div>
+                            <input id="txt_code" class="form-control" placeholder="Enter Ticket Code" type="text" autocomplete="off">
+                        </div>
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date From</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date To</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Status<small>(es)</small></label>
+                                <select id="select_status" class="form-control mb-4" multiple="multiple"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <i class="fa fa-ban"></i> @TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    else if (TempData["InfoMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">×</button>
+                <i class="fa fa-info-circle"></i> @TempData["InfoMessage"]
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="TicketAlert"></div>
+    </div>
+    <div class="col-md-12 col-lg-2 col-xl-2">
+        <div class="card">
+            <div class="list-group list-group-transparent mb-0 mail-inbox mail-inbox-elements pb-3">
+                <div class="mt-4 mb-4 ms-4 me-4 text-center">
+                    <button class="btn btn-primary d-grid" style="width:100% !important;" type="button" id="btn_compose">
+                        Compose Ticket
+                    </button>
+                </div>
+                <a href="javascript:void(0);" class="list-group-item list-group-item-action d-flex align-items-center font-weight-bold text-muted mb-2">
+                    <i class="fe fe-inbox fs-18 me-5 ms-2 text-muted"></i>Open <span class="ms-auto badge bg-azure me-2" id="t_open">0</span>
+                </a>
+                <a href="javascript:void(0);" class="list-group-item list-group-item-action d-flex align-items-center font-weight-bold text-muted mb-2">
+                    <i class="fa fa-hourglass-2 fs-18 me-5 ms-2 text-muted"></i>In Progress <span class="ms-auto badge bg-green-light me-2" id="t_progress">0</span>
+                </a>
+                <a href="javascript:void(0);" class="list-group-item list-group-item-action d-flex align-items-center font-weight-bold text-muted mb-2">
+                    <i class="fe fe-alert-octagon fs-18 me-5 ms-2 text-muted"></i> On Hold <span class="ms-auto badge bg-warning me-2" id="t_hold">0</span>
+                </a>
+                <a href="javascript:void(0);" class="list-group-item list-group-item-action d-flex align-items-center font-weight-bold text-muted mb-2">
+                    <i class="fe fe-briefcase fs-18 me-5 ms-2 text-muted"></i> Closed <span class="ms-auto badge bg-success me-2" id="t_closed">0</span>
+                </a>
+                <a href="javascript:void(0);" class="list-group-item list-group-item-action d-flex align-items-center font-weight-bold text-muted mb-2">
+                    <i class="fe fe-tag fs-18 me-5 ms-2 text-muted"></i> Cancelled <span class="ms-auto badge bg-danger me-2" id="t_cancelled">0</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 col-lg-10 col-xl-10">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-status bg-blue"></div>
+                <div class="card-body">
+                    <div id="progress-loader" style="display:none;">
+                        <div class="progress progress-sm mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                        </div>
+                    </div>
+                    <div class="inbox-body">
+                        <div class="table-responsive">
+                            <table id="tbl_tickets" class="table table-inbox table-hover text-nowrap resize-table" style="width: 100%; cursor: pointer; color: #000 !important;">
+                                <thead>
+                                    <tr style="color: #000 !important;">
+                                        <th class="border-bottom-0 font-weight-semibold">Code</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Priority</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Created on</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Department</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Subject</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Status</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Created By</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Reminder on</th>
+                                        <th class="border-bottom-0 font-weight-semibold">Closed</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-center">@*<i class="fe fe-more-vertical" style="font-size: 20px;"></i>*@</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@* Compose Ticket popup Model *@
+<div class="modal fade fade overflow-auto" id="compose_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="compose_body">
+        </div>
+    </div>
+</div>
+
+@* Ticket Reminder Message popup Model *@
+<div class="modal fade fade overflow-auto" id="reminder_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="reminder_body">
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ticket Attachments popup Model -->
+<div class="modal fade overflow-auto" id="attachments_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="TicketAttachments">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="attachments_body">
+        </div>
+    </div>
+</div>
+
+<!-- Modal View Ticket Detail popup Model -->
+<div class="modal fade overflow-auto" id="TicketDetail_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="TicketDetail_body">
+        </div>
+    </div>
+</div>
+
+<!-- Modal View Ticket Comments popup Model -->
+<div class="modal fade overflow-auto" id="Comments_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" id="size">
+        <div class="modal-content" id="Comments_body">
+        </div>
+    </div>
+</div>
+
+
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            $('#select_branch').select2({
+                minimumResultsForSearch: '',
+                placeholder: 'Select Branch',
+                width: '100%'
+            });
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            load_status();
+            load_Department();
+            $('#select_priority').select2({
+                minimumResultsForSearch: '-1',
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                width: '100%'
+            });
+            load_priority();
+            $("#select_date_to").bootstrapdatepicker("setDate", "today");
+            $("#select_date_from").bootstrapdatepicker("setDate", "yesterday");
+            var today_date = moment(new Date()).format('MM/DD/YYYY');
+            var tenDaysAgo = moment().subtract(10, 'days').format('MM/DD/YYYY'); // 10 days ago
+            $("#select_date_from").val(moment(tenDaysAgo).format('DD-MMMM-YYYY', 'MM/DD/YYYY'))
+            Get_Tickets(tenDaysAgo, today_date);
+        });
+        //#endregion
+
+        //#region Load Tickets
+        function Get_Tickets(fromdate, todate) {
+            var _data = {                
+                "ticket_to_dept": $('#select_credit').val(),
+                "ticket_priority": $('#select_credit').val(),
+                "ticket_code": $('#txt_code').val().trim(),
+                "ticket_subject": $('#txt_code').val().trim(),
+                "ticket_status": $('#select_status').val().toString(),
+                "ticket_date_from": fromdate,
+                "ticket_date_to": todate
+            }
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetTickets", "Ticket", new { area = "Tools"})",
+                dataType: 'json',
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    
+                    if (response.ticket_List.ticketList[0] != null && response.ticket_List.ticketList[0] != undefined) {
+
+                        if (response.ticket_List.ticketList[0].open_ticket > 0) {
+                            $('#t_open').text(response.ticket_List.ticketList[0].open_ticket);
+                            $('#t_open').show();
+                        }
+                        else {
+                            $('#t_open').hide();
+                        }
+                        if (response.ticket_List.ticketList[0].progress_ticket > 0) {
+                            $('#t_progress').text(response.ticket_List.ticketList[0].progress_ticket);
+                            $('#t_progress').show();
+                        }
+                        else {
+                            $('#t_progress').hide();
+                        }
+
+                        if (response.ticket_List.ticketList[0].hold_ticket > 0) {
+                            $('#t_hold').text(response.ticket_List.ticketList[0].hold_ticket);
+                            $('#t_hold').show();
+                        }
+                        else {
+                            $('#t_hold').hide();
+                        }
+
+                        if (response.ticket_List.ticketList[0].closed_ticket > 0) {
+                            $('#t_closed').text(response.ticket_List.ticketList[0].closed_ticket);
+                            $('#t_closed').show();
+                        }
+                        else {
+                            $('#t_closed').hide();
+                        }
+
+                        if (response.ticket_List.ticketList[0].cancelled_ticket > 0) {
+                            $('#t_cancelled').text(response.ticket_List.ticketList[0].cancelled_ticket);
+                            $('#t_cancelled').show();
+                        }
+                        else {
+                            $('#t_cancelled').hide();
+                        }
+                    }
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_tickets')) {
+                            table = $('#tbl_tickets').DataTable();
+                            table.clear();
+                            table.rows.add(response.ticket_List.ticketList).draw();
+                        }
+                        else {
+                            BindDataTable(response.ticket_List.ticketList);
+                        }
+                    }
+
+                    $('#progress-loader').hide();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $('#progress-loader').hide();
+                    $('#RowsCountToast').hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_tickets").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "ticket_code",
+                    },
+                    {
+                        "orderable": false,
+                        "searchable": false,
+                        "className": 'text-left',
+                        "mData": "ticket_priority",
+                        "render": function (ticket_priority, type, full, meta) {
+                            if (full.ticket_priority === 'Low')
+                                return '<i class="fa fa-star text-lime" title="Low"></i>';
+                            else if (full.ticket_priority === 'Medium')
+                                return '<i class="fa fa-star text-warning" title="Medium"></i>';
+                            else if (full.ticket_priority === 'High')
+                                return '<i class="fa fa-star text-orange" title="High"></i>';
+                            else if (full.ticket_priority === 'Critical')
+                                return '<i class="fa fa-star text-red" title="Critical"></i>';
+                        }
+                    },
+                    {
+                        "mData": "ticket_datecreated",
+                        "render": function (ticket_datecreated, type, full, meta) {
+                            return '<span class="text-info"><i class="fe fe-calendar text-dark"></i>&nbsp;' + moment(ticket_datecreated).format('DD-MM-YYYY', 'MM/DD/YYYY') + '</span><br><span class="text-dark"><i class="fe fe-clock text-dark"> </i>&nbsp;' + moment(ticket_datecreated).format('hh:mm:ss A') + '</span>';
+                        }
+                    },
+                    {
+                        "mData": "ticket_to_dept",
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "ticket_subject"
+                    },
+                    {
+                        "mData": "ticketId",
+                        "className": 'text-left',
+                        "render": function (ticketId, type, full, meta) {
+                            var ticket_status = full.ticket_status;
+                            if (ticket_status === "Open") {
+                                return '<i class="dot-label bg-azure me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-azure">Open</span>'
+                            }
+                            else if (ticket_status === "In Progress") {
+                                return '<i class="dot-label bg-green-light me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-green-light">In Progress</span>'
+                            }
+                            else if (ticket_status === "On Hold") {
+                                return '<i class="dot-label bg-warning me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-warning">On Hold</span>'
+                            }
+                            else if (ticket_status === "Closed") {
+                                return '<i class="dot-label bg-success me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-success">Closed</span>'
+                            }
+                            else if (ticket_status === "Cancelled") {
+                                return '<i class="dot-label bg-danger me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-danger">Cancelled</span>'
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "madeby",
+                        "orderable": false,
+                        "searchable": false,
+                    },
+                    {
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "td_max_width",
+                        "mData": "ticket_reminder_date",
+                        "render": function (ticketId, type, full, meta) {
+                            if (full.ticket_reminder_message != null && full.ticket_reminder_message != "") {
+                                return '<span class="text-info"><i class="fe fe-calendar text-dark"> </i>&nbsp;' + moment(full.ticket_reminder_date).format('DD-MM-YYYY', 'MM/DD/YYYY') + '</span>&nbsp;&nbsp;<span class=" top-0 start-100 translate-middle badge rounded-pill bg-warning" style = "padding-right:6px;padding-left:6px;" > ' + full.reminder_count + ' </span>' + '<br><span class="text-dark"><i class="fe fe-clock text-dark"> </i>&nbsp;' + moment(full.ticket_reminder_date).format('hh:mm:ss A') +'</span>';
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "td_max_width",
+                        "mData": "ticket_closed",
+                        "render": function (ticketId, type, full, meta) {
+                            if (full.ticket_closed != null && full.ticket_closed != "") {
+                                return '<span class="text-info"><i class="fe fe-calendar text-dark"> </i>&nbsp;' + moment(full.ticket_closed).format('DD-MM-YYYY', 'MM/DD/YYYY') + '</span><br><span class="text-dark"><i class="fe fe-clock text-dark"> </i>&nbsp;' + moment(full.ticket_closed).format('hh:mm:ss A') + '</span><br><span class="text-danger font-weight-bold">' + full.ticket_closedby + '</span>';
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "className": "text-center",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (ticket_code, type, full, meta) {
+                            var status = full.ticket_status;
+                            var html_links = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+                            if (status === "Open" || status === "In Progress") {
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick= "SendReminder(\'' + full.ticket_code + '\')" > <i class="fa fa-bell-o text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Reminders</a> ';
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick= "ChangeTicketStatus(\'' + full.ticket_code + '\',\'Closed\')" > <i class="fe fe-briefcase text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Close</a> ';
+                            }
+                            if (status === "Open") {
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick= "ChangeTicketStatus(\'' + full.ticket_code + '\',\'Cancelled\')" > <i class="fe fe-tag text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Cancel</a> ';
+                            }
+                            if (status === "Open" || status === "Closed" || status === "On Hold" || status === "In Progress") {
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick= "TicketComments(\'' + full.ticket_code + '\')" > <i class="fa fa-commenting text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Comments</a > ';
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick="TicketAttachments(\'' + full.ticket_code + '\',\'' + full.ticket_code + '\')"><i class="fa fa-paperclip text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Attachments</a>';
+                            }
+                            html_links += '<a class="dropdown-item text-dark fw-bold" onclick="ViewTicket(\'' + full.ticket_code + '\')"><i class="fa fa-eye text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;View Detail</a>';
+
+                            html_links += '</div></div>';
+                            return html_links;
+                        }
+                    },
+                ],
+                order: [[2, 'desc']],
+                buttons: [
+                    {
+                        text: '<i class=" fa fa-refresh"></i> ',
+                        className: 'btn bg-secondary border-secondary mleft',
+                        action: function (e, dt, node, config) {
+                            search_tickets();
+                        }
+                    }
+                    ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    zeroRecords: "No Record Match - Sorry",
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Date / Department / Subject / Status </span>',
+                    sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_',
+                },
+            });
+            table.buttons().container().appendTo('#tbl_tickets_wrapper .col-md-6:eq(0)');
+
+        }
+        //#endregion Bind Datatable
+
+        //#region load status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+            $('#select_status')[0].sumo.add("Open", "Open");
+            $('#select_status')[0].sumo.add("In Progress", "In Progress");
+            $('#select_status')[0].sumo.add("On Hold", "On Hold");
+            $('#select_status')[0].sumo.add("Closed", "Closed");
+            $('#select_status')[0].sumo.add("Cancelled", "Cancelled");
+
+            $('#select_status')[0].sumo.reload();
+        };
+        //#endregion
+
+        //#region load Departments
+        var load_Department = function () {
+            $('#select_department').SumoSelect({
+                placeholder: 'Select Departments(s)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_department').html('');
+            $('#select_department')[0].sumo.reload();
+            $('#select_department')[0].sumo.add("Administration", "Administration");
+            $('#select_department')[0].sumo.add("Marketing", "Marketing");
+            $('#select_department')[0].sumo.add("IT", "IT");
+            $('#select_department')[0].sumo.add("Technical", "Technical");
+
+            $('#select_department')[0].sumo.reload();
+        };
+        //#endregion
+
+        //#region load Ticket Priority
+        var load_priority = function () {
+            var Low = '<i class="fa fa-star text-lime"></i>&nbsp;&nbsp;Low';
+            newOption = new Option(Low, "Low", true, true);
+            $("#ticket_priority").append(newOption).trigger('change');
+
+            var Medium = '<i class="fa fa-star text-warning"></i>&nbsp;&nbsp;Medium';
+            newOption = new Option(Medium, "Medium", true, true);
+            $("#ticket_priority").append(newOption);
+
+            var High = '<i class="fa fa-star text-orange"></i>&nbsp;&nbsp;High';
+            newOption = new Option(High, "High", true, true);
+            $("#ticket_priority").append(newOption);
+
+            var Critical = '<i class="fa fa-star text-red"></i>&nbsp;&nbsp;Critical';
+            newOption = new Option(Critical, "Critical", true, true);
+            $("#ticket_priority").append(newOption);
+
+            $("#ticket_priority").val("Low").trigger('change');
+        };
+        //#endregion
+
+        //#region Filter on Button Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            let isValid = true;
+            var from_date = moment($('#select_date_from').val().trim(), 'DD-MMMM-YYYY');
+            var to_date = moment($('#select_date_to').val().trim(), 'DD-MMMM-YYYY');
+            // Check if Date From is a valid Date
+            if (from_date != null && from_date != 0 && from_date != "" && from_date != undefined) {
+                if (!from_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid From Date!"
+                    });
+                }
+            }
+            // Check if Date To is a valid Date
+            if (to_date != null && to_date != 0 && to_date != "" && to_date != undefined) {
+                if (!to_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid To Date!"
+                    });
+                }
+            }
+            if ((from_date != null && from_date != 0 && from_date != "" && from_date != undefined) && (to_date != null && to_date != 0 && to_date != "" && to_date != undefined)) {
+                if (from_date.isValid() && to_date.isValid()) {
+                    if (to_date.diff(from_date, 'days') <= 0) {
+                        isValid = false;
+                        var index = [];
+                        index.push("select_date_from_app");
+                        index.push("select_date_to_app");
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+
+                        e.stopPropagation();
+
+                        return $.growl.error({
+                            title: "Error!",
+                            message: "Filter From Date should be less than To Date!"
+                        });
+                    }
+                }
+            }
+            if (isValid) {
+                search_tickets();
+                $('#searchFilter').collapse('toggle');
+            }
+        });
+        //#endregion
+
+        //#region Search Tickets
+        var search_tickets = function () {
+            var from_date = $('#select_date_from').val().trim();
+            var to_date = $('#select_date_to').val().trim();
+            Get_Tickets(from_date, to_date);
+        }
+        //#endregion
+
+        //#region Compose Ticket
+        $('#btn_compose').click(function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ComposeTicket", "Ticket", new { area = "Tools" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#compose_body").html(data);
+                    $("#compose_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        });
+        //#endregion
+
+        //#region Open Reminder Message Model
+        function SendReminder(code) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ReminderMessage", "Ticket", new { area = "Tools" })?code=" + code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#reminder_body").html(data);
+                    $("#reminder_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Ticket Attachments
+        var TicketAttachments = function (ticket_code, ticket_code1) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("TicketAttachments", "Ticket", new { area = "Tools" })?ticket_code=" + ticket_code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#attachments_body").html(response);
+                    $("#attachments_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Ticket Status Change
+        var ChangeTicketStatus = function (code, status) {
+            var _title = "";
+            var _text = "";
+            if (status == "Cancelled") {
+                _title = "Are you sure you want to Cancelled ?";
+                _text = "This action will Cancelled the selected Ticket!";
+            }
+            else {
+                _title = "Are you sure you want to Close ?";
+                _text = "This action will close the selected Ticket";
+            }
+            Swal.fire({
+                title: _title,
+                text: _text,
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("TicketStatus", "Ticket", new { area = "Tools" })?data=" + code + "&status=" + status,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            if (data.isUpdated) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Status Changed Successfully!!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                                search_tickets();
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Change Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            })
+                        }
+                    });
+                }
+            });
+        };
+        //#endregion
+
+        //#region Ticket Attachments
+        var ViewTicket = function (ticket_code) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ViewTicketDetail", "Ticket", new { area = "Tools" })?Code=" + ticket_code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#TicketDetail_body").html(response);
+                    $("#TicketDetail_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Ticket Comments View and Insert
+        var TicketComments = function (ticket_code) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("TicketComments", "Ticket", new { area = "Tools" })?Code=" + ticket_code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#Comments_body").html(response);
+                    $("#Comments_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Resizing Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        //#endregion
+
+        //#region Remove Valiate Error Class Timeout
+        function Error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 4200);
+        }
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+//#endregion
+
+    </script>
+}

@@ -1,0 +1,1940 @@
+﻿@model BusinessEntities.EMR.PatientTreatments
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    var id = TempData["Layout"] as string;
+    var layoutPath = string.IsNullOrEmpty(id) ? "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml" : null;
+    Layout = layoutPath;
+}
+
+<style type="text/css">
+    #tbl_cashtreatments_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+
+    #tbl_Precashtreatments_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: auto;
+    }
+</style>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm  mb-2">
+            <div class="card-header d-flex justify-content-between">
+                <h3 class="card-title text-primary fs-16">Cash Treatments & Procedures</h3>
+                <span class="text-danger font-weight-semibold" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+            <div class="card-body">
+                <div id="cashtreatment_add" style="display:none;"></div>
+
+                <div id="cashtreatment_edit"></div>
+
+                <div class="row pb-2">
+                    <div class="col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div id="errorCreate"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 col-md-6 col-lg-5 div-multibill">
+                <div class="card border shadow-none p-0 overflow-hidden font-weight-semibold mb-0 br-3 bg-secondary-transparent text-secondary border-secondary">
+                    <div class="card-body  pb-0 pt-0">
+                        <div class="row">
+                            <div class="col-sm-6 col-md-6 col-lg-4">
+                                <div class="btn-animation">
+                                    <label class="mt-0">&nbsp;</label>
+                                    <div class="wd-150 mg-b-30">
+                                        <label class="custom-switch mb-0">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark fs-12">Enable Quotation</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="Enableby($(this).is(':checked'))" id="chkBT">
+                                            <span class="custom-switch-indicator custom-switch-indicator-warning"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ol-sm-6 col-md-6 col-lg-5 btn-qtn d-none">
+                                <div class="btn-animation">
+                                    <label class="mt-0 mb-0">&nbsp;</label>
+                                    <div class="wd-150 mg-b-30">
+                                        <div class="input-group">
+                                            <button type="submit" class="btn btn-success ms-lg-2 p-2" id="btn_Quotation">Quotation</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-6 col-lg-5">
+                                <label class="mt-0 text-dark font-weight-semibold"></label>
+                                <div class="wd-150 mg-b-30">
+                                    <div class="form-group btn-preinv">
+                                        @Html.DropDownListFor(m => m.prev_invoices, new SelectList(Model.InvNosList, "id", "text"), "Select Invoice", new { @class = "form-select select2" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-6 col-lg-3 btn-inv">
+                                <div class="btn-animation">
+                                    <label class="mt-0 mb-0">&nbsp;</label>
+                                    <div class="wd-150 mg-b-30">
+                                        <div class="input-group">
+                                            <button type="submit" class="btn btn-danger ms-lg-2 p-2" id="btn_generateCashInvoice">Generate Invoice</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-7">
+                <form id="form_add_treat" class="needs-validation" autocomplete="off">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="hiInvId" value="0" />
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6 col-lg-5">
+                            <div class="bg-cyan-transparent text-cyan border-cyan card border shadow-none p-0 overflow-hidden font-weight-semibold mb-0 br-3">
+                                <div class="card-body  pb-1 pt-1">
+                                    <div class="row mb-0">
+                                        <div class="col-sm-6 col-md-6 col-lg-5">
+                                            <label class="mt-0 text-dark font-weight-semibold">Update Status</label>
+                                            <div class="wd-150 mg-b-30">
+                                                <div class="input-group">
+                                                    @Html.DropDownListFor(m => m.pt_status, new List<SelectListItem>
+                                                     {
+                                                        new SelectListItem{ Text="Approved", Value = "Approved" },
+                                                        new SelectListItem{ Text="Rejected", Value = "Rejected" },
+                                                        new SelectListItem{ Text="In Review", Value = "In Review" },
+                                                        new SelectListItem{ Text="Cancelled", Value = "Cancelled" },
+                                                        new SelectListItem{ Text="Existing", Value = "Existing" },
+                                                        new SelectListItem{ Text="Plan", Value = "Plan" },
+                                                        new SelectListItem{ Text="Completed", Value = "Completed" },
+                                                        new SelectListItem{ Text="Declined", Value = "Declined" }
+                                                     }, "Select Status", new { @class = "form-select select2", @id = "upt_status" })
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6 col-md-6 col-lg-7">
+                                            <div class="btn-animation">
+                                                <label class="mt-0">&nbsp;</label>
+                                                <div class="wd-150 mg-b-30">
+                                                    <div class="input-group">
+                                                        <button type="submit" class="btn btn-warning" id="btn_Update_Status">Update</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-7 ps-0">
+                            <div class="bg-success-transparent text-cyan border-cyan card border shadow-none p-0 overflow-hidden font-weight-semibold mb-0 br-3">
+                                <div class="card-body  pb-1 pt-1">
+                                    <div class="row mb-0">
+                                        <div class="col-sm-12 col-md-6 col-lg-4">
+                                            <label class="mt-0 text-dark font-weight-semibold">Start Time</label>
+                                            <div class="wd-150 mg-b-30">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <div class="input-group-text">
+                                                            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 24 24" width="18"><path d="M0 0h24v24H0V0z" fill="none" /><path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm4.25 12.15L11 13V7h1.5v5.25l4.5 2.67-.75 1.23z" opacity=".3" /><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                                                        </div>
+                                                    </div>
+                                                    <input class="form-control" id="smc_2" placeholder="Set time" type="text">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12 col-md-6 col-lg-4">
+                                            <label class="mt-0 text-dark font-weight-semibold">End Time</label>
+                                            <div class="wd-150 mg-b-30">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <div class="input-group-text">
+                                                            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 24 24" width="18"><path d="M0 0h24v24H0V0z" fill="none" /><path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm4.25 12.15L11 13V7h1.5v5.25l4.5 2.67-.75 1.23z" opacity=".3" /><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                                                        </div>
+                                                    </div>
+                                                    <input class="form-control" id="smc_3" placeholder="Set time" type="text">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12 col-md-6 col-lg-4">
+                                            <div class="btn-animation">
+                                                <label class="mt-0">&nbsp;</label>
+                                                <div class="wd-150 mg-b-30">
+                                                    <div class="input-group">
+                                                        <button type="submit" class="btn btn-cyan ms-lg-2" id="btn_update_startendtime">Save Changes</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm mt-2">
+            <div class="card-body">
+
+                <div class="table-responsive mt-4" id="cashtreat">
+                    <table id="tbl_cashtreatments" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Invoice#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">CPT<br /> Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Start<br /> Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">End <br />Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatment</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Session</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">EXP.<br /> Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Unit<br /> Price</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Gross</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Discount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Net</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT<br /> Amount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET+VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Lab<br /> Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor<br /> Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Coupon</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Coupon<br />Disc</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h3 class="card-title fs-16 text-primary">Previous Appointment(s) History</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_Precashtreatments" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">CPT<br /> Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatment</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Session</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">EXP.<br /> Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Unit<br /> Price</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Gross</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Discount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Net</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT<br /> Amount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET+VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Lab<br /> Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor<br /> Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Treatment Items Details -->
+<div class="modal fade overflow-auto" id="treatment_item_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="treatment_item_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Treatment Items Details -->
+<!-- Modal Treatment Attachments Details -->
+<div class="modal fade overflow-auto" id="treatment_attachments_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="treatment_attachments_details_body">
+        </div>
+    </div>
+</div>
+<!-- Modal New Receipts -->
+<div class="modal fade overflow-auto" id="new_receipts" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="new_receipts_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal New Receipts -->
+<!-- INTERNAL Time picker css -->
+<link href="~/assets/plugins/time-picker/jquery.timepicker.css" rel="stylesheet" />
+
+<!-- INTERNAL Timepicker js -->
+<script src="~/assets/plugins/time-picker/jquery.timepicker.js"></script>
+<script src="~/assets/plugins/time-picker/toggles.min.js"></script>
+
+<script type="text/javascript">
+    var isInvoiced = true;
+    var isRecEnabled = false;
+
+    //#region Page Load
+    $(function () {
+        $(document).on('select2:open', () => {
+            document.querySelector('.select2-search__field').focus();
+        });
+
+        $("body").addClass("app sidebar-mini sidenav-toggled");
+
+        AddCashTreatment();
+        GetCashTreatment();
+        GetPreviousCashTreatment();
+
+        $("#cashtreatment_add").show();
+
+        $("#upt_status").select2({
+            placeholder: 'Select Status',
+            width: '100%',
+            dropdownParent: $('#form_add_treat')
+        });
+        $('#smc_2').timepicker();
+        $('#smc_3').timepicker();
+    });
+    //#endregion
+
+    //#region Enable Qutation/Reciept
+        var Enableby = function (isChecked) {
+            if (isChecked) {
+                isRecEnabled = true;
+            }
+            else {
+                isRecEnabled = false;
+            }
+            GetCashTreatment();
+        }
+    //#endregion
+
+    //#region Load CashTreatments
+        var GetCashTreatment = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPatientTreatments", "PatientTreatments", new { area = "EMR" })?appId=" + "@emr.appId" + "&pt_type=Cash",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_cashtreatments')) {
+                            table = $('#tbl_cashtreatments').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTableCashTreat(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt();
+                if (@emr.multi_bill == "1") {
+                    $('.btn-cash').addClass('d-none');
+                    $('.div-multibill').removeClass('d-none');
+                } else {
+                    $('.btn-cash').removeClass('d-none');
+                    $('.div-multibill').addClass('d-none');
+                }
+                $('.btn-Receipt').addClass('d-none');
+                $('.btn-Quotation').addClass('d-none');
+                if (isRecEnabled == false) {
+                    //$('.btn-Receipt').addClass('d-none');
+                    $('.btn-Quotation').addClass('d-none');
+                    $('.btn-qtn').addClass('d-none');
+                    if (@emr.multi_bill == "1") {
+                        $('.btn-cash').addClass('d-none');
+                        $('.btn-inv').removeClass('d-none');
+                        $('.btn-preinv').removeClass('d-none');
+                    } else {
+                        $('.btn-cash').removeClass('d-none');
+                        $('.btn-inv').addClass('d-none');
+                        $('.btn-preinv').addClass('d-none');
+                    }
+                    $('.btn-pack').removeClass('d-none');
+                } else {
+                    //$('.btn-Receipt').removeClass('d-none');
+                   if (@emr.multi_bill == "1") {
+                         $('.btn-Quotation').addClass('d-none');
+                         $('.btn-qtn').removeClass('d-none');
+                     } else {
+                         $('.btn-Quotation').removeClass('d-none');
+                         $('.btn-qtn').addClass('d-none');
+                     }
+                    $('.btn-cash').addClass('d-none');
+                    $('.btn-inv').addClass('d-none');
+                    $('.btn-preinv').addClass('d-none');
+                    $('.btn-pack').addClass('d-none');
+                }
+            });
+        }
+    //#endregion
+
+    //#region Load PreviousCashTreatments
+        var GetPreviousCashTreatment = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPrePatientTreatments", "PatientTreatments", new { area = "EMR" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId + "&pt_type=Cash",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_Precashtreatments')) {
+                            table = $('#tbl_Precashtreatments').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTableCashTreatP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();;
+                });
+        }
+    //#endregion
+
+    //#region Bind Datatable
+        var BindDataTableCashTreat = function (response) {
+
+            var table = $("#tbl_cashtreatments").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        },
+                        //"render": function (data, type, row, meta) {
+                        //    if (row.pt_status !== "Invoiced") {
+                        //        return '<input type="checkbox" class="select-checkbox" />';
+                        //    }
+                        //    else {
+                        //        if (isRecEnabled) {
+                        //            return '<input type="checkbox" class="select-checkbox" />';
+                        //        }
+                        //        else {
+                        //            return '';
+                        //        }
+                        //    }
+                        //}
+                    },
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+
+                    {
+                        "mData": "ptId",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_invno",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "tr_code",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_date_received",
+                        "render": function (pt_date_received, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(pt_date_received).format(' HH:mm');
+                            }
+                            return pt_date_received;
+                        }
+
+                    },
+                    {
+                        "mData": "pt_date_collected",
+                        "render": function (pt_date_collected, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(pt_date_collected).format(' HH:mm');
+                            }
+                            return pt_date_collected;
+                        }
+
+                    },
+
+                    {
+                        "mData": "tr_name_type",
+                        "className": 'text-wrap text-justify',
+
+                    },
+                    {
+                        "mData": "pt_qty",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_ses",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_pack_exp_date",
+                        "render": function (pt_pack_exp_date, type, full, meta) {
+                            if (pt_pack_exp_date > '01-01-2020') {
+
+                                if (type === 'display' || type === 'filter') {
+                                    return moment(pt_pack_exp_date).format('DD-MM-YYYY');
+                                }
+                                return pt_pack_exp_date;
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+
+                    },
+                    {
+                        "mData": "pt_uprice",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                        {
+                            "mData": "pt_total",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                        {
+                            "mData": "pt_disc",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                        {
+                            "mData": "pt_net",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_vat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_net_vat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_status",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_lab_status",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_tdn_notes",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_coupon",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_coupon_disc",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "ptId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (ptId, type, full, meta) {
+                            var allocated = full.isAllocated;
+                            var status = full.pt_status;
+
+                            var more = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            var edit_and_delete = '<a class="edit dropdown-item text-dark fw-bold" onclick="EditCashTreatment(\'' + ptId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Edit</a>' +
+                                '<a class="dropdown-item text-dark fw-bold" onclick="DeleteCashTreatments(\'' + ptId + '\',\'' + status + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Delete</a>' +
+                                '<a class="dropdown-item text-dark fw-bold" onclick="AddItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                '<a class="dropdown-item text-dark fw-bold remrk" onclick="AddAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                '</div>' +
+                                '</div>';
+
+                            var no_edit = '<a class="dropdown-item text-dark fw-bold" onclick="DeleteCashTreatments(\'' + ptId + '\',\'' + status + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Delete</a>' +
+                                '<a class="dropdown-item text-dark fw-bold" onclick="AddItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                '<a class="dropdown-item text-dark fw-bold remrk" onclick="AddAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                '</div>' +
+                                '</div>';
+
+                            var no_delete = '<a class="edit dropdown-item text-dark fw-bold" onclick="EditCashTreatment(\'' + ptId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Edit</a>' +
+                                '<a class="dropdown-item text-dark fw-bold" onclick="AddItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                '<a class="dropdown-item text-dark fw-bold remrk" onclick="AddAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                '</div>' +
+                                '</div>';
+
+                            var no_edit_and_no_delete = '<a class="dropdown-item text-dark fw-bold" onclick="AddItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                '<a class="dropdown-item text-dark fw-bold remrk" onclick="AddAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                '</div>' +
+                                '</div>';
+
+                            if (allocated == 0) {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    more += edit_and_delete;
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        more += edit_and_delete;
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            more += edit_and_delete;
+                                        }
+                                        else {
+                                            if (status == "Approved" || status == "Rejected" || status == "Partially Approved") {
+                                                more += no_edit;
+                                            }
+                                            else {
+                                                more += edit_and_delete;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    more += no_delete;
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        more += no_delete;
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            more += no_delete;
+                                        }
+                                        else {
+                                            if (status == "Approved" || status == "Rejected" || status == "Partially Approved") {
+                                                more += no_edit_and_no_delete;
+                                            }
+                                            else {
+                                                more += no_delete;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            return more;
+                        }
+                    },
+                    //hiden column
+                    {
+                        "mData": "tr_type",
+                        "visible": false
+                    }
+                ],
+                order: [[2, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Treatment</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                searching: false,
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Cash Treatments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Cash Treatments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Cash Treatments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Cash Treatments',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4]
+                        }
+                    },
+                    {
+                        text: '<i class="fe fe-check-circle"></i> Generate Invoice',
+                        className: 'btn-success ms-2 btn-cash',
+                        action: function (e, dt, node, config) {
+                            GenerateInvoice();
+                        }
+                    },
+                    {
+                        text: '<i class="fa fa-money"></i> Receipts',
+                        className: 'btn btn-outline-success ms-2 btn-Receipt',
+                        action: function (e, dt, node, config) {
+                            e.preventDefault();
+
+                            generateReceipts();
+                        }
+                    },
+                    {
+                        text: '<label class="custom-switch mb-0"><span class="custom-switch-description me-2 font-weight-bold text-white fs-12">Enable Quotation</span><input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" id="chkBT"><span class="custom-switch-indicator custom-switch-indicator-warning"></span></label>',
+                        className: 'btn btn-outline-success ms-2 btn-Enable',
+                        init: function (dt, node, config) {
+                            // Prevent button from triggering DataTables sorting on click
+                            $(node).on('click', function (e) {
+                                e.stopPropagation();
+                            });
+
+                            // Prevent checkbox from toggling its state when clicked directly
+                            $(node).find('.custom-switch-input').on('click', function (e) {
+                                e.stopPropagation();
+                            });
+                        },
+                        action: function (e, dt, node, config) {
+                            // Access the checkbox element
+                            var checkbox = $(node).find('.custom-switch-input');
+
+                            // Toggle checkbox state
+                            checkbox.prop('checked', !checkbox.prop('checked'));
+
+                            // Trigger the Enableby function with the new checkbox state
+                            Enableby(checkbox.prop('checked'));
+                        }
+                    },
+                    {
+                        text: '<i class="fe fe-layers"></i> Quotation',
+                        className: 'btn btn-outline-success ms-2 btn-Quotation',
+                        action: function (e, dt, node, config) {
+                            Print_Quotation()
+                        }
+                    },
+                    {
+                        text: '<i class="fe fe-layers"></i> Create Package',
+                        className: 'btn btn-outline-success ms-2 btn-pack',
+                        action: function (e, dt, node, config) {
+                            Create_Package()
+                        }
+                    },
+                ],
+                rowCallback: function (row, data, index) {
+                    debugger;
+                    if (data.pt_status === "Invoiced") {
+                        if (!isRecEnabled) {
+                            $('td:eq(0)', row).find("input[type=checkbox]").remove();
+                        }
+                        else {
+                            $('td:eq(0)', row).find("input[type=checkbox]").add();
+                        }
+                    }
+                    else {
+                        $('td:eq(0)', row).find("input[type=checkbox]").add();
+                    }
+                }
+            });
+            table.buttons().container().appendTo('#tbl_cashtreatments_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion
+
+    //#region Previous Bind Datatable
+        var BindDataTableCashTreatP = function (response) {
+            var table = $("#tbl_Precashtreatments").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+
+
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "tr_code",
+                        "render": function (tr_code, type, full, meta) {
+                            var _html = tr_code;
+                            var req = full.tr_norm_range;
+
+                            if (req == "Yes") {
+                                _html += "<br /> <span class='text-danger'>(Attachment Required!)</span>";
+                            }
+
+                            return _html;
+                        }
+
+                    },
+                    {
+                        "mData": "tr_name_type",
+                        "className": 'text-wrap text-justify',
+
+                    },
+                    {
+                        "mData": "pt_qty",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_ses",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_pack_exp_date",
+                        "render": function (pt_pack_exp_date, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(pt_pack_exp_date).format('DD-MM-YYYY');
+                            }
+                            return moment(pt_pack_exp_date).format("YYYY-MM-DD");
+                        }
+
+                    },
+                    {
+                        "mData": "pt_uprice",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_total",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_disc",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_net",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_vat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_net_vat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_status",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_lab_status",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_tdn_notes",
+                        "className": 'text-wrap text-justify',
+
+                    },
+
+                    {
+                        "mData": "ptId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (ptId, type, full, meta) {
+                            var Action = '';
+                            //Copy Data
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_PadTreatment  onclick="CopyPrevious(' + ptId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" != "NoLock") {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            Action += '<a id=btn_Copy_PadTreatment  onclick="CopyPrevious(' + ptId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                        }
+                                        else {
+                                            Action += ''
+                                            }
+                                    }
+                                    else {
+                                        Action += '<a id=btn_Copy_PadTreatment  onclick="CopyPrevious(' + ptId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                    }
+                                }
+
+                                return Action;
+                            }
+                    },
+
+                ],
+                order: [[3, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Treatment</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous Cash Treatments',
+                        footer: 'true',
+                        className:'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous Cash Treatments',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous Cash Treatments',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous Cash Treatments',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_Precashtreatments_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add Cash Treatments
+        function AddCashTreatment() {
+            $('#cashtreatment_edit').hide();
+            var x = $("#cashtreatment_add");
+            x.load("@Url.Action("CreateCashTreatment", "PatientTreatments", new { area = "EMR" })?appId=" + @emr.appId, function () {
+                $("#cashtreatment_add").show();
+            })
+
+        }
+    //#endregion Add Cash Treatments
+
+    //#region Edit Cash Treatments
+        function EditCashTreatment(ptId) {
+            $('#cashtreatment_add').hide();
+            var x = $("#cashtreatment_edit");
+            x.load("@Url.Action("EditCashTreat", "PatientTreatments", new { area = "EMR" })?ptId=" + ptId + "&appId=" + @emr.appId, function () {
+                $("#cashtreatment_edit").show();
+            });
+            //hide the Copy Data
+            //var dt = $('#tbl_Prepatdignosis').DataTable();
+            //dt.columns([8]).visible(false);
+
+        }
+    //#endregion Edit Cash Treatments
+
+    //#region Add Items
+        function AddItems(ptId) {
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("TreatmentItems", "TreatmentItems", new { area = "EMR" })?ptId=" + ptId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    localStorage.setItem("ptId", ptId)
+                    $('#treatment_item_details').attr("data-modal-from", "Patient-Treatment");
+                    $("#treatment_item_details_body").html(response);
+                    $("#treatment_item_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+    //#endregion
+
+    //#region Add Attachements
+        function AddAttachements(ptId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("TreatmentAttachements", "TreatmentAttachements", new { area = "EMR" })?ptId=" + ptId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+
+                    $('#treatment_attachments_details').attr("data-modal-from", "Patient-Treatment");
+
+                    $("#treatment_attachments_details_body").html(response);
+
+                    $("#treatment_attachments_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+    //#endregion
+
+    //#region Delete Cash Treatments
+        var DeleteCashTreatments = function (ptId,pt_status) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Treatment ?",
+                text: "The selected Patient Treatment will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteTreatments", "PatientTreatments", new { area = "EMR" })?data=' + ptId + '&pt_status=' + pt_status,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.isSuccess) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Treatments Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetCashTreatment();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Treatments",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Treatments!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Treatments! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetCashTreatment();
+                        }
+                    });
+                }
+            });
+        }
+//#endregion Delete Cash Treatments
+
+    $('#btn_generateCashInvoice').on('click', function (e) {
+        GenerateInvoice();
+    });
+
+    function GenerateInvoice() {
+
+        var table = $("#tbl_cashtreatments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+        if (rows.length > 0) {
+
+            $('#btnBilling').removeClass("btn btn-success");
+            $('#btnBilling').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btnBilling').html("Updating the Record....");
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _dataInsert = {
+                    "ptId": _data.ptId,
+                    "invId": $("#prev_invoices").val(),
+                    "inv_appId": @Model.appId,
+                    "inv_no": '@Model.inv_no',
+                    "pat_code": '@Model.pat_code',
+                    "pat_name": '@Model.pat_name',
+                    "inv_date": '@Model.inv_date',
+                    "inv_total": _data.pt_total,
+                    "inv_tdisc": 0,
+                    "inv_tdisc_type": "Fixed",
+                    "inv_net": _data.pt_net,
+                    "inv_disc": _data.pt_disc_value,
+                    "inv_tded": 0,
+                    "inv_lded": 0,
+                    "inv_rded": 0,
+                    "inv_mded": 0,
+                    "inv_copay": 0,
+                    "inv_dcopay": 0,
+                    "inv_sded": 0,
+                    "inv_pded": 0,
+                    "inv_share": 0,
+                    "inv_notes": "",
+                    "inv_ic_name": "Cash",
+                    "inv_type": "Cash",
+                    "inv_insurance": 1,
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                if (_data.pt_status == "Selected") {
+                    isInvoiced = false;
+                }
+                if (isInvoiced) {
+                    Swal.fire({
+                        title: "This Treatment Alredy Invoiced!",
+                        text: "Select another Treatment !",
+                        icon: "info",
+                        showCancelButton: !0,
+                        confirmButtonText: 'Yes! Proceed',
+                        cancelButtonText: 'No! Cancel Please',
+                        confirmButtonClass: "btn btn-success mt-2",
+                        cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                        buttonsStyling: !1
+                    }).then(function (t) {
+                        if (t.value) {
+                            isInvoiced = false;
+                        }
+                    });
+                }
+                if (!isInvoiced) {
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("GenerateInvoice", "PatientTreatments", new { area = "EMR" })",
+                        dataType: 'JSON',
+                        data: _dataInsert,
+                        success: function (data) {
+                            $("#hiInvId").val(data.invId);
+                            var message = JSON.stringify(data.msg);
+                            $('#btnBilling').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnBilling').addClass("btn btn-success");
+                            $('#btnBilling').html("Save Changes");
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    //var alertPlaceholder = document.getElementById("Alert");
+                                    //function alert(e, t) {
+                                    //    var l = document.createElement("div");
+                                    //    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    //        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    //}
+                                    //alert("<i class='fe fe-check-circle text-white'></i> Invoice Generated Successfully!", "success");
+                                    let html = "<div class='alert alert-success alert-dismissible' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                        "<strong>Success! " + message + "</strong><br/>" +
+                                        "</div>";
+
+                                    $("#error").html(html);
+
+                                    GetCashTreatment();
+                                    Timeout();
+                                   // window.open("@Url.Action("PrintInvoice", "Invoice", new { area = "Invoice" })?invId=" + $("#hiInvId").val(), "Invoice Print")
+
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. " + message + "</strong><br/>" +
+                                        "</div></div>";
+                                    $("#error").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                    "<strong>Error.. " + message + "</strong><br/>" +
+                                    "</div>";
+                                $("#error").html(html);
+                                Timeout();
+                            }
+
+                        },
+                        error: function (xhr) {
+                            $('#btnBilling').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnBilling').addClass("btn btn-success");
+                            $('#btnBilling').html("Save Changes");
+                            Timeout();
+                        }
+                    });
+                }
+            });
+        }
+        else {
+            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                "<div class='alert alert-danger' role='alert'>" +
+                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                "<strong>Warning.. Select One Treatment..</strong><br/>" +
+                "</div></div>";
+            $("#error").html(html);
+        }
+    }
+
+    function EnablePackage(isChecked) {
+        debugger;
+        if (isChecked) {
+            isRecEnabled = true;
+            $('.btn-Quotation').removeClass('d-none');
+            $('.btn-pack').addClass('d-none');
+            $('.btn-cash').addClass('d-none');
+        }
+        else {
+            isRecEnabled = false;
+            $('.btn-Quotation').addClass('d-none');
+            $('.btn-pack').removeClass('d-none');
+            $('.btn-cash').removeClass('d-none');
+        }
+
+    }
+
+    function Create_Package() {
+
+        var table = $("#tbl_cashtreatments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+        if (rows.length > 0) {
+
+            $('#btnBilling').removeClass("btn btn-success");
+            $('#btnBilling').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btnBilling').html("Updating the Record....");
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                var _dataInsert = {
+                    "ptId": _data.ptId,
+                    /*"__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()*/
+                }
+                if (_data.pt_status == "Invoiced") {
+                    isInvoiced = true;
+                }
+                if (!isInvoiced) {
+                    Swal.fire({
+                        title: "Invoice The Selected Treatment To Create Package",
+                        text: "Can't Create Package!",
+                        icon: "info",
+                        showCancelButton: !0,
+                        confirmButtonText: 'Yes! Proceed',
+                        cancelButtonText: 'No! Cancel Please',
+                        confirmButtonClass: "btn btn-success mt-2",
+                        cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                        buttonsStyling: !1,
+                    }).then(function (t) {
+                        if (t.value) {
+                            isInvoiced = true;
+                        }
+                    });
+                }
+                if (isInvoiced) {
+                    $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("CreatePackage", "PatientTreatments", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $("#hiInvId").val(data.invId);
+                        $('#btnBilling').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btnBilling').addClass("btn btn-success");
+                        $('#btnBilling').html("Save Changes");
+                        if (data.isSuccess) {
+                            if (data.invId>0) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Package Created Successfully for the selected Treatment!", "success");
+
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. Notes Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                                Timeout()
+                            }
+                        }
+                        else {
+                            let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                "<strong>Error.. " + data.message + "</strong><br/>" +
+                                "</div>";
+                            $("#error").html(html);
+                            Timeout();
+                        }
+
+                    },
+                    error: function (xhr) {
+                        $('#btnBilling').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btnBilling').addClass("btn btn-success");
+                        $('#btnBilling').html("Save Changes");
+                        Timeout();
+                    }
+                });
+                }
+            });
+        }
+        else {
+            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                "<div class='alert alert-danger' role='alert'>" +
+                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                "<strong>Warning.. Select One Treatment..</strong><br/>" +
+                "</div></div>";
+            $("#error").html(html);
+        }
+    }
+
+    $('#btn_update_status').on('click', function (e) {
+        /* e.preventDefault();*/
+        var table = $("#tbl_cashtreatments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+        if (rows.length > 0) {
+            if ($("#upt_status").val() != null) {
+                $('#btn_collected').removeClass("btn btn-success");
+                $('#btn_collected').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_collected').html("Updating the Record....");
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+                    var _dataInsert = {
+                        "ptId": _data.ptId,
+                        "pt_status": $("#upt_status").val(),
+                        "pt_notes": "",
+                        /*"__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()*/
+                    }
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("UpdatePatientTreatmentStatus", "PatientTreatments", new { area = "EMR" })",
+                        dataType: 'JSON',
+                        data: _dataInsert,
+                        success: function (data) {
+                            $('#btnBilling').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnBilling').addClass("btn btn-success");
+                            $('#btnBilling').html("Save Changes");
+                            if (data.isSuccess) {
+                                if (data.invId > 0) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> Package Created Successfully for the selected Treatment!", "success");
+
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. Package Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#error").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                    "<strong>Error.. " + data.message + "</strong><br/>" +
+                                    "</div>";
+                                $("#error").html(html);
+                                Timeout();
+                            }
+
+                        },
+                        error: function (xhr) {
+                            $('#btnBilling').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnBilling').addClass("btn btn-success");
+                            $('#btnBilling').html("Save Changes");
+                            Timeout();
+                        }
+                    });
+                });
+            }
+
+            else {
+                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                    "<div class='alert alert-danger' role='alert'>" +
+                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                    "<strong>Warning.. Select Any Status To Update..</strong><br/>" +
+                    "</div></div>";
+                $("#error").html(html);
+            }
+
+        }
+        else {
+            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                "<div class='alert alert-danger' role='alert'>" +
+                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                "<strong>Warning.. Select One Treatment..</strong><br/>" +
+                "</div></div>";
+            $("#error").html(html);
+        }
+    });
+
+    //#region Update Time Button Click
+    $('#btn_update_startendtime').on('click', function (e) {
+            e.preventDefault();
+        if ($("#form_add_treat").valid()) {
+
+            var table = $("#tbl_cashtreatments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            if (rows.length > 0) {
+            $('#btn_update_startendtime').removeClass("btn btn-success");
+            $('#btn_update_startendtime').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_update_startendtime').html("Updating the Record....");
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _dataInsert = {
+                    "ptId": _data.ptId,
+                    "pt_date_collected": $("#smc_2").val(),
+                    "pt_date_received": $("#smc_3").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdatePhysicianOrderTime", "PhysicianOrders", new { area = "NurseStation" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#vital_edit').hide();
+                        $('#btn_update_startendtime').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_update_startendtime').addClass("btn btn-success");
+                        $('#btn_update_startendtime').html("Save Changes");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Time Updated Successfully!", "success");
+                                clearControls();
+                                Timeout();
+                                //GetPhysicianOrders();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. Time Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_update_startendtime').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_update_startendtime').addClass("btn btn-success");
+                        $('#btn_update_startendtime').html("Save Changes");
+                        Timeout();
+                    }
+                });
+            });
+
+            }
+            else {
+                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                    "<div class='alert alert-danger' role='alert'>" +
+                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                    "<strong>Warning.. Select One Treatment To update Time..</strong><br/>" +
+                    "</div></div>";
+                $("#error").html(html);
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Time Validation Initialization
+        var validate = function () {
+            $("#form_add_treat").validate({
+                rules: {
+                    smc_2: {
+                        required: true
+                    },
+                    smc_3: {
+                        required: true
+                    },
+
+                },
+                messages: {
+                    smc_2: {
+                        required: "Select Start Time!"
+                    },
+                    smc_3: {
+                        required: "Select End Time!"
+                    },
+
+
+
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+        }
+    //#endregion Time Validation Initialization
+
+    //#region Print Qutation
+    function Print_Quotation() {
+        var table = $("#tbl_cashtreatments").DataTable();
+
+        var rows = $(table.$('input[type="checkbox"]').map(function () {
+            return $(this).prop("checked") ? $(this).closest('tr') : null;
+        }));
+
+        if (rows.length > 0) {
+            var _objArray = [];
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _obj = {
+                    "id": _data.ptId
+                };
+
+                _objArray.push(_obj);
+            });
+
+            var idsString = _objArray.map(obj => obj.id).join(',');
+
+            $.ajax({
+                url: '@Url.Action("Print_Quotation", "PatientTreatments", new { area = "EMR" })',
+                type: "POST",
+                dataType: "json",
+                data: { ids: idsString, appId : "@emr.appId" },
+                async: false,
+                success: function (response) {
+                    if (response.isSuccess) {
+                        window.open(response.fileName);
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Error!",
+                            text: response.errorMessage,
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197",
+                            cancelButtonColor: "#ff3d60"
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        else {
+            Swal.fire({
+                title: "Attention!",
+                text: "Please Select atleast 1 Treatment in the list to Print Quotation!",
+                icon: "info",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197",
+                cancelButtonColor: "#ff3d60"
+            });
+        }
+    }
+    //#endregion
+
+    //#region Print Lab
+    function Print_Lab() {
+
+        var table = $("#tbl_cashtreatments").DataTable();
+        var rows = $(table.$('input[type="checkbox"]').map(function () {
+            return $(this).prop("checked") ? $(this).closest('tr') : null;
+        }));
+
+        if (rows.length > 0) {
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                if (_data.tr_type =="Lab") {
+                    var _obj = {
+                        "id": _data.ptId,
+                    }
+                    $.ajax({
+                        url: '@Url.Action("Print_Quotation", "PatientTreatments", new { area = "EMR" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            if (response.isSuccess == true) {
+                                window.open(response.message.PublicPath)
+
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    })
+
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Please Select Lab Treatment ",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60",
+                    });
+                }
+            });
+        }
+        else {
+            Swal.fire({
+                title: "Attention!",
+                text: "Please Select atleast one Treatment in the list to Print Lab",
+                icon: "warning",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197",
+                cancelButtonColor: "#ff3d60",
+            });
+        }
+    }
+
+    //#endregion Print Lab
+
+    //#region Print Radiology
+    function Print_Radiology() {
+
+        var table = $("#tbl_cashtreatments").DataTable();
+        var rows = $(table.$('input[type="checkbox"]').map(function () {
+            return $(this).prop("checked") ? $(this).closest('tr') : null;
+        }));
+
+        if (rows.length > 0) {
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                if (_data.tr_type =="Radiology") {
+                    var _obj = {
+                        "id": _data.ptId,
+                    }
+                    $.ajax({
+                        url: '@Url.Action("Print_Quotation", "PatientTreatments", new { area = "EMR" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            if (response.isSuccess == true) {
+                                window.open(response.message.PublicPath)
+
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    })
+
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Please Select Radiology Treatment ",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60",
+                    });
+                }
+            });
+        }
+        else {
+            Swal.fire({
+                title: "Attention!",
+                text: "Please Select atleast one Treatment in the list to Print Radiology",
+                icon: "warning",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197",
+                cancelButtonColor: "#ff3d60",
+            });
+        }
+    }
+
+    //#endregion Print Radiology
+
+    //#region Resize Datatable
+    function resizedt() {
+        setTimeout(function () {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }, 350);
+    }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion Alert Timeout
+
+    //#region Generate Receipts
+        function generateReceipts() {
+            var table = $("#tbl_cashtreatments").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            var invoicedTotal = 0;
+            var isInvoiced = true;
+            table.rows().every(function () {
+                var rowData = this.data();
+
+                if (rowData.pt_status === "Invoiced") {
+                    isInvoiced = false;
+                }
+            });
+            if (isInvoiced) {
+                Swal.fire({
+                    title: "Error!",
+                    text: "Please Invoice any One Treatment",
+                    icon: "error",
+                    error: 0,
+                    confirmButtonColor: "#0bb197"
+                });
+            }
+            else {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetInvoiceId", "PatientTreatments", new { area = "EMR" })?inv_appId=" + "@emr.appId",
+                    contentType: "application/json",
+                    success: function (data) {
+                        if (data>0) {
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("InvoiceReceipts", "Receipt", new { area = "Invoice" })?invId=" + data + "&patId=" + "@emr.patId" + "&rec_date=" + moment().format("YYYY-MM-DD"),
+                                contentType: "application/json",
+                                dataType: "html",
+                                success: function (response) {
+                                    $("#new_receipts_body").html(response);
+                                    $("#new_receipts").modal("show");
+
+                                },
+                                error: function (xhr) {
+                                    console.log("Error :" + xhr.statusText);
+                                }
+                            });
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "There is no Invoice to Generate Receipt",
+                                icon: "error",
+                                error: 0,
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+
+        }
+    //#endregion
+</script>

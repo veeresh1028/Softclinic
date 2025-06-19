@@ -1,0 +1,628 @@
+﻿<div class="card mb-3">
+    <div class="card-header">
+        <div class="card-title">
+            Patients (By Scheduling Appointment Process)
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 col-lg-6">
+                <div class="morris-wrapper-demo" id="question_chart" title=""></div>
+            </div>
+            <div class="col-md-6 col-lg-6">
+                <div id="chart_question" class="chartsh" title=""></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="card-title">
+            Patients (By Reception Customer Service)
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 col-lg-6">
+                <div class="morris-wrapper-demo" id="question_chart_rec" title=""></div>
+            </div>
+            <div class="col-md-6 col-lg-6">
+                <div id="chart_question_rec" class="chartsh" title=""></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="card-title">
+            Patients (By Healthcare Professional Manners)
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 col-lg-6">
+                <div class="morris-wrapper-demo" id="professional_chart" title=""></div>
+            </div>
+            <div class="col-md-6 col-lg-6">
+                <div id="chart_professional" class="chartsh" title=""></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="card-title">
+            Patients (By Will You Recommend Us To Others ?)
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 col-lg-6">
+                <div class="morris-wrapper-demo" id="recommend_chart" title=""></div>
+            </div>
+            <div class="col-md-6 col-lg-6">
+                <div id="chart_recommend" class="chartsh" title=""></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="card mb-0">
+    <div class="card-header">
+        <div class="card-title">
+            Patients (By May We Share Your Feedback ?)
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 col-lg-6">
+                <div class="morris-wrapper-demo" id="feedback_chart" title=""></div>
+            </div>
+            <div class="col-md-6 col-lg-6">
+                <div id="chart_feedback" class="chartsh" title=""></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="~/assets/plugins/morris/raphael-min.js"></script>
+<script src="~/assets/plugins/morris/morris.js"></script>
+<script src="~/assets/plugins/chart/chart.bundle.js"></script>
+<script src="~/assets/plugins/chart/utils.js"></script>
+<script src="~/assets/js/apexcharts.js"></script>
+<script src="~/assets/plugins/charts-c3/d3.v5.min.js"></script>
+<script src="~/assets/plugins/charts-c3/c3-chart.js"></script>
+<script type="text/javascript">
+    //#region Document Load
+    $(function () {
+        GetReport(0);
+    });
+    //#endregion
+
+    //#region Get Report Details
+    var GetReport = function (search_type) {
+
+        var _data = {
+            "search_type"   : search_type,
+            "date_from"     : $('#select_date_from').val(),
+            "date_to"       : $('#select_date_to').val()
+        }
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetSurveyQuestionnaireChart", "SurveyGraphicalCharts", new { area = "Reports" })",
+            data: _data,
+            beforeSend: function () {
+                $('#progress_loader').show();
+                $('#toastBody').html('');
+                $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                $('#toastReport').removeClass("d-none");
+                $('#reportToast').show();
+            },
+            start_time: new Date().getTime(),
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    $('#progress_loader').hide();
+
+                    //#region Load Charts
+                    reportChart(response.questionnaireCharts);
+                    reportBarChart(response.questionnaireCharts);
+
+                    reportCSChart(response.customerServices);
+                    reportCSBarChart(response.customerServices);
+
+                    reportPMChart(response.professionalManners);
+                    reportPMBarChart(response.professionalManners);
+
+                    reportROChart(response.recommendOthers);
+                    reportROBarChart(response.recommendOthers);
+
+                    reportSFChart(response.shareFeedbacks);
+                    reportSFBarChart(response.shareFeedbacks);
+                    //#endregion
+
+                    //#region Toast Before / After Filtering
+                    var etime = new Date().getTime() - this.start_time;
+
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                    $('#reportToast').show();
+                    //#endregion
+                }
+                else
+                {
+                    console.log("You are not Authorized To View This Page!");
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+                $('#progress_loader').hide();
+            }
+        }).done(function () {
+            setTimeout(function () {
+                $('#reportToast').fadeOut('fast');
+                $('#toastReport').addClass("d-none");
+            }, 5000);
+        });
+    }
+    //#endregion
+
+    //#region Bind Report Pie Chart
+    var reportChart = function (response) {
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var dynamicNames = {};
+        _labels.forEach(function (name, index) {
+            var dataKey = 'data' + (index + 1);
+            dynamicNames[dataKey] = name;
+        });
+
+        var _columns = response.map(function (value) {
+            return value.total;
+        });
+
+        var dynamicColumns = [];
+        var isnull = true;
+
+        _columns.forEach(function (value, index) {
+            if (value > 0) {
+                isnull = false;
+            }
+            var dataKey = 'data' + (index + 1);
+            dynamicColumns.push([dataKey, value]);
+        });
+
+        if (isnull) {
+            dynamicColumns = [['data1', 100]];
+            dynamicNames = { 'data1': 'Null' };
+        }
+
+        var chart = c3.generate({
+            bindto: '#question_chart',
+            data: {
+                columns: dynamicColumns,
+                type: 'pie',
+                names: dynamicNames
+            },
+            axis: {
+            },
+            legend: {
+                show: false,
+            },
+            padding: {
+                bottom: 0,
+                top: 0
+            },
+        });
+    }
+    //#endregion
+
+    //#region Bind Report Bar Chart
+    var reportBarChart = function (response) {
+        $('#chart_question').empty('');
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+        var colorIndex = 0;
+
+        new Morris.Bar({
+            element: 'chart_question',
+            data: response,
+            xkey: 'labels',
+            ykeys: ['total'],
+            labels: _labels,
+            stacked: true,
+            gridTextSize: 10,
+            hideHover: 'auto',
+            resize: true,
+            xLabelMargin: 25,
+            hoverCallback: function (index, options, content, row) {
+                var label = options.data[index].labels;
+                var total = options.data[index].total;
+                return label + ': ' + total + ' Nos';
+            },
+            barColors: function () {
+                if (colorIndex < 4)
+                    return barColorsArray[++colorIndex];
+                else {
+                    colorIndex = 0;
+                    return barColorsArray[++colorIndex];
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind Customer Service Report Pie Chart
+    var reportCSChart = function (response) {
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var dynamicNames = {};
+        _labels.forEach(function (name, index) {
+            var dataKey = 'data' + (index + 1);
+            dynamicNames[dataKey] = name;
+        });
+
+        var _columns = response.map(function (value) {
+            return value.total;
+        });
+
+        var dynamicColumns = [];
+        var isnull = true;
+
+        _columns.forEach(function (value, index) {
+            if (value > 0) {
+                isnull = false;
+            }
+            var dataKey = 'data' + (index + 1);
+            dynamicColumns.push([dataKey, value]);
+        });
+
+        if (isnull) {
+            dynamicColumns = [['data1', 100]];
+            dynamicNames = { 'data1': 'Null' };
+        }
+
+        var chart = c3.generate({
+            bindto: '#question_chart_rec',
+            data: {
+                columns: dynamicColumns,
+                type: 'pie',
+                names: dynamicNames
+            },
+            axis: {
+            },
+            legend: {
+                show: false,
+            },
+            padding: {
+                bottom: 0,
+                top: 0
+            },
+        });
+    }
+    //#endregion
+
+    //#region Bind Customer Service Report Bar Chart
+    var reportCSBarChart = function (response) {
+        $('#chart_question_rec').empty('');
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+        var colorIndex = 0;
+
+        new Morris.Bar({
+            element: 'chart_question_rec',
+            data: response,
+            xkey: 'labels',
+            ykeys: ['total'],
+            labels: _labels,
+            stacked: true,
+            gridTextSize: 10,
+            hideHover: 'auto',
+            resize: true,
+            xLabelMargin: 25,
+            hoverCallback: function (index, options, content, row) {
+                var label = options.data[index].labels;
+                var total = options.data[index].total;
+                return label + ': ' + total + ' Nos';
+            },
+            barColors: function () {
+                if (colorIndex < 4)
+                    return barColorsArray[++colorIndex];
+                else {
+                    colorIndex = 0;
+                    return barColorsArray[++colorIndex];
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind Professional Manners Report Pie Chart
+    var reportPMChart = function (response) {
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var dynamicNames = {};
+        _labels.forEach(function (name, index) {
+            var dataKey = 'data' + (index + 1);
+            dynamicNames[dataKey] = name;
+        });
+
+        var _columns = response.map(function (value) {
+            return value.total;
+        });
+
+        var dynamicColumns = [];
+        var isnull = true;
+
+        _columns.forEach(function (value, index) {
+            if (value > 0) {
+                isnull = false;
+            }
+            var dataKey = 'data' + (index + 1);
+            dynamicColumns.push([dataKey, value]);
+        });
+
+        if (isnull) {
+            dynamicColumns = [['data1', 100]];
+            dynamicNames = { 'data1': 'Null' };
+        }
+
+        var chart = c3.generate({
+            bindto: '#professional_chart',
+            data: {
+                columns: dynamicColumns,
+                type: 'pie',
+                names: dynamicNames
+            },
+            axis: {
+            },
+            legend: {
+                show: false,
+            },
+            padding: {
+                bottom: 0,
+                top: 0
+            },
+        });
+    }
+    //#endregion
+
+    //#region Bind Professional Manners Report Bar Chart
+    var reportPMBarChart = function (response) {
+        $('#chart_professional').empty('');
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+        var colorIndex = 0;
+
+        new Morris.Bar({
+            element: 'chart_professional',
+            data: response,
+            xkey: 'labels',
+            ykeys: ['total'],
+            labels: _labels,
+            stacked: true,
+            gridTextSize: 10,
+            hideHover: 'auto',
+            resize: true,
+            xLabelMargin: 25,
+            hoverCallback: function (index, options, content, row) {
+                var label = options.data[index].labels;
+                var total = options.data[index].total;
+                return label + ': ' + total + ' Nos';
+            },
+            barColors: function () {
+                if (colorIndex < 4)
+                    return barColorsArray[++colorIndex];
+                else {
+                    colorIndex = 0;
+                    return barColorsArray[++colorIndex];
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind Reccommend To Others Report Pie Chart
+    var reportROChart = function (response) {
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var dynamicNames = {};
+        _labels.forEach(function (name, index) {
+            var dataKey = 'data' + (index + 1);
+            dynamicNames[dataKey] = name;
+        });
+
+        var _columns = response.map(function (value) {
+            return value.total;
+        });
+
+        var dynamicColumns = [];
+        var isnull = true;
+
+        _columns.forEach(function (value, index) {
+            if (value > 0) {
+                isnull = false;
+            }
+            var dataKey = 'data' + (index + 1);
+            dynamicColumns.push([dataKey, value]);
+        });
+
+        if (isnull) {
+            dynamicColumns = [['data1', 100]];
+            dynamicNames = { 'data1': 'Null' };
+        }
+
+        var chart = c3.generate({
+            bindto: '#recommend_chart',
+            data: {
+                columns: dynamicColumns,
+                type: 'pie',
+                names: dynamicNames
+            },
+            axis: {
+            },
+            legend: {
+                show: false,
+            },
+            padding: {
+                bottom: 0,
+                top: 0
+            },
+        });
+    }
+    //#endregion
+
+    //#region Bind Reccommend To Others Report Bar Chart
+    var reportROBarChart = function (response) {
+        $('#chart_recommend').empty('');
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+        var colorIndex = 0;
+
+        new Morris.Bar({
+            element: 'chart_recommend',
+            data: response,
+            xkey: 'labels',
+            ykeys: ['total'],
+            labels: _labels,
+            stacked: true,
+            gridTextSize: 10,
+            hideHover: 'auto',
+            resize: true,
+            xLabelMargin: 25,
+            hoverCallback: function (index, options, content, row) {
+                var label = options.data[index].labels;
+                var total = options.data[index].total;
+                return label + ': ' + total + ' Nos';
+            },
+            barColors: function () {
+                if (colorIndex < 4)
+                    return barColorsArray[++colorIndex];
+                else {
+                    colorIndex = 0;
+                    return barColorsArray[++colorIndex];
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind Share Your Feedback Report Pie Chart
+    var reportSFChart = function (response) {
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var dynamicNames = {};
+        _labels.forEach(function (name, index) {
+            var dataKey = 'data' + (index + 1);
+            dynamicNames[dataKey] = name;
+        });
+
+        var _columns = response.map(function (value) {
+            return value.total;
+        });
+
+        var dynamicColumns = [];
+        var isnull = true;
+
+        _columns.forEach(function (value, index) {
+            if (value > 0) {
+                isnull = false;
+            }
+            var dataKey = 'data' + (index + 1);
+            dynamicColumns.push([dataKey, value]);
+        });
+
+        if (isnull) {
+            dynamicColumns = [['data1', 100]];
+            dynamicNames = { 'data1': 'Null' };
+        }
+
+        var chart = c3.generate({
+            bindto: '#feedback_chart',
+            data: {
+                columns: dynamicColumns,
+                type: 'pie',
+                names: dynamicNames
+            },
+            axis: {
+            },
+            legend: {
+                show: false,
+            },
+            padding: {
+                bottom: 0,
+                top: 0
+            },
+        });
+    }
+    //#endregion
+
+    //#region Bind Share Your Feedback Report Bar Chart
+    var reportSFBarChart = function (response) {
+        $('#chart_feedback').empty('');
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+        var colorIndex = 0;
+
+        new Morris.Bar({
+            element: 'chart_feedback',
+            data: response,
+            xkey: 'labels',
+            ykeys: ['total'],
+            labels: _labels,
+            stacked: true,
+            gridTextSize: 10,
+            hideHover: 'auto',
+            resize: true,
+            xLabelMargin: 25,
+            hoverCallback: function (index, options, content, row) {
+                var label = options.data[index].labels;
+                var total = options.data[index].total;
+                return label + ': ' + total + ' Nos';
+            },
+            barColors: function () {
+                if (colorIndex < 4)
+                    return barColorsArray[++colorIndex];
+                else {
+                    colorIndex = 0;
+                    return barColorsArray[++colorIndex];
+                }
+            }
+        });
+    }
+    //#endregion
+
+</script>

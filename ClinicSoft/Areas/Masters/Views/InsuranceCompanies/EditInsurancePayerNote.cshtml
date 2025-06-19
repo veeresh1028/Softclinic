@@ -1,0 +1,187 @@
+﻿@model BusinessEntities.Masters.InsurancePayerNotes
+<form id="form_Edit_IPN" class="needs-validation" >
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+        </div>
+    </div>
+    <div class="row">
+        @Html.HiddenFor(m => m.ipnId)
+        @Html.HiddenFor(m => m.ipn_ip_ins)
+        @Html.HiddenFor(m => m.ipn_path)
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Notes&nbsp;<span class="text-danger">*</span></label>
+                @Html.TextAreaFor(m => m.ipn_notes, new { @class = "form-control", @required = "", @placeholder = "Please Enter your notes here...", @id = "pnote", @maxlength = "250" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Document Title</label>
+                @Html.TextBoxFor(m => m.ipn_doc_title, new { @class = "form-control", @placeholder = "Ex : Daman Insurance", @id = "ptitle", @maxlength = "80" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Document <b>(.PDF files only - 5MB)</b></label>
+                <div class="input-group file-browser mb-5">
+                    <input type="text" value="@Model.ipn_document" id="pdocument" class="form-control" readonly />
+                    <label class="input-group-text btn btn-primary">
+                        Browse <input type="file" class="file-browserinput" style="display: none;" accept=".pdf" id="fileUpload_ipn_doc" name="ipn_doc" placeholder="Choose Document File" onchange="document.getElementById('pdocument').value = this.value.split('\\').pop().split('/').pop()">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <button type="submit" class="btn btn-warning" id="btn_Update_PNote">Save Changes</button>
+            <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_EditP">
+                Close
+            </button>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+    $(function () {
+        $('#btn_Close_EditP').click(function () {
+            $('#ipn_edit').hide();
+        });
+        validate();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validate = function () {
+        $("#form_Edit_IPN").validate({
+            rules: {
+                ipn_notes: {
+                    required: true
+                }
+            },
+            messages: {
+                ipn_notes: {
+                    required: "Notes can't be empty!"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Insert Note Button Click
+    $('#btn_Update_PNote').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Edit_IPN").valid()) {
+
+            var formData = new FormData();
+            var filess = $('#fileUpload_ipn_doc');
+            var ipnId = $('#ipnId').val();
+            var ipn_ip_ins = $("#ipn_ip_ins").val();
+            var pnote = $('#pnote').val().trim();
+            var ptitle = $("#ptitle").val().trim();
+
+            for (var i = 0; i < filess.length; i++) {
+
+                if (filess[i].value == "" || filess[i].value == null) {
+                    formData.append("ipn_document", $("#pdocument").val());
+                    formData.append("ipn_path", $("#ipn_path").val());
+                }
+                else {
+                    if (filess[i].files[0].size > 5242880) {
+                        var alertPlaceholder = document.getElementById("InPNoteAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-alert-triangle text-white'></i> File size should be less than 5MB!", "warning");
+                        Timeout();
+                        return false;
+                    }
+                    formData.append("ipn_document", filess[i].files[0]);
+                }
+            }
+
+            formData.append("ipnId", ipnId);
+            formData.append("ipn_notes", pnote);
+            formData.append("ipn_doc_title", ptitle);
+            formData.append("ipn_ip_ins", ipn_ip_ins);
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateInsurancePayerNote", "InsuranceCompanies", new { area="Masters"})",
+                data: formData,
+                dataType: 'json',
+                processData: false,
+                contentType: false,
+                cache: false,
+                success: function (data) {
+                    var alertPlaceholder = document.getElementById("InPNoteAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    $('#ipn_edit').hide();
+
+                    if (data.success) {
+                        $("#pnote").val('');
+                        $("#ptitle").val('');
+                        $("#ipn_document").val('');
+                        $("#fileUpload_ipn_doc").val('');
+
+                        GetInsurancePayerNotes();
+                        alert("<i class='fe fe-check-circle text-white'></i> Insurance Payer Note Updated successfully!", "success");
+                        Timeout();
+                    }
+                    else {
+                        $("#pnote").val('');
+                        $("#ptitle").val('');
+                        $("#ipn_document").val('');
+                        $("#fileUpload_ipn_doc").val('');
+
+                        alert("<i class='fe fe-alert-triangle text-white'></i> " + data.message + "!", "warning");
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    var alertPlaceholder = document.getElementById("InPNoteAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Insurance Payer Note! " + xhr.statusText +"", "danger");
+                    Timeout();
+                    $('#ipn_edit').hide();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

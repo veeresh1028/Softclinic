@@ -1,0 +1,1072 @@
+﻿
+@model BusinessEntities.Accounts.Accounting.JournalWithList
+
+<style type="text/css">
+    #sizeCJ {
+        max-width: 1500px;
+    }
+
+    #tbl_journal_entries_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Create Journal</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.journalHeader.j_branch)
+    @Html.HiddenFor(m => m.journalHeader.j_acc_period)
+    @Html.HiddenFor(m => m.journalHeader.j_type)
+    <form id="form_UpdateJournal" autocomplete="off" title="">
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-3">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    <h6><b class="text-cyan">@Html.DisplayFor(m => m.journalHeader.branch_name)</b></h6>
+                    @*@Html.DropDownListFor(m => m.j_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2" })*@
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Period&nbsp;<span class="text-danger">*</span></label>
+                    <h6><b class="text-cyan">@Html.DisplayFor(m => m.journalHeader.j_name_period)</b></h6>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-0">
+                    <label class="form-label" title="">Type&nbsp;<span class="text-danger">*</span> </label>
+                    <h6><b class="text-cyan">@Html.DisplayFor(m => m.journalHeader.j_type)</b></h6>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-0">
+                    <label class="form-label" title="">Date&nbsp;<span class="text-danger">*</span> </label>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBox("uj_date", Model.journalHeader.j_date, new { @class = "form-control", @placeholder = "Select Journal Entry Date", maxlength = "18" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Referrence #&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("uj_refno", Model.journalHeader.j_refno, new { @class = "form-control disabled text-danger", @placeholder = "Ex : JV-SAL-00001", @maxlength = "25", @readonly = "readonly" })
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-2" id="edit_purchase_payment">
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Supplier</label>
+                    @Html.DropDownList("uj_supplier", new List<SelectListItem>
+   { }, "Select Supplier", new { @class = "form-control select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Invoice #</label>
+                    @Html.TextBox("uj_inv_no", Model.journalHeader.j_inv_no, new { @class = "form-control", @placeholder = "Ex : INV-00673", @maxlength = "25" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-0">
+                    <label class="form-label" title="">Invoice Date</label>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBox("uj_inv_date", Model.journalHeader.j_inv_date, new { @class = "form-control", @placeholder = "Select Invoice Date", @maxlength = "18" })
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <form id="form_JournalEntries_edit" class="mb-2" autocomplete="off" title="">
+        <div class="row mt-2" id="journal_items">
+            <div class="col-sm-12 col-md-12 col-lg-3">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Account&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownList("uj_account", new List<SelectListItem>
+{ }, "Select Account", new { @class = "form-control select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Description</label>
+                    @Html.TextBox("uj_desc", Model.journalHeader.j_desc, new { @class = "form-control", @placeholder = "Ex : Gloves Sold", @maxlength = "500" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-0">
+                    <label class="form-label" title="">Dr./Cr.&nbsp;<span class="text-danger">*</span> </label>
+                    @{
+                        string propertyName = nameof(Model.journalHeader.j_ttype);
+                        string nameWithoutModel = "u" + propertyName.Substring(propertyName.LastIndexOf('.') + 1);
+                        string selectedValue = Model.journalHeader.j_ttype;
+                        string idWithoutModel = ViewData.TemplateInfo.GetFullHtmlFieldId(nameWithoutModel);
+                    }
+                    @Html.DropDownList(idWithoutModel, new List<SelectListItem>
+                    {
+                        new SelectListItem { Text="Debit", Value = "Debit", Selected = (selectedValue == "Debit") },
+                        new SelectListItem { Text="Credit", Value = "Credit", Selected = (selectedValue == "Credit") }
+                    }, "Select Dr./Cr.", new { @class = "form-control select2 mb-4", name = nameWithoutModel })
+
+
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Amount&nbsp;<span class="text-danger">*</span> </label>
+                    @Html.TextBox("uj_amt", Model.journalHeader.j_amt, new { @class = "form-control text-end", @placeholder = "0.00", @oninput = "validate(this,1000000)" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-2 align-self-center" id="j_add">
+                <button type="submit" class="btn btn-info mt-4" id="btnAddEntry"><i class="fe fe-plus"></i>Add Entry</button>
+                <button type="button" class="btn btn-outline-dark mt-4" id="btn_Reset">Reset</button>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <span class="text-danger" id="edit_error_msg"></span>
+            </div>
+        </div>
+    </form>
+
+    <div class="card mt-2" id="listEntries">
+        <div class="card-body p-0">
+            <div class="table-responsive" style="min-height: unset;">
+                <table id="tbl_journal_entries" class="table table-striped table-bordered" style="width: 100%">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                            <th class="border-bottom-0 font-weight-semibold text-white text-center">Sl. No.</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Account</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Description</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Debit</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Credit</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <input type="hidden" id="edit_total_debit" value="0" />
+            <input type="hidden" id="edit_total_credit" value="0" />
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 mt-2 mb-2 d-flex justify-content-center" id="errorUpdateJL"></div>
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-warning" id="btn_Update_Journal">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var entry_arr = [];
+    var deleted_item_arr = [];
+    //#region Page Load
+    $(function () {
+
+        $("#uj_ttype").select2({
+            placeholder: 'Select Dr./Cr.',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 10,
+            dropdownParent: $('#form_UpdateJournal'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $('#uj_supplier').select2({
+            dropdownParent: $('#form_UpdateJournal'),
+            placeholder: 'Select Supplier',
+            width: '100%'
+        });
+        let _type = '@Model.journalHeader.j_type';
+        console.log(_type);
+        if(_type === 'Purchase' || _type === 'Payment')
+        {
+            $("#edit_purchase_payment").removeClass("d-none");
+        }
+        else
+        {
+            $("#edit_purchase_payment").addClass("d-none");
+        }
+
+        //$("#uj_add").addClass("d-none");
+
+        //$("#btn_Update_Journal").addClass("d-none");
+
+        validation();
+
+        validation_entries();
+
+        $('#form_UpdateJournal input, select').on('focusout', function () {
+            var formIsValid = $("#form_UpdateJournal").valid();
+
+            $("#uj_add").toggleClass("d-none", !formIsValid);
+        });
+
+        load_acc_period('@Model.journalHeader.j_name_period.ToString()')
+
+        load_suppliers_create();
+        $('#uj_account').val("");
+        load_accounts_create();
+        entry_arr = @Html.Raw(Json.Encode(Model.journalInserts));
+        BindEntryDataTable(entry_arr);
+        $('#uj_date').val(moment('@Model.journalHeader.j_date.ToString("MM/dd/yyyy")', 'MM/DD/YYYY').format('DD-MMMM-YYYY'));
+        $('#uj_inv_date').val(moment('@Model.journalHeader.j_inv_date').format('DD-MMMM-YYYY'));
+    });
+    //#endregion
+
+    //#region Main Form Validations
+    var validation = function () {
+        $("#form_UpdateJournal").validate({
+            focusInvalid: true,
+            rules:
+            {
+                uj_date: {
+                    required: true,
+                }
+            },
+            messages: {
+                uj_date: {
+                    required: "Select Entry Date"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#uj_date').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Entry Form Validations
+    var validation_entries = function () {
+        $("#form_JournalEntries_edit").validate({
+            focusInvalid: true,
+            rules:
+            {
+                uj_account: {
+                    required: true,
+                },
+                uj_ttype: {
+                    required: true
+                },
+                uj_amt: {
+                    required: true,
+                    minlength: 1,
+                    min: 1,
+                    max: 1000000
+                }
+            },
+            messages: {
+                uj_account: {
+                    required: "Select Account",
+                },
+                uj_ttype: {
+                    required: "Select Dr./Cr.",
+                },
+                uj_amt: {
+                    required: "Enter Amount",
+                    minlength: "Enter Atleast 0",
+                    min: "Min. Value is 1",
+                    max: "Max. Value is 1000000"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#uj_account').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uj_ttype').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uj_amt').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uj_amt').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            //if (!/^\d*\.?\d{0,2}$/.test(inputValue) || inputValue.split('.').length > 2) {
+            //    return false;
+            //}
+        });
+    }
+    //#endregion
+
+    //#region Load & Select Events
+
+    var load_acc_period = function (inputString) {
+        var datePattern = /\[(\d{2}\/[a-zA-Z]+\/\d{4}) - (\d{2}\/[a-zA-Z]+\/\d{4})\]/;
+
+        var matches = inputString.match(datePattern);
+
+        if (matches && matches.length === 3) {
+            var startDate = matches[1];
+            var endDate = matches[2];
+
+            startDate = moment(startDate, 'DD/MMM/YYYY');
+            endDate = moment(endDate, 'DD/MMM/YYYY');
+
+            $('#uj_date').bootstrapdatepicker('destroy');
+
+            $('#uj_date').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                startDate: new Date(startDate),
+                endDate: new Date(endDate)
+            });
+
+            $("#uj_date").bootstrapdatepicker("setDate", "today");
+
+            $('#uj_date').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#uj_inv_date').bootstrapdatepicker('destroy');
+
+            $('#uj_inv_date').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                startDate: new Date(startDate),
+                endDate: new Date(endDate)
+            });
+
+            $("#uj_inv_date").bootstrapdatepicker("setDate", "");
+
+            $('#uj_inv_date').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        else {
+            console.log("Invalid A/C Period Date", matches + ' = ' + datePattern);
+        }
+
+    };
+
+    var load_suppliers_create = function () {
+        $.ajax({
+            url: '@Url.Action("GetSupplierByBranches", "PurchaseOrders", new { area = "MaterialManagement" })?branchId=' + '@Model.journalHeader.j_branch',
+            type: "GET",
+            contentType: "application/json",
+            dataType: "json",
+            success: function (response) {
+                $('#uj_supplier').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].Text, response[j].Value, true, true);
+                        $('#uj_supplier').append(newOption).trigger('change');
+                    });
+
+                    $('#uj_supplier').val('@Model.journalHeader.j_supplier').trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+
+    var load_accounts_create = function () {
+        if ('@Model.journalHeader.j_branch' != "" && '@Model.journalHeader.j_acc_period' != "") {
+            $('#uj_account').select2({
+                placeholder: 'Search Account',
+                dropdownParent: $('#form_JournalEntries_edit'),
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                maximumInputLength: 12,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("GetAccountsDropdown", "ChartOfAccounts", new { area = "Accounts" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            branches: '@Model.journalHeader.j_branch',
+                            period: '@Model.journalHeader.j_acc_period'
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+        else {
+            console.log('@Model.journalHeader.j_branch');
+            console.log('@Model.journalHeader.j_acc_period');
+        }
+    }
+
+    // If Branch/Type Change Delete All Items
+    var check_change = function (type, id) {
+
+        if (entry_arr.length > 0) {
+            Swal.fire({
+                title: 'Do you wish to change the ' + type +' ?',
+                text: 'This action will delete any entr(y/ies) which are added in the list!',
+                icon: 'question',
+                showDenyButton: true,
+                confirmButtonText: 'Confirm',
+                confirmButtonClass: 'btn btn-success mt-2',
+                denyButtonText: `Decline`,
+                denyButtonClass: 'btn btn-danger ms-2 mt-2',
+                buttonsStyling: !1
+            }).then((result) => {
+                if (result.isDenied) {
+                    if (type == "branch") {
+                        $('#uj_branch').select2('close');
+                        $('#uj_branch').val(id).trigger('change');
+                    }
+                    else {
+                        $('#uj_type').select2('close');
+                        $('#uj_type').val(id).trigger('change');
+                    }
+                }
+                else {
+                    clearDataTable();
+                }
+            });
+        }
+    }
+    //#endregion
+
+    //#region Checking Journal Entries Table Has Record
+    var JournalItems = function () {
+        var count = 0;
+        if ($("#tbl_journal_entries > tbody > tr").length <= 0) {
+            count++;
+        }
+        else {
+            var td_text = "";
+            $("#tbl_journal_entries tbody tr").each(function () {
+                var row = $(this);
+                td_text = row.find("td").eq(0).html();
+            });
+            if (td_text.trim() === "No data available in table") {
+                count++;
+            }
+        }
+        if (count > 0)
+            return false;
+        else
+            return true;
+    }
+    //#endregion
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion
+
+    //#region Add Journal Entry
+    $('#btnAddEntry').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_JournalEntries_edit").valid()) {
+
+            var exists = false;
+
+            if (entry_arr.length > 0) {
+                exists = entry_arr.some(function (check) {
+                    //return check.j_account === $("#uj_account").val() && check.j_ttype === $("#uj_ttype").val();
+                    return check.j_account === $("#uj_account").val();
+                });
+            }
+
+            if (exists) {
+                var data = $("#uj_account :selected").text();
+
+                Swal.fire({
+                    title: "Duplicate Entry!",
+                    html: "Entry with Account : <br/><strong class='text-danger font-weight-semibold'>" + data + "</strong>.<br/> Already exists in the list. Please Remove Existing & Add Again!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonText: 'OK',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    buttonsStyling: !1
+                });
+            }
+            else {
+                bindEntry();
+                clearData();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Bind Entry to Table
+    var bindEntry = function () {
+        var _debit = 0;
+        var _credit = 0;
+
+        if ($("#uj_ttype").val() == "Debit") {
+            _debit = $("#uj_amt").val();
+        }
+        else {
+            _credit = $("#uj_amt").val();
+        }
+
+        var _data = {
+            "jId": 0,
+            "j_branch": '@Model.journalHeader.j_branch',
+            "j_acc_period": '@Model.journalHeader.j_acc_period',
+            "j_date": $('#uj_date').val(),
+            "j_type": '@Model.journalHeader.j_type',
+            "j_inv_no": $('#uj_inv_no').val().trim(),
+            "j_inv_date": $('#uj_inv_date').val(),
+
+            "j_account": $("#uj_account :selected").val(),
+            "j_account_name": $("#uj_account :selected").text(),
+            "j_desc": $("#uj_desc").val().trim(),
+            "j_ttype": $("#uj_ttype").val(),
+            "j_debit": _debit,
+            "j_credit": _credit,
+            "j_mode":'add'
+        }
+
+        entry_arr.push(_data);
+
+        getEntryItems(entry_arr);
+
+        if (entry_arr.length > 0) {
+            $("#btn_Update_Journal").removeClass("d-none");
+        }
+        else {
+            $("#btn_Update_Journal").addClass("d-none");
+        }
+    }
+
+    var getEntryItems = function (response) {
+        if (response != null && response != undefined) {
+            var table;
+            if ($.fn.dataTable.isDataTable('#tbl_journal_entries')) {
+                table = $('#tbl_journal_entries').DataTable();
+                table.clear();
+                table.rows.add(response).draw();
+            }
+            else {
+                BindEntryDataTable(response);
+            }
+        }
+    }
+
+    var BindEntryDataTable = function (response) {
+
+        var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+        var table = $("#tbl_journal_entries").DataTable({
+            processing: true,
+            paging: false,
+            ordering: false,
+            info: false,
+            "searching": false,
+            "retrieve": true,
+            lengthChange: false,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "text-center",
+                    "mData": "jId",
+                },
+                { "mData": "j_account_name" },
+                {
+                    "mData": "j_desc",
+                    "className": "fs-13 text-wrap text-justify",
+                    "render": function (data, type, full, meta) {
+                        if (data == "") {
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                        else {
+                            return data;
+                        }
+                    }
+                },
+                {
+                    "mData": "j_debit",
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "j_credit",
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "psId",
+                    "className": "fs-13 text-center dt-delete",
+                    "render": function (data) {
+                        var html = "<i class='fe fe-trash text-danger cursor' id='remove-item' style='font-size: 14px;cursor:pointer;'></i>";
+
+                        return html;
+                    }
+                }
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+
+                var total_debit = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(3).footer()).html(numberRenderer1(total_debit.toFixed(2)));
+
+                var total_credit = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(4).footer()).html(numberRenderer1(total_credit.toFixed(2)));
+
+                $("#edit_total_debit").val(total_debit);
+                $("#edit_total_credit").val(total_credit);
+            },
+            "rowCallback": function (row, data, index) {
+                $('td:eq(0)', row).html(index + 1);
+            }
+        });
+
+        // Remove Items From DataTable
+        table.on('click', '#remove-item', function (e) {
+            var row = $(this).parents('tr');
+            var data_row = table.row($(this).closest('tr')).data();
+
+            Swal.fire({
+                title: "Are you sure you want to delete this Entry From List ?",
+                text: "This action will permanently delete the entry!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2",
+                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+
+                    var mode_data = entry_arr.find(e => e.j_account === data_row.j_account && e.jId === data_row.jId);
+                    //console.log(mode_data)
+                    if (mode_data != null && mode_data != undefined && mode_data != '') {
+
+                        var mode = mode_data["j_mode"];
+                        if (mode === "edit") {
+                            if (data_row.jId > 0)
+                                deleted_item_arr.push(data_row.jId);
+                        }
+                        entry_arr = $.grep(entry_arr, function (n, i) {
+                            if (n.j_account === data_row.j_account && n.jId === data_row.jId) {
+                                return false;
+                            }
+                            else {
+                                return true;
+                            }
+                        });
+
+                    }
+                    console.log(entry_arr)
+
+                    if ($(row).hasClass('child')) {
+                        table.row($(row).prev('tr')).remove().draw();
+                    }
+                    else {
+                        table.row(row).remove().draw();
+                    }
+
+                    if (entry_arr.length == 0) {
+                        $("#btn_Update_Journal").addClass("d-none");
+                    }
+                    else {
+                        $("#btn_Update_Journal").removeClass("d-none");
+                    }
+
+                    setTimeout(function () {
+                        Swal.fire({
+                            title: "Success!",
+                            text: "Entry Deleted Successfully!",
+                            icon: "success",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                        });
+                    }, 150);
+                }
+            });
+        });
+
+        resizedt();
+    }
+
+    var clearDataTable = function () {
+        entry_arr.length = 0;
+
+        var table = $('#tbl_journal_entries').DataTable();
+
+        var rows = table.rows().remove().draw();
+    }
+    //#endregion
+
+    //#region Update Journal Click
+    $('#btn_Update_Journal').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_UpdateJournal').valid()) {
+            if (DebitCreditEqual()) {
+
+                Swal.fire({
+                    title: "Save Chnages",
+                    text: "Are you sure you want to Update Journal Entries!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        if (entry_arr.length > 0) {
+                            var pHeader = {
+                                "j_date": $('#uj_date').val(),
+                                "j_type": '@Model.journalHeader.j_type',
+                                "j_acc_period": '@Model.journalHeader.j_acc_period',
+                                "j_branch": '@Model.journalHeader.j_branch',
+                                "j_supplier": $('#uj_supplier').val(),
+                                "j_inv_no": $('#uj_inv_no').val().trim(),
+                                "j_inv_date": $('#uj_inv_date').val().trim(),
+                                "j_refno": $('#uj_refno').val().trim(),
+                            }
+                            var _JournalInsert = {
+                                journalHeader: pHeader,
+                                journalInserts: entry_arr,
+                                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val(),
+                                deleteIds: deleted_item_arr.toString()
+                            }
+                            $.ajax({
+                                url: '@Url.Action("UpdateJournals", "Journals", new { area = "Accounts" })',
+                                type: "POST",
+                                dataType: "json",
+                                data: _JournalInsert,
+                                beforeSend: function () {
+                                    $('#btn_Update_Journal').removeClass("btn btn-outline-warning");
+                                    $('#btn_Update_Journal').addClass("btn btn-warning btn-loaders btn-icon");
+                                    $('#btn_Update_Journal').html("Posting....");
+                                },
+                                async: false,
+                                success: function (data) {
+                                    $('#btn_Update_Journal').removeClass("btn btn-warning btn-loaders btn-icon");
+                                    $('#btn_Update_Journal').addClass("btn btn-warning");
+                                    $('#btn_Update_Journal').html("Post Journal");
+                                    if (data.isUpdated > 0) {
+                                        getJournals();
+
+                                        alert("<i class='fe fe-check-circle text-white'></i> Journal Entries Reposted Successfully!", "warning");
+
+                                        $('#edit_journal_modal').modal('toggle');
+
+                                        Timeout();
+                                    }
+                                    else {
+                                        $("#errorUpdateJL").html('');
+
+                                        if (data.message == "Error While Posting Journal Entries!") {
+                                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                                "<div class='alert alert-light-warning' role='alert'>" +
+                                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                                "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+
+                                            $("#errorUpdateJL").html(html);
+                                        }
+                                        else {
+                                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                                "<div class='alert alert-light-danger' role='alert'>" +
+                                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                                "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                                            $.each(data.message, function (index, value) {
+                                                html += "<li><small>" + value + "</small><li>";
+                                                var elem = $("#" + index);
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                                }
+                                                else {
+                                                    $(elem).addClass(" is-invalid");
+                                                }
+                                                setTimeout(function () {
+                                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                    }
+                                                    else {
+                                                        $(elem).removeClass("is-invalid");
+                                                    }
+                                                }, 5000);
+                                            });
+
+                                            html += "</ul></div></div>";
+
+                                            $("#errorUpdateJL").html(html);
+                                        }
+
+                                        Timeout();
+                                    }
+                                },
+                                error: function (xhr) {
+                                    clear_Data();
+                                    AddingCalculation();
+                                    $("#btnPrintPor").hide();
+                                    $('#btn_Update_Journal').removeClass("btn btn-warning btn-loaders btn-icon");
+                                    $('#btn_Update_Journal').addClass("btn btn-warning");
+                                    $('#btn_Update_Journal').html("Post Journal");
+                                    var alertPlaceholder = document.getElementById("errorUpdateJL");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Post Journal Entries!", "danger");
+                                    Timeout();
+                                }
+                            });
+                        }
+                    }
+                });
+
+            }
+            else {
+                Swal.fire({
+                    title: "Warning!",
+                    html: "Debit and Credit accounts are not equal!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonText: 'OK',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    buttonsStyling: !1
+                });
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Check Debit Credit Side
+    var DebitCreditEqual = function () {
+        let total_debit = 0;
+        let total_credit = 0;
+        if (entry_arr.length > 0) {
+            exists = entry_arr.some(function (check) {
+                total_debit += parseFloat(check.j_debit);
+                total_credit += parseFloat(check.j_credit);
+            });
+        }
+        if (total_debit === total_credit && total_debit > 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    //#endregion
+
+    //#region Clear Entry Fields
+    var clearData = function () {
+        $("#uj_account").val("").text("").trigger('change');
+        $("#uj_desc").val("");
+        $("#uj_amt").val("0.00");
+        $('#uj_ttype').val("Debit").trigger('change');
+    }
+
+    $('#btn_Reset').on('click', function (e) {
+        e.preventDefault();
+        clearData();
+        if (entry_arr.length > 0) {
+            $("#btn_Update_Journal").removeClass("d-none");
+        }
+        else {
+            $("#btn_Update_Journal").addClass("d-none");
+        }
+    });
+    //#endregion
+
+    //#region UI Controls
+    function resizedt() {
+        setTimeout(function () {
+            var tables = $.fn.dataTable.tables({ visible: true, api: true });
+            if (tables) {
+                $('#tbl_journal_entries').DataTable().columns.adjust();
+            }
+        }, 500);
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Holder
+    var alertPlaceholder = document.getElementById("JournalsAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

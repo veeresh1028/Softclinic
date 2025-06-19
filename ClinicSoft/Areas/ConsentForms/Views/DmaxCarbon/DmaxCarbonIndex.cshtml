@@ -1,0 +1,105 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Dmax Carbon";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Q Switch / Carbon Laser Consent Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="DmaxCarbon_add" style="display:none">
+                </div>
+                <div id="DmaxCarbon_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DmaxCarbon_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetDmaxCarbonInfo();
+        DmaxCarbonPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetDmaxCarbonInfo
+    var GetDmaxCarbonInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetDmaxCarbonData", "DmaxCarbon", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditDmaxCarbon();
+                        $("#DmaxCarbon_add").hide();
+                        $("#DmaxCarbon_edit").show();
+
+                    }
+                    else {
+                        $("#DmaxCarbon_add").show();
+                        $("#DmaxCarbon_edit").hide();
+                        AddDmaxCarbon();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load DmaxCarbon
+
+    //#region Add DmaxCarbon
+    function AddDmaxCarbon() {
+        var x = $("#DmaxCarbon_add");
+        x.load("@Url.Action("CreateDmaxCarbon", "DmaxCarbon", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add DmaxCarbon
+
+    //#region Update DmaxCarbon
+    function EditDmaxCarbon() {
+        var x = $("#DmaxCarbon_edit");
+        x.load("@Url.Action("UpdateDmaxCarbon", "DmaxCarbon", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update DmaxCarbon
+
+    //#region Histroy of DmaxCarbon
+    function DmaxCarbonPreviousHistory() {
+        var x = $("#DmaxCarbon_history");
+        x.load("@Url.Action("DmaxCarbonPreviousHistory", "DmaxCarbon", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

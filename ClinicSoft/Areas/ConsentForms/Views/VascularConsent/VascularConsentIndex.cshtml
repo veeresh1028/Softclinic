@@ -1,0 +1,108 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Vascular Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    PATIENT INFORMED CONSENT FORM FOR TREATMENT OF VASCULAR AND PIGMENTED LESIONS
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="VascularConsent_add" style="display:none">
+                </div>
+                <div id="VascularConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="VascularConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetVascularConsentInfo();
+        VascularConsentPreviousHistory();
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetVascularConsentInfo
+    var GetVascularConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetVascularConsentData", "VascularConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditVascularConsent();
+                        $("#VascularConsent_add").hide();
+                        $("#VascularConsent_edit").show();
+
+                    }
+                    else {
+                        $("#VascularConsent_add").show();
+                        $("#VascularConsent_edit").hide();
+                        AddVascularConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load VascularConsent
+
+    //#region Add VascularConsent
+    function AddVascularConsent() {
+        var x = $("#VascularConsent_add");
+        x.load("@Url.Action("CreateVascularConsent", "VascularConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add VascularConsent
+
+    //#region Update VascularConsent
+    function EditVascularConsent() {
+        var x = $("#VascularConsent_edit");
+        x.load("@Url.Action("UpdateVascularConsent", "VascularConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update VascularConsent
+
+    //#region Histroy of VascularConsent
+    function VascularConsentPreviousHistory() {
+        var x = $("#VascularConsent_history");
+        x.load("@Url.Action("VascularConsentPreviousHistory", "VascularConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

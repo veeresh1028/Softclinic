@@ -1,0 +1,574 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    //Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    var id_allergy_ = TempData["Layout"] as string;
+    var layoutPath = string.IsNullOrEmpty(id_allergy_)
+    ? "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml"
+    : null;
+    Layout = layoutPath;
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+                    </div>
+                </div>
+                <div id="allergy_add" style="display:none;">
+                </div>
+                <div id="allergy_edit">
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_allergy" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergy Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergy Severity</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergies</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergy For</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Other Allergy For</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div>
+                    <h4 class="page-title mb-0 text-primary">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_Preallergy" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergy Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergy Severity</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergies</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergy For</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Other Allergy For</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script>
+    //#region Page Load
+        $(function () {
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            GetAllergies();
+            GetPreviousAllergies();
+            $("#allergy_add").show();
+            AddAllergies(0);
+        });
+    //#endregion Page Load
+    //#region Load Allergies
+        var GetAllergies = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllAllergies", "Allergies", new { area = "NurseStation" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    console.log(response);
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_allergy')) {
+                            table = $('#tbl_allergy').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableAllergy(response);
+                        }
+
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();
+                });
+        }
+    //#endregion Load Allergies
+
+    //#region Load PreviousAllergies
+        var GetPreviousAllergies = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreAllergies", "Allergies", new { area = "NurseStation" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        console.log(response);
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_Preallergy')) {
+                            table = $('#tbl_Preallergy').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTableAllergyP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();
+                });
+        }
+    //#endregion Load PreviousAllergies
+
+    //#region Bind Datatable
+        var BindDataTableAllergy = function (response) {
+            var table = $("#tbl_allergy").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "allId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "all_type",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "allergies",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "all_severity",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "all_for",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "all_pexam",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "allId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (allId, type, full, meta) {
+                            var status = full.all_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="EditAllergies(' + allId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="EditAllergies(' + allId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditAllergies(' + allId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                                return ''
+                                            }
+                                    }
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "allId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (allId, type, full, meta) {
+                            var status = full.all_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteAllergies(' + allId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="DeleteAllergies(' + allId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+                                        }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteAllergies(' + allId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Allergies',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Allergies',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Allergies',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Allergies',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_allergy_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Previous Bind Datatable
+        var BindDataTableAllergyP = function (response) {
+            var table = $("#tbl_Preallergy").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "allId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "all_type",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "allergies",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "all_severity",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "all_for",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "all_pexam",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "allId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (allId, type, full, meta) {
+                            var Action = '';
+                            //Copy Data
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_Allergy  onclick="AddAllergies(' + full.allId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        Action += '<a id=btn_Copy_Allergy  onclick="AddAllergies(' + full.allId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            Action += '<a id=btn_Copy_Allergy  onclick="AddAllergies(' + full.allId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                        }
+                                        else {
+                                            Action += ''
+                                            }
+                                    }
+                                }
+
+                                return Action;
+                            }
+                    },
+
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous Allergies',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5,6,7]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous Allergies',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous Allergies',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous Allergies',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_Preallergy_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add PatientDiagnosis
+        function AddAllergies(allId) {
+            $('#allergy_edit').hide();
+            var x = $("#allergy_add");
+            x.load("@Url.Action("CreateAllergies", "Allergies", new { area = "NurseStation" })?allId=" + allId, function () {
+                $("#allergy_add").show();
+            });
+        }
+    //#endregion Add PatientDiagnosis
+
+
+    //#region Edit Allergies
+        function EditAllergies(allId) {
+            $('#allergy_add').hide();
+            var x = $("#allergy_edit");
+            x.load("@Url.Action("EditAllergies", "Allergies", new { area = "NurseStation" })?allId=" + allId + "&appId=" + @emr.appId, function () {
+                $("#allergy_edit").show();
+            });
+
+            //hide the Copy Data
+            var dt = $('#tbl_Preallergy').DataTable();
+            dt.columns([8]).visible(false);
+        }
+    //#endregion Edit Allergies
+
+    //#region Delete Allergies
+        var DeleteAllergies = function (allId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Allergy ?",
+                text: "The selected Allergy will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteAllergies", "Allergies", new { area = "NurseStation" })?allId=' + allId,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetAllergies();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Allergy",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Allergy!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Allergy! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetAllergies();
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion Delete Allergies
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+
+
+    </script>

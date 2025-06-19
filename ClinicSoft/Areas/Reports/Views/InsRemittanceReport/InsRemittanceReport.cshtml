@@ -1,0 +1,386 @@
+﻿
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Insurance Claims Outstanding Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<!-- Row -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row row-sm">
+                    <div class="col-lg">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold"> Branch</label>
+                            <select id="s_branch" class="form-control mb-4" multiple="multiple"></select>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 col-md-6 col-lg-2">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold"> DOH/DHA/MOH</label>
+                            <select id="s_type" class="form-control mb-4" multiple="multiple"></select>
+                        </div>
+                    </div>
+                    <div class="col-lg mg-t-10">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">Tr. Date From</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                <input id="date_from" class="form-control form-control-sm fc-datepicker" placeholder="YYYY/MM/DD" type="text">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg mg-t-10">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">Tr. Date To</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                <input id="date_to" class="form-control form-control-sm fc-datepicker" placeholder="YYYY/MM/DD" type="text">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg mg-t-10">
+                        <div class="form-group">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-primary" id="btnSearch">Search Files</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row row-sm">
+                    <div class="col-lg mg-t-10">
+                        <div id="div_info" style="display:none">
+                            <div class="bg-primary-transparent text-primary border-primary p-3 br-3 mt-4 text-center">
+                                <span class="h4 mb-0 font-weight-bold" id="div_info_message"></span>
+                                <a id="aLog" style="display:none;" class="btn btn-outline-info mb-2" data-bs-toggle="collapse" href=".multi-collapse" aria-expanded="false" aria-controls="multiCollapseExample1 multiCollapseExample2">Check the Log</a>
+                            </div>
+                        </div>
+                        <div id="progress-loader" style="display:none;">
+                            <div class="progress progress-sm mb-3">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                            </div>
+                        </div>
+                        <div id="process_timer" style="display:none;">
+                            <div class="bg-primary-transparent text-primary border-primary p-3 br-3 mt-4 text-center">
+                                <span class="h4 mb-0 font-weight-bold" id="timer-countup"></span>
+                                <span class="h4 mb-0 font-weight-bold" id="timer-countup2"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="div_log" style="display:none" class=" mg-t-10">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="collapse multi-collapse" id="multiCollapseExample1">
+                                <div class="border p-3 bg-success-transparent-2">
+                                    <ul id="success_log_ul"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="collapse multi-collapse" id="multiCollapseExample2">
+                                <div class="border p-3 bg-danger-transparent-2">
+                                    <ul id="error_log_ul"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--div-->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Claim Wise Transaction Report</div>
+                <div class="card-options">
+                    <button type="button" class="btn btn-primary" id="btnProcess" style="display:none;">Process and Spliting Data From XML Files</button>
+                    <input type="hidden" id="isProcess" value="0" />
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_tr_wise" class="table table-striped table-bordered text-nowrap" style="width:100%">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">File</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Claim</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Sender ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Receiver ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Record Count</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Submitted Amount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Remitted Amount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Rejected Amount</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <th class="text-end fs-14 font-weight-semibold text-wrap">Page Total (Report Total) :</th>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            $('.fc-datepicker').datepicker({
+                showOtherMonths: true,
+                selectOtherMonths: true,
+                dateFormat: "yy-mm-dd"
+            });
+
+            load_branches();
+            get_type();
+
+            $('#date_from').datepicker('setDate', new Date());
+            var date_to = new Date();
+            date_to.setDate(date_to.getDate() + 1);
+            $("#date_to").datepicker('setDate', date_to);
+            BindDataTable(null);
+
+
+            $('#div_log').hide();
+            $('#progress-loader').hide();
+            $("#div_info").hide();
+
+            search_filter_data();
+        });
+
+        var load_branches = function () {
+            $('#s_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                csvDispCount: 3,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true, forceCustomRendering: true, triggerChangeCombined: false
+            });
+
+            $('#s_branch').html('');
+            $('#s_branch')[0].sumo.reload();
+
+            BranchList =@Html.Raw(Json.Encode(@ViewBag.BranchList));
+
+            $.each(BranchList, function (j) {
+                $('#s_branch')[0].sumo.add(BranchList[j]["Value"], BranchList[j]["Text"]);
+            });
+            $('#s_branch')[0].sumo.selectItem(0);
+            $('#s_branch')[0].sumo.reload();
+        };
+
+        var get_type = function () {
+
+            $('#s_type').SumoSelect({
+                placeholder: 'Select Type(es)',
+                csvDispCount: 3,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true, forceCustomRendering: true, triggerChangeCombined: false
+            });
+
+            $('#s_type').html('');
+            $('#s_type')[0].sumo.reload();
+
+            $('#s_type')[0].sumo.add("MOH", "MOH");
+            $('#s_type')[0].sumo.add("DHA", "DHA");
+            $('#s_type')[0].sumo.add("HAAD", "HAAD");
+
+            $('#s_type')[0].sumo.reload();
+        };
+        //#endregion
+
+         //#region On Filter Click Load DataTable
+        $("#btnSearch").click(function () {
+            search_filter_data();
+        });
+
+        var search_filter_data = function () {
+            var _data = {
+                "branch": $('#s_branch').val().toString(),
+                "type": $('#s_type').val().toString(),
+                "claimId": "",
+                "claim_type": "Remittance",
+                "date_From": $('#date_from').val(),
+                "date_To": $('#date_to').val()
+            }
+
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetDownloadClaimsData")',
+                dataType: 'json',
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    $('#progress-loader').hide();
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_tr_wise')) {
+                        table = $('#tbl_tr_wise').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        BindDataTable(response);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $('#progress-loader').hide();
+                    console.log(error);
+                    console.log(xhr);
+                    console.log(status);
+                }
+            });
+        }
+
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+            var table = $("#tbl_tr_wise").DataTable({
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "Claim_SystemId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "Claim_SystemId",
+                        "render": function (data, type, full, meta) {
+                            return `<a href='${full.FilePath}' target='_blank' class='dropdown-item text-dark fw-bold'><i class='fa fa-file-code-o text-primary' style='font-size: 15px; margin-right: 0.6rem;'></i></a>`
+                        }
+                    },
+                    { "mData": "ClaimId" },
+                    { "mData": "SenderID" },
+                    { "mData": "ReceiverID" },
+                    {
+                        "mData": "TransactionDate",
+                        "render": function (data) {
+                            return moment(data).format("YYYY-MM-DD");
+                        }
+                    },
+                    { "mData": "RecordCount" },
+                    {
+                        "mData": "net",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold text-info",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "PaymentAmount",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold text-success",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "RejectedAmount",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold text-warning",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[5, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '',
+                    lengthMenu: '_MENU_',
+                },
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Excel',
+                        footer: 'true'
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'PDF',
+                        footer: 'true'
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'CSV',
+                        footer: 'true'
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Print',
+                        footer: 'true'
+                    }
+                ],
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    // Total Price
+                    totalNet = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    pagetotalNet = api.column(7, { page: 'current' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer(pagetotalNet.toFixed(2)) + ' (' + numberRenderer(totalNet.toFixed(2)) + ')');
+
+                    // Payment Amount
+                    Payment_Amount = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    pagePayment_Amount = api.column(8, { page: 'current' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(numberRenderer(pagePayment_Amount.toFixed(2)) + ' (' + numberRenderer(Payment_Amount.toFixed(2)) + ')');
+
+                    // Rejected
+                    total_Rejected = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    pagetotal_Rejected = api.column(9, { page: 'current' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(9).footer()).html(numberRenderer(pagetotal_Rejected.toFixed(2)) + ' (' + numberRenderer(total_Rejected.toFixed(2)) + ')');
+                }
+            });
+            table.buttons().container().appendTo('#tbl_tr_wise_wrapper .col-md-6:eq(0)');
+
+        };
+        //#endregion
+
+    </script>
+}

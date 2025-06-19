@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Botox Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Botox/Dysport consent</h3>
+            </div>
+            <div class="card-body">
+                <div id="BotoxConsent_add" style="display:none">
+                </div>
+                <div id="BotoxConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="BotoxConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetBotoxConsentInfo();
+        BotoxConsentPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetBotoxConsentInfo
+    var GetBotoxConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetBotoxConsentData", "BotoxConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditBotoxConsent();
+                        $("#BotoxConsent_add").hide();
+                        $("#BotoxConsent_edit").show();
+
+                    }
+                    else {
+                        $("#BotoxConsent_add").show();
+                        $("#BotoxConsent_edit").hide();
+                        AddBotoxConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load BotoxConsent
+
+    //#region Add BotoxConsent
+    function AddBotoxConsent() {
+        var x = $("#BotoxConsent_add");
+        x.load("@Url.Action("CreateBotoxConsent", "BotoxConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add BotoxConsent
+
+    //#region Update BotoxConsent
+    function EditBotoxConsent() {
+        var x = $("#BotoxConsent_edit");
+        x.load("@Url.Action("UpdateBotoxConsent", "BotoxConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update BotoxConsent
+
+    //#region Histroy of BotoxConsent
+    function BotoxConsentPreviousHistory() {
+        var x = $("#BotoxConsent_history");
+        x.load("@Url.Action("BotoxConsentPreviousHistory", "BotoxConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

@@ -1,0 +1,605 @@
+﻿
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Vaccinations";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 col-lg-12">
+                        <div>
+                            <h4 class="page-title mb-0 text-primary">
+                                Vaccinations
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div id="vaccination_add">
+
+                </div>
+                <div id="vaccination_edit">
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_Vaccination" class="table table-striped table-bordered text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Name </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Dose </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Vaccination Exp Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Batch No</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Manufacturer</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Next Reminder Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Reminder Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div>
+                    <h4 class="page-title mb-0 text-primary ">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_PreVaccination" class="table table-striped table-bordered text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Name </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Dose </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Vaccination Exp Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Batch No</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Manufacturer</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Vaccination Master Details -->
+<div class="modal fade overflow-auto" id="vaccination_master_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="vaccination_master_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Vaccination Master Details -->
+
+@section myScripts{
+    <script>
+    //#region Page Load
+        $(function () {
+            
+            GetVaccination();
+            GetPreviousVaccination();
+        });
+    //#endregion Page Load
+    //#region Load Vaccination
+        var GetVaccination = function () {
+            $("#vaccination_add").show();
+            AddVaccination();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllVaccination", "Vaccination", new { area = "EMR" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_Vaccination')) {
+                            table = $('#tbl_Vaccination').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load Vaccination
+
+    //#region Load PreviousVaccination
+        var GetPreviousVaccination = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreVaccination", "Vaccination", new { area = "EMR" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_PreVaccination')) {
+                            table = $('#tbl_PreVaccination').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load PreviousVaccination
+
+    //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_Vaccination").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "pvId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "v_code",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "v_name",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_dose",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_notes",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_exp_date",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "pv_batchno",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_manufacturer",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_date",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "pv_reminder_notes",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pvId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (pvId, type, full, meta) {
+                            var status = full.pv_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="EditVaccination(' + pvId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="EditVaccination(' + pvId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+
+
+                                    }
+                                    else {
+
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditVaccination(' + pvId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                                return ''
+                                            }
+                                    }
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "pvId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (pvId, type, full, meta) {
+                            var status = full.pv_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteVaccination(' + pvId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="DeleteVaccination(' + pvId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+
+                                        }
+                                    else {
+
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteVaccination(' + pvId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Vaccinations',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl__vaccination_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Previous Bind Datatable
+        var BindDataTableP = function (response) {
+            var table = $("#tbl_PreVaccination").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "pvId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "v_code",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "v_name",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_dose",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_notes",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_exp_date",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "pv_batchno",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pv_manufacturer",
+                        "className": 'text-left',
+
+                    },
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous Vaccinations',
+                        footer: 'true',
+                        className:'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous Vaccinations',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous Vaccinations',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous Vaccinations',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_Pre_vaccination_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+     //#region Add Vaccination
+        function AddVaccination() {
+            $('#vaccination_edit').hide();
+            var x = $("#vaccination_add");
+            x.load("@Url.Action("CreateVaccination", "Vaccination", new { area = "EMR" })", function () {
+                $("#vaccination_add").show();
+            });
+        }
+    //#endregion Add Vaccination
+
+     //#region Edit Vaccination
+        function EditVaccination(pvId) {
+            $('#vaccination_add').hide();
+            var x = $("#vaccination_edit");
+            x.load("@Url.Action("EditVaccination", "Vaccination", new { area = "EMR" })?pvId=" + pvId + "&appId=" + @emr.appId, function () {
+                $("#vaccination_edit").show();
+            });
+
+        }
+    //#endregion Edit Vaccination
+
+    //#region Delete Vaccination
+        var DeleteVaccination = function (pvId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Vaccination ?",
+                text: "The selected Vaccination will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteVaccination", "Vaccination", new { area = "EMR" })?pvId=' + pvId,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Vaccination Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetVaccination();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Vaccination",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Vaccination!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Vaccination! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetVaccination();
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion Delete Vaccination
+
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+
+    </script>
+}

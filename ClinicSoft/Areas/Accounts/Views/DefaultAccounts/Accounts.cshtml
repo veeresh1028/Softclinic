@@ -1,0 +1,179 @@
+﻿@model BusinessEntities.Accounts.Accounting.DefaultAccountsList
+
+
+<div class="row">
+    <div class="table-responsive">
+        <table id="tbl_default_account" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+            <thead>
+                <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                    <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Account Name</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Group Name</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Category Name</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                    <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<script>
+     //#region Page Load
+    $(function () {
+        var response = @Html.Raw(Json.Encode(Model.defaultAccountsList));
+        BindDataTable(response);
+    });
+     //#endregion Page Load
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_default_account").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "code"
+                },
+                {
+                    "mData": "name"
+                },
+                {
+                    "mData": "group_name"
+                },
+                {
+                    "mData": "category_name"
+                },
+                {
+                    "mData": "type"
+                },
+                {
+                    "mData": "current_code",
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (current_code, type, full, meta) {
+                        if (current_code === null || current_code === undefined || current_code === "") {
+                            return '<button type="button" class="btn btn-success btn-sm border-success" style="width: 60px;" onclick="CreateAccount(\'' + full.code + '\',\'' + full.period + '\',\'' + full.branch + '\',\'' + full.name + '\',\'' + full.type + '\')">Create</button>'
+                        }
+                        else {
+                            return '<span class="btn text-danger btn-sm border-danger">Allocated</span>';
+                        }
+                    }
+                }   
+            ],
+            order: [[0, 'asc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Default Accounts',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Default Accounts',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                infoEmpty: "No Records Available",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Name / Code / Type</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_ ',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+            }
+        });
+        table.buttons().container().appendTo('#tbl_default_account_wrapper .col-md-6:eq(0)');
+    }
+    //#endregion
+
+    //#region Create Account Category From Default
+    var CreateAccount = function (code, period, branch, name, type) {
+        var _data = {
+            "code": code,
+            "period": period,
+            "branch": branch,
+            "name": name,
+            "type": type,
+            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+        }
+
+        $("#spinner2").show();
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("CreateDefaultAccount", "DefaultAccounts", new { area = "Accounts" })",
+            data: _data,
+            dataType: "json",
+            success: function (data) {
+                if (data.isInserted) {
+                    Swal.fire({
+                        title: "Success!",
+                        text: "Account Created Successfully!!",
+                        icon: "success",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                    if (data.list != "") {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_default_account')) {
+                            table = $('#tbl_default_account').DataTable();
+                            table.clear();
+                            table.rows.add(data.list).draw();
+                        }
+                        else {
+                            BindDataTable(data.list);
+                        }
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Error!",
+                        text: data.message + "!",
+                        icon: "error",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log("Error :" + xhr.statusText);
+                $("#spinner2").hide();
+            },
+            complete: function () {
+                // Hide spinner when request is complete
+                $("#spinner2").hide();
+            }
+        });
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion Alert Timeout
+
+</script>
+

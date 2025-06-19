@@ -1,0 +1,427 @@
+﻿@model BusinessEntities.Documentation.CoderQueries
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_EditCoderQuery" class="needs-validation" >
+
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.qaId)
+    @Html.HiddenFor(m => m.qa_appId)
+
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-4">
+            <label class="form-label">Message Type&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.qa_type, new List<SelectListItem> { }, "Select Template", new { @class = "form-select mb-2 select2", @id = "uqa_type" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <label class="form-label">From&nbsp;<small class="text-info">(Coder)</small>&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.qa_from, new List<SelectListItem> { }, "Select Template", new { @class = "form-select mb-2 select2", @id = "uqa_from", @disabled = "" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <label class="form-label">To&nbsp;<small class="text-info">(Physician)</small>&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.qa_to, new List<SelectListItem> { }, "Select Template", new { @class = "form-select mb-2 select2", @id = "uqa_to", @disabled = "" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-2">
+            <label class="form-label">Date&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <div class="input-group-text">
+                        <i class="fe fe-calendar"></i>
+                    </div>
+                </div>
+                @Html.TextBoxFor(m => m.qa_date, new { @class = "form-control", @placeholder = "DD-MMM-YYYY", @id = "uqa_date" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-8 col-lg-12">
+            <label class="form-label">Subject</label>
+            <div class="form-group">
+                @Html.TextBoxFor(m => m.qa_subject, new { @class = "form-control", @id = "uqa_subject", @maxlength = "100", @placeholder = "Ex : Authorization Approved!" })&nbsp;
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-4 col-lg-2">
+            <label class="form-label">Message&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+        </div>
+
+        <div class="col-sm-12 col-md-8 col-lg-10">
+            <div id="uqa_query"></div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="btn-list btn-animation">
+                <button type="button" class="btn text-danger btn-outline-danger btn-space" id="btn_Close_Editcomp">Close</button>
+                <button type="submit" class="btn btn-warning" id="btn_Update_CoderQuery">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Page Load
+    var uquillc;
+
+    $(function () {
+        validate_edit();
+
+        set_date_edit();
+
+        load_editor_edit();
+
+        $("#uqa_type").select2({
+            placeholder: 'Select Message Type',
+            width: '100%',
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_EditCoderQuery'),
+            ajax: {
+                url: '@Url.Action("GetMsgType", "CoderQueries", new { area = "Documentation" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: "",
+                        mt_branch: @emr.app_branch,
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+
+        load_type_edit("@Model.qa_type_name");
+
+        load_coders_edit();
+
+        load_doctors_edit();
+    });
+    //#endregion
+
+    //#region Load Coders
+    var load_coders_edit = function () {
+        $("#uqa_from").select2({
+            placeholder: 'Select Coder',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_EditCoderQuery')
+        });
+
+        var all_type_ = "@empId";
+
+        $.ajax({
+            url: '@Url.Action("GetEmployeeDept", "CoderQueries", new { area = "Documentation" })?empId=' + all_type_,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption;
+
+                        if (all_type_ != null && all_type_ != undefined && all_type_ != 0) {
+                            newOption = new Option(response[j].text, response[j].id, (response[j].id == all_type_));
+                        }
+                        else {
+                            newOption = new Option(response[j].text, response[j].id);
+                        }
+
+                        $('#uqa_from').append(newOption);
+                    });
+
+                    $('#uqa_from').val(@empId).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Load Message Type
+    var load_type_edit = function (_type) {
+        $.ajax({
+            url: '@Url.Action("GetMsgType", "CoderQueries", new { area = "Documentation" })?query=' + _type + "&mt_branch=" + @emr.app_branch,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                var data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+
+                $('#uqa_type').val(response[0].text);
+
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+
+                $('#uqa_type').append(newOption).trigger('change');
+
+                $('#uqa_type').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Load Doctors
+    var load_doctors_edit = function () {
+        $("#uqa_to").select2({
+            placeholder: 'Select Physician',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_EditCoderQuery')
+        });
+
+        var id = "@emr.app_doctor";
+
+        $.ajax({
+            url: '@Url.Action("GetEmployeeDept", "CoderQueries", new { area = "Documentation" })?empId=' + id,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption;
+
+                        if (id != null && id != undefined && id != 0) {
+                            newOption = new Option(response[j].text, response[j].id, (response[j].id == id));
+                        }
+                        else {
+                            newOption = new Option(response[j].text, response[j].id);
+                        }
+
+                        $('#uqa_to').append(newOption);
+                    });
+
+                    $('#uqa_to').val(id).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Load Editor
+    var load_editor_edit = function () {
+        uquillc = new Quill('#uqa_query', {
+            modules: {
+                toolbar:
+                    [[{
+                        'header': [1, 2, 3, 4, 5, 6, false]
+                    }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                [{
+                    'list': 'ordered'
+                }, {
+                    'list': 'bullet'
+                }]]
+            },
+            theme: 'snow',
+            placeholder: 'Write your Response here.....',
+        });
+
+        var realHTML = $('<textarea />').html("@Model.qa_query").text();
+
+        uquillc.root.innerHTML = realHTML;
+    }
+    //#endregion
+
+    //#region Set Date
+    var set_date_edit = function () {
+        $('#uqa_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        var d1 = "@Model.qa_date";
+
+        if (d1 != "1/1/1950 12:00:00 AM") {
+            $("#uqa_date").bootstrapdatepicker("setDate", moment(new Date("@Model.qa_date")).format("DD-MMMM-YYYY"));
+        }
+        else {
+            $("#uqa_date").bootstrapdatepicker("setDate", "today");
+        }
+    }
+    //#endregion
+
+    //#region Validation Initialization
+    var validate_edit = function () {
+        $('#uqa_date').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $("#form_EditCoderQuery").validate({
+            rules: {
+                uqa_date: {
+                    required: true
+                }
+            },
+            messages: {
+                uqa_date: {
+                    required: "Please Select Date"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#uqa_date').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uqa_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Update Button Click
+    $('#btn_Update_CoderQuery').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_EditCoderQuery").valid()) {
+
+            var isvalid = true;
+
+            if (uquillc.getText().trim().length == 0) {
+                $("#qa_query").attr("style", "border:1px solid red;");
+
+                error_timeout_quil($("#qa_query"));
+
+                isvalid = false;
+            }
+
+            if (isvalid) {
+                var formData = new FormData();
+                formData.append("qaId", "@Model.qaId");
+                formData.append("qa_appId", "@emr.appId");
+                formData.append("qa_type", $("#uqa_type").val());
+                formData.append("qa_subject", $("#uqa_subject").val().trim());
+                formData.append("qa_date", moment($("#uqa_date").val()).format("YYYY-MM-DD"));
+                formData.append("qa_query", uquillc.root.innerHTML);
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdateCoderQueries", "CoderQueries", new { area = "Documentation" })",
+                    dataType: 'json',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (data) {
+                        var alertPlaceholder = document.getElementById("Alert");
+
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+
+                        if (data.isSuccess) {
+                            alert("<i class='fe fe-check-circle text-white'></i> Coder Query Updated Successfully!", "success");
+
+                            addCoderQueries();
+
+                            Timeout();
+
+                            getCoderQueries();
+                        }
+                        else {
+                            alert("<i class='fa fa-ban text-white'></i> Failed to Update Coder Query!", "success");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Required!",
+                    text: "Please Enter Message to Send Query!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+    });
+    //#endregion
+
+    //#region Close Controls
+    $('#btn_Close_Editcomp').on('click', function (e) {
+        e.preventDefault();
+
+        addCoderQueries();
+    });
+    //#endregion
+</script>

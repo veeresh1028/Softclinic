@@ -1,0 +1,422 @@
+﻿@model IEnumerable<BusinessEntities.Masters.InsurancePayers>
+<style>
+    #sizeIP {
+        max-width: 1200px;
+    }
+
+    a:not([href]):not([tabindex]) {
+        color: #5a72e8;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Insurance Payers <span id="main_ins" class="badge bg-primary-2"></span></h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+            <div id="InPayerAlert"></div>
+        </div>
+        <div class="col-12 col-sm-12 col-md-12 col-lg-12">
+            <p class="card-title-desc btn-group-justified d-flex justify-content-between">
+                Add / Edit / Delete Insurance Payers!
+                <a id="showAddIP" class="btn btn-outline-secondary"><i class="mdi mdi-plus-circle"></i>&nbsp;Add Payer</a>
+            </p>
+            <div style="display:none;" id="ip_add">
+                @Html.Action("CreateInsurancePayer", "InsuranceCompanies", new { area = "Masters" })
+            </div>
+            <div id="ip_edit">
+            </div>
+            <div class="table-responsive">
+                <table id="tbl_ins_payers" class="table table-striped table-bordered text-nowrap" style="width:100%">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #5a72e8; border-color: #5a72e8;">
+                            <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Main Insurance</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Payer Name</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Contact Person</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Follow-Up Days</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">TEL #</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">FAX #</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">E-Mail</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        GetInsurancePayers();
+
+        $('#showAddIP').click(function () {
+            $('#ip_add').show();
+            $('#ip_edit').hide();
+        });
+    });
+    //#endregion
+
+    //#region Get Insurance Payers
+    var GetInsurancePayers = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetInsurancePayers", new { area="Masters" })",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (response) {
+                if (response != "") {
+                    $('#main_ins').html(response[0].ic_name);
+                }
+                var table;
+                if ($.fn.dataTable.isDataTable('#tbl_ins_payers')) {
+                    table = $('#tbl_ins_payers').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindDataTable(response);
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region BindData Table
+    var BindDataTable = function (response) {
+        $("#tbl_ins_payers").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "ip_code" },
+                { "mData": "ic_name" },
+                { "mData": "ip_name" },
+                {
+                    "mData": "ip_cperson",
+                    "render": function (data) {
+                        if (data == "" || data == undefined) {
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                        else {
+                            return data;
+                        }
+                    }
+                },
+                {
+                    "mData": "ip_followup"
+                },
+                {
+                    "mData": "ip_tel",
+                    "render": function (data) {
+                        if (data == "" || data == undefined) {
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                        else {
+                            return data;
+                        }
+                    }
+                },
+                {
+                    "mData": "ip_fax",
+                    "render": function (data) {
+                        if (data == "" || data == undefined) {
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                        else {
+                            return data;
+                        }
+                    }
+                },
+                {
+                    "mData": "ip_email",
+                    "render": function (data) {
+                        if (data == "" || data == undefined) {
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                        else {
+                            return data;
+                        }
+                    }
+                },
+                {
+                    "className": 'text-center',
+                    "mData": "ipId",
+                    "render": function (ipId, type, full, meta) {
+
+                        var visible = full.actionvisible;
+                        var ip_status = full.ip_status;
+
+                        if (visible === "True") {
+                            if (full.ip_status === "Active") {
+                                return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updatePayerStatus(\'' + ipId + '\',\' Active\')">Active</button>'
+                            }
+                            else if (full.ip_status === "Inactive") {
+                                return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updatePayerStatus(\'' + ipId + '\',\'Inactive\')">Inactive</button>'
+                            }
+                            else if (full.ip_status === "Deleted") {
+                                return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updatePayerStatus(\'' + ipId + '\',\'Deleted\')">Deleted</button>'
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                        else {
+                            return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                        }
+                    }
+                },
+                {
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "mData": "ipId",
+                    "render": function (data, type, full, meta) {
+                        return '<a class="text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#ip_modal" onclick="insurancePayerNotes(' + data + ')"><i class="fa fa-file-text-o text-primary" style="font-size: 18px;cursor: pointer;"></i></a>'
+                    }
+                },
+                {
+                    "mData": "ipId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (ipId, type, full, meta) {
+                        var status = full.ip_status;
+                        var visible = full.actionvisible;
+
+                        if (status === "Active" && visible === "True") {
+
+                            return '<button type="button" id="btn_Edit" onclick="editPayer(' + ipId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "mData": "ipId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (ipId, type, full, meta) {
+                        var status = full.ip_status;
+                        var visible = full.actionvisible;
+
+                        if (status === "Active" && visible === "True") {
+                            return '<button type="button" id="btn_IP_Delete" onclick="deletePayer(' + ipId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search Payers',
+                scrollX: "100%",
+                sSearch: '',
+                lengthMenu: '_MENU_ ',
+            }
+        });
+    }
+    //#endregion
+
+    //#region Update Status
+    var updatePayerStatus = function (ipId, ip_status) {
+        ip_status = (ip_status == "Deleted" || ip_status == "Inactive") ? "Active" : "Inactive"
+
+        Swal.fire({
+            title: "Are you sure you want to change status ?",
+            text: "This action will change the status of the selected Insurance Payer!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: "@Url.Action("UpdateInsurancePayerStatus", "InsuranceCompanies", new { area="Masters"})?ipId=" + ipId + "&ip_status=" + ip_status,
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                GetInsurancePayers();
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: data.message,
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Action Forbidden!",
+                                    text: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to change Insurance Payer Status!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Error while updating Insurance Payer Status! " + xhr.statusText,
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Edit Insurance Payer
+    $(document).on('click', '[id*=btn_IP_Edit]', function () {
+        $('#ipId').val($(this).closest('tr').find('td').eq(0).html());
+        payerToEdit = $(this).closest('tr');
+    });
+    function editPayer(ipId) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("EditInsurancePayer", "InsuranceCompanies", new { area = "Masters" })?ipId=" + ipId,
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $("#ip_edit").html(data);
+                $("#ip_edit").show();
+            },
+            error: function (xhr) {
+                console.log("Error while Editing Insurance Payer : " + xhr.statusText);
+            }
+        }).done(function () {
+            $('#ip_add').hide();
+        });
+    }
+    //#endregion
+
+    //#region Delete Insurance Payer
+    $(document).on('click', '[id*=btn_IP_Delete]', function () {
+        $('#ipId').val($(this).closest('tr').find('td').eq(0).html());
+        payerToDelete = $(this).closest('tr');
+    });
+    var payerToDelete;
+    var deletePayer = function (ipId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Payer?",
+            text: "This action will delete the selected record!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! Confirm',
+            cancelButtonText: 'No! Cancel',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: '@Url.Action("DeleteInsurancePayer", new { area = "Masters"})?ipId=' + ipId +'&ip_status=Deleted' ,
+                    type: "POST",
+                    dataType: "JSON",
+                    success: function (data) {
+                        if (data.success && data.isAuthorized != false && data.error != true) {
+                            GetInsurancePayers();
+                            var table = $('#tbl_ins_payers').DataTable();
+                            table.row(payerToDelete).remove().draw();
+                            payerToDelete = '';
+
+                            var alertPlaceholder = document.getElementById("InPayerAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div"); l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Insurance Payer Deleted Successfully!", "success");
+                            Timeout();
+                        }
+                        else if (data.isAuthorized == false) {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough priveleges to delete this payer!",
+                                icon: "error",
+                                showCancelButton: false,
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Insurance Payer!",
+                                icon: "error",
+                                showCancelButton: false,
+                                confirmButtonColor: "#0bb197"
+                            })
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Delete Insurance Payer!",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Payer Notes
+    function insurancePayerNotes(ipId) {
+        var x = $("#ip_body");
+        x.load("@Url.Action("InsurancePayerNotes", new { area="Masters"})?ipId=" + ipId, function () {
+            $("#insurance_payers_modal").modal("hide");
+            $("#ip_modal").modal("show");
+            resizedt();
+        });
+    }
+    //#endregion
+
+    //#region Alert Function
+    var alertPlaceholder = document.getElementById("InPayerAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

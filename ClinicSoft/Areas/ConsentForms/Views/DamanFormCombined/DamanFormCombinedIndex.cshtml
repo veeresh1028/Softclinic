@@ -1,0 +1,151 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Daman Form Combined";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Daman Form Combined
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="DamanFormCombined_add" style="display:none">
+                </div>
+                <div id="DamanFormCombined_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DamanFormCombined_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetDamanFormCombinedInfo();
+        DamanFormCombinedPreviousHistory();
+    });
+
+    //#endregion Page Load
+
+    //#region Graphical representation of patient's progress
+    var AppTypes = function (response) {
+        $('#dfc_type_chart').empty('');
+
+        var _data = response.dbAppTypes;
+
+        var _labels = _data.map(function (value) {
+            return value.labels;
+        });
+
+        var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+        var colorIndex = 0;
+
+        new Morris.Bar({
+            element: 'dfc_type_chart',
+            data: _data,
+            xkey: 'labels',
+            ykeys: ['total'],
+            labels: _labels,
+            stacked: true,
+            gridTextSize: 10,
+            hideHover: 'auto',
+            resize: true,
+            xLabelMargin: 25,
+            hoverCallback: function (index, options, content, row) {
+                var label = options.data[index].labels;
+                var total = options.data[index].total;
+                total = total.toLocaleString();
+                return label + ': ' + total + ' Nos';
+            },
+            barColors: function () {
+                if (colorIndex < 4)
+                    return barColorsArray[++colorIndex];
+                else {
+                    colorIndex = 0;
+                    return barColorsArray[++colorIndex];
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Load GetDamanFormCombinedInfo
+    var GetDamanFormCombinedInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetDamanFormCombinedData", "DamanFormCombined", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditDamanFormCombined();
+                        $("#DamanFormCombined_add").hide();
+                        $("#DamanFormCombined_edit").show();
+
+                    }
+                    else {
+                        $("#DamanFormCombined_add").show();
+                        $("#DamanFormCombined_edit").hide();
+                        AddDamanFormCombined();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load DamanFormCombined
+
+    //#region Add DamanFormCombined
+    function AddDamanFormCombined() {
+        var x = $("#DamanFormCombined_add");
+        x.load("@Url.Action("CreateDamanFormCombined", "DamanFormCombined", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add DamanFormCombined
+
+    // #region Update DamanFormCombined
+    function EditDamanFormCombined() {
+        var x = $("#DamanFormCombined_edit");
+        x.load("@Url.Action("UpdateDamanFormCombined", "DamanFormCombined", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update DamanFormCombined
+
+    // #region Histroy of DamanFormCombined
+    function DamanFormCombinedPreviousHistory() {
+        var x = $("#DamanFormCombined_history");
+        x.load("@Url.Action("DamanFormCombinedPreviousHistory", "DamanFormCombined", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion History of DamanFormCombined
+
+
+</script>

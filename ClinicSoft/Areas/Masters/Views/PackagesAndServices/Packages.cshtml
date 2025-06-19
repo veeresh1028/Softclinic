@@ -1,0 +1,403 @@
+﻿
+
+@model IEnumerable<BusinessEntities.Masters.Packages>
+<style>
+    #sizePT {
+        max-width: 1200px;
+    }
+
+    a:not([href]):not([tabindex]) {
+        color: #5a72e8;
+    }
+
+    .text-justify {
+        text-align: justify;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Packages / Services</h5>
+    <button type="button" class="btn-close CloseTest" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-12 col-sm-12 col-md-12 col-lg-12">
+            <div id="PackagesAlert"></div>
+            <p class="card-title-desc btn-group-justified d-flex justify-content-between">
+                Add / Delete Packages / Services!
+                <a id="showAdd" class="btn btn-outline-secondary"><i class="mdi mdi-plus-circle"></i>&nbsp;Add Package Service</a>
+            </p>
+            <div style="display:none;" id="pkg_add">
+                @Html.Action("CreateSevicesToPackage", "PackagesAndServices", new { area = "Masters" })
+            </div>
+            <div id="pkg_edit">
+            </div>
+            <div class="table-responsive">
+                <table id="tbl_packages" class="table table-striped table-bordered text-nowrap resize-table" style="width:100%">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #5a72e8; border-color: #5a72e8; ">
+                            <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">CPT Code</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Package Services</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white text-end">Original Price</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white text-end">Discounted Price</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th class="text-end text-dark">Total : </th>
+                            <th class="table_footer_align"></th>
+                            <th class="table_footer_align"></th>
+                            <th class="table_footer_align"></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        GetPackages();
+
+        $('#showAdd').click(function () {
+            $('#pkg_add').show();
+            $('#pkg_edit').hide();
+        });
+    });
+    //#endregion
+
+    //#region Get Packages
+    var GetPackages = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetPackages", "PackagesAndServices", new { area="Masters"})",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (response) {
+                var table;
+                if ($.fn.dataTable.isDataTable('#tbl_packages')) {
+                    table = $('#tbl_packages').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindDataTable(response);
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr.statusText)
+            }
+        })
+    }
+    //#endregion
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_packages").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "psId",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-center",
+                    "render": function (data, type, row, meta) {
+                        let _index = (meta.row) + 1;
+                        if (_index >= 10) {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                        }
+                        else {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                        }
+                    }
+                },
+                { "mData": "tr_code" },
+                {
+                    "className": 'text-wrap text-justify',
+                    "mData": "tr_name"
+                },
+                {
+                    "mData": "ps_qty"
+                },
+                {
+                    "className": 'text-end',
+                    "mData": "ps_oriPrice",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "className": 'text-end',
+                    "mData": "ps_disPrice",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "className": 'text-center',
+                    "mData": "psId",
+                    "render": function (psId, type, full, meta) {
+                        var visible = full.actionvisible;
+                        var ps_status = full.ps_status;
+
+                        if (visible === "True") {
+                            if (full.ps_status === "Active") {
+                                return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updatePackageStatus(\'' + psId + '\',\' Active \')">Active</button>'
+                            }
+                            else if (full.ps_status === "Inactive") {
+                                return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updatePackageStatus(\'' + psId + '\',\'Inactive\')">Inactive</button>'
+                            }
+                            else if (full.ps_status === "Deleted") {
+                                return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updatePackageStatus(\'' + psId + '\',\'Deleted\')">Deleted</button>'
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                        else {
+                            return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                        }
+                    }
+                },
+                {
+                    "mData": "psId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (psId, type, full, meta) {
+                        var status = full.ps_status;
+                        var visible = full.actionvisible;
+                        if (status === "Active" && visible === "True") {
+                            return '<button type="button" id="btnDelete" onclick="deletePackage(' + psId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search Package Tests</span>',
+                lengthMenu: '_MENU_',
+                scrollX: "100%"
+            },
+            buttons: [
+                {
+                    extend: 'excel',
+                    className: 'btn-secondary',
+                    title: 'Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Packages to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn-secondary',
+                    title: 'Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Packages to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn-secondary',
+                    title: 'Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Packages to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    className: 'btn-secondary',
+                    title: 'Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Packages!");
+                    }
+                }
+            ],
+            "footerCallback": function (row, data, start, end, display) {
+                var api = this.api();
+
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                total_q = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(3).footer()).html(numFormat(total_q));
+
+                total_op = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(4).footer()).html(numFormat(total_op));
+
+                total_dp = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(5).footer()).html(numFormat(total_dp));
+            },
+            order: [[1, 'asc']]
+        });
+        table.buttons().container().appendTo('#tbl_packages_wrapper .col-md-6:eq(0)');
+    }
+    //#endregion
+
+    //#region Update Package Service Status
+    var updatePackageStatus = function (psId, ps_status) {
+        ps_status = (ps_status == "Deleted" || ps_status == "Inactive") ? "Active" : "Inactive"
+
+        Swal.fire({
+            title: "Are you sure you want to change status ?",
+            text: "This action will change the status of the selected Test!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: "@Url.Action("UpdatePackageStatus", "PackagesAndServices", new { area = "Masters" })?psId=" + psId + "&ps_status=" + ps_status,
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                GetPackages();
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: data.message,
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Action Forbidden!",
+                                    text: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to change Package Status!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Update Test Status! Please refresh the Page and Try Again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        })
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Delete Package Service
+    var deletePackage = function (psId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Package Service ?",
+            text: "This action will delete this Package!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: '@Url.Action("DeletePackage", "PackagesAndServices", new { area = "Masters" })?psId=' + psId +'&ps_status=Deleted',
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: data.message,
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                })
+                                GetPackages();
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to delete this Package!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Delete Package! Please refresh the page and try again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+</script>

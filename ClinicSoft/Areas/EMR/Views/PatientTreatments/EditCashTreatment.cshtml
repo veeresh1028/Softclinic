@@ -1,0 +1,293 @@
+﻿@model BusinessEntities.Documentation.CoderDiagnosis
+<form id="form_EditPatdignosis" class="needs-validation" >
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class='badge bg-danger'>Required</span>
+            <span class="text-info" style="font-size:smaller">Please fill diagnosis !!!</span>
+        </div>
+    </div>
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.codId)
+    @Html.HiddenFor(m => m.cod_appId)
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Diagnosis&nbsp;<span class="text-danger">*</span></label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left mb-2">
+                    <span class="text-black">Click to search from favourite &nbsp;&nbsp;</span>
+                    <label class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" name="check_fav" value="1">
+                        <span class="custom-control-label"></span>
+                    </label>
+                </div>
+                @Html.DropDownListFor(m => m.cod_diagnosis, new List<SelectListItem> { }, "Search Diagnosis", new { @class = "form-select  mb-2 select2", @id = "ucod_diagnosis" })
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Notes&nbsp;</label>
+                @Html.TextAreaFor(m => m.cod_notes, new { @class = "form-control", @placeholder = "Enter Notes", @row = "6", @id = "ucod_notes" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Year&nbsp;</label>
+                @Html.TextBoxFor(m => m.cod_year, new { @class = "form-control", @placeholder = "Enter Year", @id = "ucod_year" })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Add To Favorite &nbsp;</label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left mb-2">
+                    <label class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" name="chkyes" value="1">
+                        <span class="custom-control-label"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-warning" id="btn_Update_coddiagnosis">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_Editcomp">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+         $(function () {
+             $('#btn_Close_Editcomp').click(function () {
+                 $("#patdignosis_add").show();
+                 $('#patdignosis_edit').hide();
+            });
+
+            $("#ucod_diagnosis").select2({
+                placeholder: 'Select Template',
+                width: '100%',
+                minimumInputLength: 3,
+                     dropdownParent: $('#form_EditPatdignosis'),
+
+                ajax: {
+                    url: '@Url.Action("GetDiagnosis", "PatientDiagnosis", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+             validate();
+             load_coddiagnosis("@Model.cod_diagnosis");
+        });
+    //#endregion Partial View Onload
+
+    //#region load PatientDiagnosis
+    var load_coddiagnosis = function (cod_diagnosis) {
+            $.ajax({
+                url: '@Url.Action("GetDiagnosis", "PatientDiagnosis", new { area = "EMR" })?query=' + cod_diagnosis,
+                type: "GET",
+                dataType: "json",
+                async: false,
+
+                success: function (response) {
+                    var data = {
+                        "id": response[0].id,
+                        "text": response[0].text,
+                    };
+                    $('#cod_diagnosis').val(response[0].text);
+                    var newOption = new Option(response[0].text, response[0].id, true, true);
+                    $('#ucod_diagnosis').append(newOption).trigger('change');
+                    $('#ucod_diagnosis').trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    });
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+
+            });
+        };
+    //#endregion load PatientDiagnosis
+
+    //#region Update  Button Click
+        $('#btn_Update_coddiagnosis').on('click', function (e) {
+             e.preventDefault();
+            if ($("#form_EditPatdignosis").valid()) {
+                $('#btn_Update_coddiagnosis').removeClass("btn btn-success");
+                $('#btn_Update_coddiagnosis').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Update_coddiagnosis').html("Updating the Record....");
+                var _dataInsert = {
+                    "codId": $("#codId").val(),
+                    "cod_appId": $("#cod_appId").val(),
+                    "cod_diagnosis": $("#ucod_diagnosis").val(),
+                    "cod_notes": $("#ucod_notes").val(),
+                    "cod_year": $("#ucod_year").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                console.log(_dataInsert)
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdatePatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                success: function (data) {
+                    $('#patdignosis_edit').hide();
+                    $('#btn_Update_coddiagnosis').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_coddiagnosis').addClass("btn btn-success");
+                    $('#btn_Update_coddiagnosis').html("Save Changes");
+                    if (data.isSuccess) {
+                        if (data.isUpdated) {
+                            var alertPlaceholder = document.getElementById("Alert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Patient Diagnosis Updated Successfully!", "success");
+                            //clearControls();
+                            Timeout();
+                            GetPatDiagnosis();
+                            GetPreviousPatDiagnosis();
+                            $('#patdignosis_add').show();
+                            $("#patdignosis_edit").hide()
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Warning.. Patient Diagnosis Alredy Exists..</strong><br/>" +
+                                "</div></div>";
+                            $("#error").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+                        html += "</ul></div></div>";
+                        $("#error").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update_coddiagnosis').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_coddiagnosis').addClass("btn btn-success");
+                    $('#btn_Update_coddiagnosis').html("Save Changes");
+                    Timeout();
+                }
+                });
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Update  Button Click
+
+    //#region Clear Controls
+        var clearControls = function () {
+            $("#ucod_notes").val("");
+            $("#ucod_diagnosis").val("").trigger("change");
+            $("input[name='check_fav']:checkbox").prop('checked', false);
+            $("input[name='chkyes']:checkbox").prop('checked', false);
+        }
+    //#endregion Clear Controls
+
+    //#region Validation Initialization
+        var validate = function () {
+            $("#form_EditPatdignosis").validate({
+                rules: {
+                    cod_diagnosis: {
+                        required: true
+                    },
+
+                },
+                messages: {
+                    cod_diagnosis: {
+                        required: "Please Select Diagnosiss!"
+                    },
+
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                    } else {
+                        elem.parent().addClass('has-error');
+                    }
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                    } else {
+                        elem.removeClass('has-error');
+                    }
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        element = $("#select2-" + elem.attr("id") + "-container").parent();
+                        error.insertAfter(element);
+                    } else {
+                        error.insertAfter(element);
+                    }
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+            $('#cod_diagnosis').on('change', function () {
+                $(this).trigger('blur');
+            });
+        }
+    //#endregion Validation Initialization
+</script>

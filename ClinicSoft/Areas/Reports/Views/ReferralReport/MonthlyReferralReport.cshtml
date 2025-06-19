@@ -1,0 +1,497 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Monthly Referral Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            Monthly Referral Report
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch<small>(es)</small></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Month</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="rep_month" class="form-control" placeholder="Select Month" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Year</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="rep_year" class="form-control" placeholder="Select Year" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_monthly_referral_report" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Detailed Report Toast -->
+    <div class="text-wrap">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="MonthlyReportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto">Monthly Referral Report</strong>
+                            <small>Just Now</small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body" id="toastBody">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Daily Source Detailed Report History Details -->
+<div class="modal fade overflow-auto" id="daily_source_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="daily_source_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Daily Source Detailed Report History Details -->
+
+@section myScripts{
+    <style type="text/css">
+        .datepicker-months .datepicker-switch {
+            display: none;
+        }
+
+        .datepicker-months .prev {
+            display: none;
+        }
+
+        .datepicker-months .next {
+            display: none;
+        }
+    </style>
+
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            // Load Advanced Filters
+            load_filters();
+
+            // Load Daily Report By Source
+            getMonthlyReferralReport(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_branches();
+
+            $('#rep_month').bootstrapdatepicker({
+                format: "MM",
+                viewMode: "month",
+                minViewMode: "months",
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                orientation: "bottom"
+            });
+
+            $("#rep_month").bootstrapdatepicker("setDate", "today");
+
+            $('#rep_year').bootstrapdatepicker({
+                format: "yyyy",
+                viewMode: "year",
+                minViewMode: "years",
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate: "today",
+                orientation: "bottom",
+                startDate: "2006"
+            });
+
+            $("#rep_year").bootstrapdatepicker("setDate", "today");
+
+            $('#rep_month').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 2)
+                        return false;
+                }
+            });
+
+            $('#rep_year').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 4)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Monthly Referral Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#rep_month").val() != null && $("#rep_month").val() != 0 && $("#rep_month").val() != "") &&
+                    ($("#rep_year").val() != null && $("#rep_year").val() != 0 && $("#rep_year").val() != "")) {
+
+                    getMonthlyReferralReport(1);
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Month & Year is required to filter record(s)!",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Report!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Monthly Referral Report Data
+        var getMonthlyReferralReport = function (search_type) {
+
+            var month = $('#rep_month').bootstrapdatepicker('getDate');
+            var selectedMonthNumber = 0;
+
+            if (month !== null) {
+                selectedMonthNumber = month.getMonth() + 1;
+            }
+
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "select_month"  : selectedMonthNumber,
+                "select_year"   : $('#rep_year').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetMonthlyReferralReport", "ReferralReport", new { area = "Reports" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#MonthlyReportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (!response.isAuthorized) {
+                        var arr = JSON.parse(response);
+
+                        var dataObjData = arr.report;
+
+                        var dataObjCol = [{ title: "Date", data: "Date" }];
+
+                        $.each(arr.sources, function (key, value) {
+                            var _col = { title: value, data: value, className: "text-center" };
+
+                            dataObjCol.push(_col);
+                        });
+
+                        //#region Load Datatable
+                        var table;
+
+                        if ($.fn.dataTable.isDataTable('#tbl_monthly_referral_report')) {
+                            table = $('#tbl_monthly_referral_report').DataTable();
+                            table.clear().destroy();
+                            $('#tbl_monthly_referral_report').empty();
+                            BindDataTable(dataObjCol, dataObjData);
+                        }
+                        else {
+                            BindDataTable(dataObjCol, dataObjData);
+                        }
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var count_total;
+                        var etime = new Date().getTime() - this.start_time;
+
+                        if (dataObjData.length > 0) {
+                            count_total = dataObjData.length;
+                            $('#toastBody').html('');
+                            $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Filtered </b> <b class="text-primary" id="report_count">' + count_total.toLocaleString() + ' </b> record(s) in about <b id="etime">' + etime +'</b> ms');
+                            $('#MonthlyReportToast').show();
+                        }
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                setTimeout(function () {
+                    $('#MonthlyReportToast').fadeOut('fast');
+                }, 5000);
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (dataObjCol, dataObjData) {
+            var table = $("#tbl_monthly_referral_report").DataTable({
+                "columns": dataObjCol,
+                "data": dataObjData,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "className": "text-dark",
+                        "render": function (data, type, row, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(data).format("DD-MM-YYYY");
+                            }
+
+                            return moment(data).format("YYYY-MM-DD");
+                        }
+                    },
+                ],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                order: [[0, 'desc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Date</span>',
+                    lengthMenu: '_MENU_',
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Monthly Referral Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Monthly Referral Report to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Monthly Referral Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Monthly Referral Report to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Monthly Referral Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Monthly Referral Report to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Monthly Referral Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Monthly Referral Report!");
+                        }
+                    }
+                ],
+            });
+
+            table.buttons().container().appendTo('#tbl_monthly_referral_report_wrapper .col-md-6:eq(0)');
+
+            $('#tbl_monthly_referral_report_wrapper thead tr th').each(function () { $(this).addClass('text-white bg-primary border-bottom-0 font-weight-semibold') });
+        }
+        //#endregion
+
+        //#region Get Daily Report History By Source
+        var dailySourceHistory = function (fdate, source) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetMonthlyReferralHistory", "ReferralReport", new { area = "Reports" })?pat_date=" + fdate + "&pat_source_name=" + source,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#daily_source_details_body").html(response);
+                    $("#daily_source_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region UI Functions
+        // Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        // Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        // Remove Error Class
+        function error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+    </script>
+}

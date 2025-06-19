@@ -1,0 +1,114 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "KenakortInjectionNewIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Operative Report For Kenakort Injection
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="KenakortInjectionNew_add" style="display:none">
+                </div>
+                <div id="KenakortInjectionNew_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="KenakortInjectionNew_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetKenakortInjectionNewInfo();
+           KenakortInjectionNewPreviousHistory();
+
+        });
+        //#endregion Page Load
+
+        //#region Load GetKenakortInjectionNewInfo
+        var GetKenakortInjectionNewInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetKenakortInjectionNewData", "KenakortInjectionNew", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditKenakortInjectionNew();
+                            $("#KenakortInjectionNew_add").hide();
+                            $("#KenakortInjectionNew_edit").show();
+
+                        }
+                        else {
+                            $("#KenakortInjectionNew_add").show();
+                            $("#KenakortInjectionNew_edit").hide();
+                            AddKenakortInjectionNew();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load KenakortInjectionNew
+
+        //#region Add KenakortInjectionNew
+        function AddKenakortInjectionNew() {
+            var x = $("#KenakortInjectionNew_add");
+            x.load("@Url.Action("CreateKenakortInjectionNew", "KenakortInjectionNew", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add KenakortInjectionNew
+
+        //#region Update KenakortInjectionNew
+        function EditKenakortInjectionNew() {
+            var x = $("#KenakortInjectionNew_edit");
+            x.load("@Url.Action("UpdateKenakortInjectionNew", "KenakortInjectionNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update KenakortInjectionNew
+
+          //#region Histroy of KenakortInjectionNew
+        function KenakortInjectionNewPreviousHistory() {
+            var x = $("#KenakortInjectionNew_history");
+            x.load("@Url.Action("KenakortInjectionNewPreviousHistory", "KenakortInjectionNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of KenakortInjectionNew
+
+
+    </script>
+
+@*}*@

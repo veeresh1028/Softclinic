@@ -1,0 +1,1012 @@
+﻿@model IEnumerable<BusinessEntities.Accounts.Masters.Items>
+@{
+    ViewBag.Title = "Accounts & Material Management - Central Store";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="central-store">Central Store</span></h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-cyan ms-lg-2" type="button" id="btnPrintBarcode">
+                <i class="fa fa-barcode"></i> 
+                <span data-lang-key="print-barcode">Print Barcode</span>
+            </button>
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+            <a href="" id="btn_Add_Items" data-bs-toggle="modal" data-bs-target="#items_modal" class="btn btn-secondary" onclick="AddItems()"><i class="mdi mdi-plus"></i>&nbsp;Add New Items</a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                <select id="select_branch" class="form-control mb-4" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="item-name-code">Item Name / Code</span></label>
+                                <input class="form-control" placeholder="Enter Item Name Or Code" id="text_name_code" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="item-group">Item Group</span></label>
+                                <select id="select_item_group" class="form-control mb-4" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="item-location">Item Location</span></label>
+                                <select id="select_item_location" class="form-control mb-4" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="type">Type</span></label>
+                                <select id="select_types" class="form-control mb-4" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="status">Status<small>(es)</small></span></label>
+                                    <select id="select_status" class="form-control mb-4" multiple="multiple"></select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">&nbsp;</label>
+                                    <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                        <i class="fa fa-search-plus"></i> 
+                                        <span data-lang-key="search">Search</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="ItemsAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-status bg-blue"></div>
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_items" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="photo">Image</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="branch">Branch</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="code-barcode">Code/Barcode</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="type">Type</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="group">Group</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="location">Location</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="item-name">Item Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="quantity">Qty</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">UOM</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* popup Model *@
+<div class="modal fade overflow-auto" id="items_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="Items_body">
+        </div>
+    </div>
+</div>
+
+@* View Items Audit Detail popup Model *@
+<div class="modal fade overflow-auto" id="ItemsAuditLog_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="ItemsAuditLog_body">
+        </div>
+    </div>
+</div>
+
+@* Batches Detail popup Model *@
+<div class="modal fade overflow-auto" id="ItemBatches_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="ItemBatches_body">
+        </div>
+    </div>
+</div>
+
+@* Item Opening Stock popup Model *@
+<div class="modal fade fade overflow-auto" id="ItemOpeningStock_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" id="size">
+        <div class="modal-content" id="ItemOpeningStock_body">
+        </div>
+    </div>
+</div>
+
+@* Items History popup Model *@
+<div class="modal fade overflow-auto" id="ItemsHistory_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="ItemsHistory_body">
+        </div>
+    </div>
+</div>
+
+@* Items Detail View & Print Model *@
+<div class="modal fade overflow-auto" id="ItemsViewPrint_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="ItemsViewPrint_body">
+        </div>
+    </div>
+</div>
+
+@* popup Model Create Stock Group *@
+<div class="modal fade" id="StockGroup_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="StockGroup_body">
+        </div>
+    </div>
+</div>
+
+
+@* popup Model Create Item Location *@
+<div class="modal fade" id="ItemLocation_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="ItemLocation_body">
+        </div>
+    </div>
+</div>
+
+@* popup Model Create Item UOM *@
+<div class="modal fade" id="uom_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" data-modal-from="uom" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="uom_body">
+        </div>
+    </div>
+</div>
+
+
+@* Stock Items View Model *@
+<div class="modal fade" id="StockGroupItems_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="StockGroupItems_body">
+        </div>
+    </div>
+</div>
+
+
+@section myScripts{
+    <style>
+        .modal-lg {
+            max-width: 1500px;
+        }
+
+        .dataTables_scrollBody {
+            min-height: 300px !important;
+        }
+
+        @@media (min-width: 1124px) {
+            .dataTables_scrollHeadInner, .table {
+                width: 100% !important
+            }
+        }
+
+        .spinner-grow-sm {
+            width: 0.7rem;
+            height: 0.7rem;
+        }
+    </style>
+
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            load_branches();
+            load_status();
+            load_groups();
+            load_locations();
+            load_types();
+            $('#select_status')[0].sumo.selectItem(["Active"]);
+
+            BindDataTable(null);
+        });
+        //#endregion
+
+        //#region Filter on Button Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            GetItems();
+        });
+        //#endregion
+
+        //#region Load Items
+        function GetItems() {
+            var _data = {
+                "item_branch": $('#select_branch').val().toString(),
+                "item_type": $('#select_types').val().toString(),
+                "item_name_code": $('#text_name_code').val(),
+                "item_status": $('#select_status').val().toString(),
+                "item_category": $('#select_item_group').val().toString(),
+                "item_brand": '',
+                "item_location": $('#select_item_location').val().toString()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetItems", "CentralStore", new { area = "MaterialManagement"})",
+                dataType: 'json',
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    $('#searchFilter').collapse('hide');
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_items')) {
+                           table = $('#tbl_items').DataTable();
+                           table.clear();
+                           table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+
+                    $('#progress-loader').hide();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_items").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "itemId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "itemId",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (item_image, type, full, meta) {
+                                return '<img class="avatar avatar-xl brround" src=' + full.item_image_path + '></img>';
+                        }
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "branch_name"
+                    },
+                    {
+                        "mData": "item_code",
+                        "className": "font-weight-bold text-info text-wrap",
+                        "render": function (data, type, full, meta) {
+                            return '<a data-bs-toggle="modal" data-bs-target="#ItemsHistory_modal" onclick="ItemsHistory(\'' + full.itemId + '\',\'' + full.item_code + '\',\'' + full.item_branch + '\')">' + full.item_code + '</a>';
+                        }
+                    },
+                    {
+                        "mData": "item_type"
+                    },
+                    {
+                        "mData": "category_name",
+                        //"className": "font-weight-bold text-info",
+                        //"render": function (data, type, full, meta) {
+                        //    return '<a data-bs-toggle="modal" data-bs-target="#StockGroupItems_modal" onclick="ViewGroupsItems(\'' + full.item_category + '\',\'' + full.category_name + '\',\'' + full.item_branch + '\')">' + full.category_name + '</a>';
+                            
+                        //}
+                    },
+                    {
+                        "mData": "location_name"
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "item_name"
+                        
+                    },
+                    {
+                        "mData": "item_qty",
+                        "sClass": "text-right",
+                        "searchable": false,
+                        "render": function (item_qty, type, full, meta) {
+                            const item_qty_1 = item_qty.toString().match(/^-?\d+(?:\.\d{0,2})?/)[0];
+                            if (full.item_qty < full.item_min_qty)
+                                return '<i class="spinner-grow spinner-grow-sm text-red" style="animation-duration:1s;" title="Minimum Qty Alter"></i>' + parseFloat(item_qty_1).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            else
+                                return parseFloat(item_qty_1).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        }
+                    },
+                    {
+                        "mData": "item_uom"
+                    },
+                    {
+                        "mData": "itemId",
+                        "className": 'text-center',
+                        "render": function (itemId, type, full, meta) {
+                            var visible = full.actionvisible;
+                            var item_status = full.item_status;
+                            if (visible === "True") {
+                                if (item_status === "Active") {
+                                    return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="ChangeStatus(\'' + itemId + '\',\'Active\')">Active</button>'
+                                }
+                                else if (item_status === "Inactive") {
+                                    return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="ChangeStatus(\'' + itemId + '\',\'Inactive\')">Inactive</button>'
+                                }
+                                else if (item_status === "Deleted") {
+                                    return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="ChangeStatus(\'' + itemId + '\',\'Deleted\')">Deleted</button>'
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    },
+                    {
+                        "className": "text-center",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (itemId, type, full, meta) {
+                            var status = full.item_status;
+                            var visible = full.actionvisible;
+                            var html_links = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">' +
+                                '<a class="dropdown-item text-dark fw-bold" onclick="ViewItemsDetail(' + full.itemId + ')"><i class="fa fa-info-circle text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Detail</a>';
+                            if (status === "Active" && visible === "True") {
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick="EditItem(' + full.itemId + ')"><i class="fe fe-edit-2 text-success" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Edit</a>';
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick="UpdateStatus(\'' + full.item_code + '\',\'Deleted\')"><i class="fe fe-trash text-danger" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Delete</a>';
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick="ItemOpeningStock(\'' + full.itemId + '\',\'' + full.item_code + '\',\'' + full.item_name + '\',\'' + full.item_branch + '\',\'' + full.item_opening_date + '\',\'' + full.item_opening_qty + '\',\'' + full.item_opening_qty2 + '\',\'' + full.item_opening_qty3 + '\',\'' + full.branch_name + '\',\'' + full.item_uom + '\',\'' + full.item_uom2 + '\',\'' + full.item_uom3 + '\',\'' + full.item_m_factor + '\',\'' + full.item_m_factor2 + '\')"><i class="fe fe-package text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Opening Stock</a>';
+                            }
+                            if (status === "Active") {
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick="ItemBatches(\'' + full.item_code + '\',\'' + full.item_branch + '\',\'' + full.item_name + '\',\'' + full.branch_name + '\')"><i class="fe fe-layers text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Batches</a>';
+                            }
+                            html_links += '<a class="dropdown-item text-dark fw-bold" onclick= "ItemsAuditLog(\'' + full.item_code + '\')" > <i class="fa fa-eye text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;Log</a > ';
+                            if (status === "Active") {
+                                html_links += '<a class="dropdown-item text-dark fw-bold" onclick="ItemsHistory(\'' + full.itemId + '\',\'' + full.item_code + '\',\'' + full.item_branch + '\')"><i class="fa fa-history text-dark" style="font-size: 15px; margin-right: 0.6rem;"></i>&nbsp;History</a>';
+                            }
+                            html_links += '</div></div>';
+                            return html_links;
+                        }
+                    },
+
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order:[[7, 'asc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Central Store',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Central Store',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Central Store',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Central Store',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    zeroRecords: "No Record(s) Found",
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Name / Group / Location / UOM / Type / Status </span>',
+                    sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_',
+                }
+            });
+
+            table.buttons().container().appendTo('#tbl_items_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion Bind Datatable
+
+        //#region load branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_branch').html('');
+            $('#select_branch')[0].sumo.reload();
+
+            BranchList =@Html.Raw(Json.Encode(@ViewData["BranchList"]));
+
+            $.each(BranchList, function (j) {
+                $('#select_branch')[0].sumo.add(BranchList[j]["Value"], BranchList[j]["Text"]);
+                //$('#select_branch')[0].sumo.selectItem(BranchList[j]["Value"]);
+            });
+
+
+            $('#select_branch')[0].sumo.reload();
+        };
+        //#endregion  load branches
+
+        //#region load Item Groups
+        var load_groups = function () {
+            $('#select_item_group').SumoSelect({
+                placeholder: 'Select Item Group(s)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+            $('#select_item_group').html('');
+            $('#select_item_group')[0].sumo.reload();
+            ItemGroupList =@Html.Raw(Json.Encode(@ViewData["ItemGroupList"]));
+            $.each(ItemGroupList, function (j) {
+                $('#select_item_group')[0].sumo.add(ItemGroupList[j]["Value"], ItemGroupList[j]["Text"]);
+            });
+            $('#select_item_group')[0].sumo.reload();
+        };
+        //#endregion  load Item Groups
+
+        //#region load Item Location
+        var load_locations = function () {
+            $('#select_item_location').SumoSelect({
+                placeholder: 'Select Item Location(s)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+            $('#select_item_location').html('');
+            $('#select_item_location')[0].sumo.reload();
+            ItemGroupList =@Html.Raw(Json.Encode(@ViewData["ItemLocationList"]));
+            $.each(ItemGroupList, function (j) {
+                $('#select_item_location')[0].sumo.add(ItemGroupList[j]["Value"], ItemGroupList[j]["Text"]);
+            });
+            $('#select_item_location')[0].sumo.reload();
+        };
+        //#endregion  load Item Location
+
+        //#region load status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+
+            $('#select_status')[0].sumo.add("Active", "Active");
+            $('#select_status')[0].sumo.add("Inactive", "Inactive");
+            $('#select_status')[0].sumo.add("Deleted", "Deleted");
+
+            $('#select_status')[0].sumo.reload();
+        };
+        //#endregion load status
+
+        //#region load Item Type
+        var load_types = function () {
+            $('#select_types').SumoSelect({
+                placeholder: 'Select Patient Class(es)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_types').html('');
+            $('#select_types')[0].sumo.reload();
+
+            $('#select_types')[0].sumo.add("Stock", "Stock");
+            $('#select_types')[0].sumo.add("Service", "Service");
+            $('#select_types')[0].sumo.add("Fixed", "Fixed Asset");
+            $('#select_types')[0].sumo.reload();
+        };
+        //#endregion load patient class
+
+        //#region Add Items
+        function AddItems() {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateItem", "CentralStore", new { area = "MaterialManagement" })",
+                contentType: "application/json",
+                dataType: "html",
+                //data: app,
+                success: function (data) {
+                    $("#items_modal").attr("data-modal-from", 'create-items');
+
+                    $("#Items_body").html(data);
+                    $("#items_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Change Status
+        function ChangeStatus(itemId, item_status) {
+            if (item_status != "Deleted")
+                item_status = (item_status == "Inactive") ? "Active" : "Inactive"
+            else
+                item_status = "Active"
+            UpdateStatus(itemId, item_status)
+        }
+        //#endregion Change Status
+
+        //#region Update Items Status
+        var UpdateStatus = function (itemId, item_status) {
+            var _title = "";
+            var _text = "";
+            if (item_status == "Deleted") {
+                _title = "Are you sure you want to Delete ?";
+                _text = "This action will delete the selected Item!";
+            }
+            else {
+                _title = "Are you sure you want to change status ?";
+                _text = "This action will change the status of the selected Item to " + item_status;
+            }
+            Swal.fire({
+                title: _title,
+                text: _text,
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("UpdateItems_Status", "CentralStore", new { area = "MaterialManagement" })?itemId=" + itemId + "&item_status=" + item_status,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Status Changed Successfully!!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    })
+                                    GetItems();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to perform this action!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Change Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            })
+                        }
+                    });
+                }
+            });
+        };
+        //#endregion
+
+        //#region Edit Items
+        var EditItem = function (itemId) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditItem", "CentralStore", new { area = "MaterialManagement" })?itemId=" + itemId,
+                contentType: "application/json",
+                dataType: "html",
+                //data: app,
+                success: function (data) {
+                    $("#Items_body").html(data);
+                    $("#items_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Items Audit Logs
+        var ItemsAuditLog = function (item_code) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ItemsAuditLog", "CentralStore", new { area = "MaterialManagement" })?item_code=" + item_code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#ItemsAuditLog_body").html(data);
+                    $("#ItemsAuditLog_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Item Batches Deatil
+        var ItemBatches = function (item_code, item_branch, item_name, branch_name) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ItemBatchesDetail", "CentralStore", new { area = "MaterialManagement" })?item_code=" + item_code + "&item_branch=" + item_branch + "&item_name=" + item_name + "&branch_name=" + branch_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#ItemBatches_body").html(data);
+                    $("#ItemBatches_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Item Deatil View
+        var ViewItemsDetail = function (itemId) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ItemsDetailView", "CentralStore", new { area = "MaterialManagement" })?itemId=" + itemId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#ItemsViewPrint_body").html(data);
+                    $("#ItemsViewPrint_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Item History View
+        var ItemsHistory = function (itemId, item_code, item_branch) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ItemHistory", "CentralStore", new { area = "MaterialManagement" })?itemId=" + itemId + "&item_code=" + item_code + "&item_branch=" + item_branch,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#ItemsHistory_body").html(data);
+                    $("#ItemsHistory_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Item Opening Stock
+        var ItemOpeningStock = function (itemId, item_code, item_name, item_branch, item_opening_date, item_opening_qty, item_opening_qty2, item_opening_qty3, branch_name, item_uom, item_uom2, item_uom3, item_m_factor, item_m_factor2) {
+            $("#spinner2").show();
+            var _data = {
+                "itemId": itemId,
+                "item_code": item_code,
+                "item_name": item_name,
+                "item_branch": item_branch,
+                "item_opening_date": item_opening_date,
+                "item_opening_qty": item_opening_qty,
+                "item_opening_qty2": item_opening_qty2,
+                "item_opening_qty3": item_opening_qty3,
+                "branch_name": branch_name,
+                "item_uom": item_uom,
+                "item_uom2": item_uom2,
+                "item_uom3": item_uom3,
+                "item_m_factor": item_m_factor,
+                "item_m_factor2": item_m_factor2
+            }
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ItemOpeningStock", "CentralStore", new { area = "MaterialManagement" })",
+                contentType: "application/json",
+                dataType: "html",
+                data: _data,
+                success: function (data) {
+                    $("#ItemOpeningStock_body").html(data);
+                    $("#ItemOpeningStock_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Print Item BarCode
+        $('#btnPrintBarcode').click(function () {
+            var table = $("#tbl_items").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            if (rows.length > 0) {
+                Swal.fire({
+                    title: "Barcode Print",
+                    text: "Are you sure you want to Print Selected Item's Barcode",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+                    var SendData = {
+                        "ItemId": _data.itemId,
+                        "ibId": 0,
+                        "ItemCode": _data.item_code,
+                        "BranchId": _data.item_branch
+                    }
+                    $.ajax({
+                        url: '@Url.Action("PrintBarcodeService", "CentralStore", new { area = "MaterialManagement" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: SendData,
+                        async: false,
+                        success: function (response) {
+                            if (response.isSuccess == true) {
+                                if (response.data["status"] == "success") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.notice({
+                                        title: "Success",
+                                        message: response.message
+                                    });
+                                }
+                                else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.warning({
+                                        title: "Pending",
+                                        message: response.message
+                                    });
+                                }
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                });
+                    }
+            });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select at least one item to print!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+        //#endregion
+
+        //#region GET Stock Group Items Detail
+        var ViewGroupsItems = function (igId, ig_group, ig_branch) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ViewStockGroupItems", "StockGroups", new { area = "MaterialManagement" })?igId=" + igId + "&ig_branch=" + ig_branch,
+                contentType: "application/json",
+                dataType: "html",
+                //data: app,
+                success: function (data) {
+                    $("#StockGroupItems_body").html(data);
+                    $("#StockGroupItems_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").show();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion Alert Timeout
+
+        //#region UI Controls
+        function resizedt(tbl_name) {
+            setTimeout(function () {
+                var tables = $.fn.dataTable.tables({ visible: true, api: true });
+                if (tables) {
+                    $('#' + tbl_name).DataTable().columns.adjust();
+                }
+            }, 450);
+        }
+//#endregion
+    </script>
+}

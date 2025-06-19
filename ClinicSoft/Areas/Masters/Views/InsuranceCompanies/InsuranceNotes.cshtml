@@ -1,0 +1,261 @@
+﻿@model IEnumerable<BusinessEntities.Masters.InsuranceNotes>
+<style>
+    #sizeIN {
+        max-width: 1200px;
+    }
+
+    a:not([href]):not([tabindex]) {
+        color: #5a72e8;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-sec font-weight-semibold">Insurance Notes</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+            <div id="InNoteAlert"></div>
+        </div>
+        <div class="col-12 col-sm-12 col-md-12 col-lg-12">
+            <p class="card-title-desc btn-group-justified d-flex justify-content-between">
+                Add / Edit / Delete Insurance Notes!
+                <a id="showAdd" class="btn btn-outline-secondary"><i class="mdi mdi-plus-circle"></i>&nbsp;Create Note</a>
+            </p>
+            <div style="display:none;" id="in_add">
+                @Html.Action("CreateInsuranceNote", "InsuranceCompanies", new { area = "Masters" })
+            </div>
+            <div id="in_edit">
+            </div>
+            <div class="table-responsive">
+                <table id="tbl_ins_notes" class="table table-striped table-bordered text-nowrap resize-table" style="width:100%">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #5a72e8; border-color: #5a72e8;">
+                            <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Document Title</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Document</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Made By</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        GetInsuranceNotes();
+
+        $('#showAdd').click(function () {
+            $('#in_add').show();
+            $('#in_edit').hide();
+        });
+    });
+    //#endregion
+
+    //#region Get Insurance Notes
+    var GetInsuranceNotes = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetInsuranceNotes", "InsuranceCompanies", new { area="Masters"})",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (response) {
+                var table;
+                if ($.fn.dataTable.isDataTable('#tbl_ins_notes')) {
+                    table = $('#tbl_ins_notes').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindDataTable(response);
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed to Load Insurance Notes! Error : " + xhr.statusText)
+            }
+        });
+    }
+    //#endregion
+
+    //#region BindData Table
+    var BindDataTable = function (response) {
+        $("#tbl_ins_notes").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "in_date_created",
+                    "render": function (in_date_created, type, full, meta) {
+                        if (type === 'display' || type === 'filter') {
+                            return moment(in_date_created).format('DD-MM-YYYY');
+                        }
+                        return moment(in_date_created).format("YYYY-MM-DD");
+                    }
+                },
+                { "mData": "in_notes" },
+                { "mData": "in_doc_title" },
+                {
+                    "orderable": false,
+                    "searchable": false,
+                    "className": 'text-center',
+                    "mData": "in_document",
+                    "render": function (in_document, type, full, meta) {
+                        if (in_document != "") {
+                            return '<a href="/Masters/InsuranceCompanies/DownloadInsuranceNoteFile?fileName=' + in_document + '&filepath=' + full.in_path + '" download="' + full.in_document_name + '" title="' + full.in_document_name +'" class="text-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-pdf-fill" viewBox="0 0 16 16"><path d="M5.523 10.424c.14-.082.293-.162.459-.238a7.878 7.878 0 0 1-.45.606c-.28.337-.498.516-.635.572a.266.266 0 0 1-.035.012.282.282 0 0 1-.026-.044c-.056-.11-.054-.216.04-.36.106-.165.319-.354.647-.548zm2.455-1.647c-.119.025-.237.05-.356.078a21.035 21.035 0 0 0 .5-1.05 11.96 11.96 0 0 0 .51.858c-.217.032-.436.07-.654.114zm2.525.939a3.888 3.888 0 0 1-.435-.41c.228.005.434.022.612.054.317.057.466.147.518.209a.095.095 0 0 1 .026.064.436.436 0 0 1-.06.2.307.307 0 0 1-.094.124.107.107 0 0 1-.069.015c-.09-.003-.258-.066-.498-.256zM8.278 4.97c-.04.244-.108.524-.2.829a4.86 4.86 0 0 1-.089-.346c-.076-.353-.087-.63-.046-.822.038-.177.11-.248.196-.283a.517.517 0 0 1 .145-.04c.013.03.028.092.032.198.005.122-.007.277-.038.465z"/><path fill-rule="evenodd" d="M4 0h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm.165 11.668c.09.18.23.343.438.419.207.075.412.04.58-.03.318-.13.635-.436.926-.786.333-.401.683-.927 1.021-1.51a11.64 11.64 0 0 1 1.997-.406c.3.383.61.713.91.95.28.22.603.403.934.417a.856.856 0 0 0 .51-.138c.155-.101.27-.247.354-.416.09-.181.145-.37.138-.563a.844.844 0 0 0-.2-.518c-.226-.27-.596-.4-.96-.465a5.76 5.76 0 0 0-1.335-.05 10.954 10.954 0 0 1-.98-1.686c.25-.66.437-1.284.52-1.794.036-.218.055-.426.048-.614a1.238 1.238 0 0 0-.127-.538.7.7 0 0 0-.477-.365c-.202-.043-.41 0-.601.077-.377.15-.576.47-.651.823-.073.34-.04.736.046 1.136.088.406.238.848.43 1.295a19.707 19.707 0 0 1-1.062 2.227 7.662 7.662 0 0 0-1.482.645c-.37.22-.699.48-.897.787-.21.326-.275.714-.08 1.103z"/></svg></a>';
+                        }
+                        else {
+                            return '';
+                        }
+                    }
+                },
+                { "mData": "in_madeby_name" },
+                {
+                    "orderable": false,
+                    "searchable": false,
+                    "className": 'text-center',
+                    "mData": "inId",
+                    "render": function (inId, type, full, meta) {
+                        return '<a href="#" id="btn_Edit" onclick="editNote(' + inId + ')"><i class="fe fe-edit-2" style="color:#2dce89;font-size:large"></i></a>'
+                    }
+                },
+                {
+                    "orderable": false,
+                    "searchable": false,
+                    "className": 'text-center',
+                    "mData": "inId",
+                    "render": function (inId, type, full, meta) {
+                        return '<a href="#" id="btnDelete" onclick="deleteNote(\'' + inId +'\')"><i class="fe fe-trash" style="color:red;font-size:large"></i></a>'
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            language: {
+                searchPlaceholder: 'Search Notes',
+                scrollX: "100%",
+                sSearch: '',
+                lengthMenu: '_MENU_ ',
+            }
+        });
+    }
+    //#endregion
+
+    //#region Edit Insurance Note
+    $(document).on('click', '[id*=btn_Edit]', function () {
+        $('#inId').val($(this).closest('tr').find('td').eq(0).html());
+        rowToEdit = $(this).closest('tr');
+    });
+    function editNote(inId) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("EditInsuranceNote", "InsuranceCompanies", new { area = "Masters" })?inId=" + inId,
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $("#in_edit").html(data);
+                $("#in_edit").show();
+            },
+            error: function (xhr) {
+                console.log("Error while Editing Insurance Company : " + xhr.statusText);
+            }
+        }).done(function () {
+            $('#in_add').hide();
+        });
+    }
+    //#endregion
+
+    //#region Delete Insurance Note
+    $(document).on('click', '[id*=btnDelete]', function () {
+        $('#inId').val($(this).closest('tr').find('td').eq(0).html());
+        rowToDelete = $(this).closest('tr');
+    });
+    var rowToDelete;
+    var deleteNote = function (inId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Note?",
+            text: "This action will delete the selected record!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! Confirm',
+            cancelButtonText: 'No! Cancel',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: '@Url.Action("DeleteInsuranceNote", "InsuranceCompanies", new { area = "Masters"})?inId=' + inId ,
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                var table = $('#tbl_ins_notes').DataTable();
+                                table.row(rowToDelete).remove().draw();
+                                rowToDelete = '';
+
+                                var alertPlaceholder = document.getElementById("InNoteAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div"); l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Insurance Note Deleted Successfully!", "success");
+                                Timeout();
+
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: data.message,
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to Delete Insurance Note!",
+                                    icon: "error",
+                                    showCancelButton: false,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough priveleges to delete this note!",
+                                icon: "error",
+                                showCancelButton: false,
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Error while deleting Insurance Note! " + xhr.statusText,
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+   //#endregion
+</script>

@@ -1,0 +1,210 @@
+﻿
+
+@model BusinessEntities.Accounts.Masters.ItemLocation
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update Stock Location</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_UpdateItemLocation" autocomplete="off">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.ilId)
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Stock Location&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.il_location, new { @class = "form-control", @placeholder = "Ex : Rack", autocomplete = "off", maxlength = "24" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="edit_location_error"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        validation();
+    });
+    //#endregion
+
+    //#region Update Item Location on Button Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+        if ($('#form_UpdateItemLocation').valid()) {
+            var _dataUpdate = {
+                "ilId": $('#ilId').val(),
+                "il_location": $('#il_location').val().trim(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }            
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateItemLocation", "ItemLocation", new { area = "MaterialManagement"})",
+                dataType: "JSON",
+                data: _dataUpdate,
+                beforeSend: function () {
+                    $('#btn_Update').removeClass("btn btn-warning");
+                    $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').html("Saving....");
+                },
+                success: function (data) {
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+                    if (data.isUpdated) {
+                        GetItemLocation();
+                        var alertPlaceholder = document.getElementById("ItemLocationAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i>" + data.message, "success");
+                        $("#il_location").val('');
+                        $('#ItemLocation_modal').modal('toggle');
+                        Timeout();
+                    }
+                    else {
+                        $("#edit_location_error").html('');
+                        if (data.message == "Stock Location already exists!") {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-triangle text-white'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+                            $("#edit_location_error").html(html);
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert' >" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-circle' ></i>&nbsp;Validation Error.. Please correct before you submit!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#edit_location_error").html(html);
+                        }
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+                    var alertPlaceholder = document.getElementById("ItemLocationAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Stock Location!", "danger");
+                    $('#ItemLocation_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Adding Validation on Feilds
+    var validation = function () {
+        $("#form_UpdateItemLocation").validate({
+            focusInvalid: true,
+            rules:
+            {
+                il_location: {
+                    required: true
+                },
+            },
+            messages: {
+                il_location: {
+                    required: "Enter Stock Location"
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+</script>

@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "AdultAssessmentConsentIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Adult Assessment Consent Form
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="AdultAssessmentConsent_add" style="display:none">
+                </div>
+                <div id="AdultAssessmentConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="AdultAssessmentConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        GetAdultAssessmentConsentInfo();
+        AdultAssessmentConsentPreviousHistory();
+
+    });
+    //#endregion Page Load
+
+    //#region Load GetAdultAssessmentConsentInfo
+    var GetAdultAssessmentConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetAdultAssessmentConsentData", "AdultAssessmentConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditAdultAssessmentConsent();
+                        $("#AdultAssessmentConsent_add").hide();
+                        $("#AdultAssessmentConsent_edit").show();
+
+                    }
+                    else {
+                        $("#AdultAssessmentConsent_add").show();
+                        $("#AdultAssessmentConsent_edit").hide();
+                        AddAdultAssessmentConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load AdultAssessmentConsent
+
+    //#region Add AdultAssessmentConsent
+    function AddAdultAssessmentConsent() {
+        var x = $("#AdultAssessmentConsent_add");
+        x.load("@Url.Action("CreateAdultAssessmentConsent", "AdultAssessmentConsent", new { area = "ConsentForms" })", function () {
+      });
+    }
+    //#endregion Add AdultAssessmentConsent
+
+    //#region Update AdultAssessmentConsent
+    function EditAdultAssessmentConsent() {
+        var x = $("#AdultAssessmentConsent_edit");
+        x.load("@Url.Action("UpdateAdultAssessmentConsent", "AdultAssessmentConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion Update AdultAssessmentConsent
+
+    //#region History of AdultAssessmentConsent
+    function AdultAssessmentConsentPreviousHistory() {
+        var x = $("#AdultAssessmentConsent_history");
+        x.load("@Url.Action("AdultAssessmentConsentPreviousHistory", "AdultAssessmentConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion History of AdultAssessmentConsent
+
+
+</script>

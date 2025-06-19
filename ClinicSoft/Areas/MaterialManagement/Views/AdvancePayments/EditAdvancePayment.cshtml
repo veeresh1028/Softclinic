@@ -1,0 +1,819 @@
+﻿@model BusinessEntities.Accounts.MaterialManagement.Payment
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update @Model.pay_type Payment</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span><br />
+            <span class="text-secondary" style="font-size:smaller">Required atleat one payment mode *</span>
+        </div>
+    </div>
+    <form id="form_EditAdvancePayment" >
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="btn-list">
+                <div class="btn-group" role="group" aria-label="Advance and Refund Button Group">
+                    <input type="radio" class="btn-check" name="rdoType" id="u_radoAdvance" value="Advance" autocomplete="off" checked>
+                    <label class="btn btn-outline-info" for="u_radoAdvance">Advance</label>
+
+                    <input type="radio" class="btn-check" name="rdoType" id="u_radoRefund" value="Refund" autocomplete="off">
+                    <label class="btn btn-outline-info" for="u_radoRefund">Refund</label>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-2">
+            <div class="card-group">
+                <div class="card shadow-none border border-end-0 overflow-hidden">
+                    <div class="row m-2">
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Date&nbsp;<span class="text-danger">*</span></label>
+                                @Html.TextBox("u_pay_date", Model.pay_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", maxlength = "18" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                                @Html.DisplayFor(m => m.branch_name)
+                                
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">
+                                    Supplier&nbsp;
+                                    <span class="text-danger">*&nbsp;</span>
+                                </label>
+                                @Html.DisplayFor(m => m.supplier_name)
+                               
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6" id="divRefund">
+                            <div class="form-group">
+                                <label class="form-label text-black">
+                                    Against Advance	&nbsp;
+                                    <span class="text-danger">*&nbsp;</span>
+                                </label>
+                                @Html.DisplayFor(m => m.refund_against)
+                                @{ 
+                                    var pending = ((Model.total_advance_amount - Model.advance_used) + Model.total_paid);
+                                                                <span class="text-danger"> [ @pending.ToString("N2") ]</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card shadow-none border overflow-hidden">
+                    <div class="row m-2">
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Cash&nbsp;<span class="text-secondary">*</span></label>
+                                <div class="input-group">
+                                    @Html.TextBox("u_pay_cash", Model.pay_cash, new { @class = "form-control", maxlength = "10", onkeypress = "return validateOneDecimalNumeric(this,event);", value = "0.00" })
+
+                                    <div class="input-group-append" style="max-width: 75%; min-width: 65%;">
+                                        @Html.DropDownList("u_pay_cash_bank", new List<SelectListItem>
+                                                          { }, "Select Account", new { @class = "form-control select2" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Credit Card - Charges&nbsp;<span class="text-secondary">*</span></label>
+                                <div class="input-group">
+                                    @Html.TextBox("u_pay_cc", Model.pay_cc, new { @class = "form-control", @placeholder = "", maxlength = "10", @onkeypress = "return validateOneDecimalNumeric(this,event);", value = "0.00" })
+                                    <div class="input-group-append" style="max-width: 15%; min-width: 13%;">
+                                        @Html.TextBox("u_pay_cc_per2", Model.pay_cc_per, new { @class = "form-control", maxlength = "4", @onkeypress = "return validateOneDecimalNumeric(this,event);", value = "0" })
+                                    </div>
+                                    <div class="input-group-append" style="max-width: 75%; min-width: 65%;">
+                                        @Html.DropDownList("u_pay_cc_bank", new List<SelectListItem>
+                                                          { }, "Select Account", new { @class = "form-control select2" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Bank Transfer&nbsp;<span class="text-secondary">*</span></label>
+                                <div class="input-group">
+                                    @Html.TextBox("u_pay_bt", Model.pay_bt, new { @class = "form-control", @placeholder = "", maxlength = "10", @onkeypress = "return validateOneDecimalNumeric(this,event);", value = "0.00" })
+                                    <div class="input-group-append" style="max-width: 75%; min-width: 65%;">
+                                        @Html.DropDownList("u_pay_bt_bank", new List<SelectListItem>
+                                                         { }, "Select Account", new { @class = "form-control select2" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group">
+                                <label class="form-label text-black">Cheque Amount&nbsp;<span class="text-secondary">*</span></label>
+                                @Html.TextBox("u_pay_chq", Model.pay_chq, new { @class = "form-control", maxlength = "10", onkeypress = "return validateOneDecimalNumeric(this,event);", value = "0.00" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group">
+                                <label class="form-label">Cheque No.</label>
+                                @Html.TextBox("u_pay_chq_no", Model.pay_chq_no, new { @class = "form-control", @placeholder = "", maxlength = "15" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-3">
+                            <div class="form-group">
+                                <label class="form-label">Cheque Date</label>
+                                @Html.TextBox("u_pay_chq_date", Model.pay_chq_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", maxlength = "18" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-4">
+                            <div class="form-group">
+                                <label class="form-label text-black">Cheque Bank</label>
+                                @Html.DropDownList("u_pay_chq_bank", new List<SelectListItem>
+                                                { }, "Select Cheque Bank", new { @class = "form-control select2" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group">
+                    <label class="form-label text-black">Notes</label>
+                    @Html.TextArea("u_pay_notes", Model.pay_notes, new { @class = "form-control", maxlength = "998", @placeholder = "Enter Notes", @rows = "3" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <label class="text-danger fw-bold" id="error_message"></label><br />
+                <button type="submit" class="btn btn-outline-warning" id="btn_Update">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center text-center mt-4">
+            <div id="edit_adv_payment_error" class="text-center" style="max-width:800px"></div>
+        </div>
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center text-center mt-2">
+            <div id="Edit_Adv_Payment_Alert"></div>
+        </div>
+        @if (TempData["ErrorMessage_Update"] != null)
+        {
+            <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center text-center">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <strong>Error!&nbsp;</strong>@TempData["ErrorMessage_Insert"]
+                </div>
+            </div>
+        }
+    </form>
+</div>
+
+<script>
+
+    //#region Page Load
+    $(function () {
+
+        $('#u_pay_chq_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#edit_advancepayment_body'),
+            placeholder: 'Select Cheque Bank',
+            width: '100%'
+        });
+        $('#u_pay_cash_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#edit_advancepayment_body'),
+            placeholder: 'Select Account',
+            width: '100%'
+        });
+        $('#u_pay_cc_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#edit_advancepayment_body'),
+            placeholder: 'Select Account',
+            width: '100%'
+        });
+        $('#u_pay_bt_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#edit_advancepayment_body'),
+            placeholder: 'Select Bank',
+            width: '100%'
+        });
+
+        // Get the current date
+        var currentDate = new Date();
+        // Get last year date
+        var lastYearDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
+
+        $('#u_pay_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: lastYearDate,
+            endDate: currentDate
+        });
+
+        $('#u_pay_chq_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        var _type = '@Model.pay_type';
+        if (_type == 'Refund') {
+            $("#u_radoRefund").prop('checked', true);
+            $("#u_radoAdvance").prop('checked', false);
+            $("#u_radoRefund").prop('disabled', true);
+            $("#u_radoAdvance").prop('disabled', true);
+            $("#divRefund").show();
+        }
+        else if (_type == 'Advance') {
+            $("#u_radoRefund").prop('checked', false);
+            $("#u_radoAdvance").prop('checked', true);
+            $("#u_radoRefund").prop('disabled', true);
+            $("#u_radoAdvance").prop('disabled', true);
+            $("#divRefund").hide();
+        }
+        else {
+            $("#btn_Update").hide();
+            $("#divRefund").hide();
+        }
+        $("#u_pay_date").val(moment('@Model.pay_date', 'DD/MM/YYYY').format('DD-MMMM-YYYY'));
+        var chq_amt = '@Model.pay_chq';
+        if (chq_amt > 0) {
+            $("#u_pay_chq_date").val(moment('@Model.pay_chq_date', 'DD/MM/YYYY').format('DD-MMMM-YYYY'));
+        }
+        loadAccounts();
+        validation();
+    });
+    //#endregion
+
+    //#region Payment Mode Click
+    $("input[name='rdoType']").click(function () {
+        var rdo_type = $("input[name='rdoType']:checked").val();
+        if (rdo_type == "Refund") {
+            $("#divRefund").show();
+            $("#btn_Insert").text('Add Refund');
+            clearData();
+        }
+        else {
+            $("#divRefund").hide();
+            $("#btn_Insert").text('Add Advance');
+            clearData();
+        }
+    });
+    //#endregion
+
+    //#region Load Cash, Credit, Bank and Cheque Bank Account on Branch Change
+    var loadAccounts =  function () {
+        $('#u_pay_cash_bank').empty();
+        $('#u_pay_cc_bank').empty();
+        $('#u_pay_bt_bank').empty();
+        $('#u_pay_chq_bank').empty();
+        $('#error_message').text('');
+        var branchId = '@Model.pay_branch';
+        var rdo_type = '@Model.pay_type';
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetSupplierAndAccountsByBranch", "AdvancePayments", new { area = "MaterialManagement" })?branchId=' + branchId + "&type=" + rdo_type,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if ((response.CashAccount).length > 0) {
+                        $('#u_pay_cash_bank').empty();
+                        $('#u_pay_cash_bank').append('<option value="">Select Account</option>');
+                        $('#u_pay_cash_bank').val('-1');
+                        $('#u_pay_cash_bank').trigger('change');
+                        $.each(response.CashAccount, function (j) {
+                            var newOption = new Option(response.CashAccount[j].Text, response.CashAccount[j].Id, (response.CashAccount[j].Id === -1) ? true : false, (response.CashAccount[j].Id === -1) ? true : false);
+                            $('#u_pay_cash_bank').append(newOption).trigger('change');
+                        });
+                    }
+                    if ((response.CardAccount).length > 0) {
+                        $('#u_pay_cc_bank').empty();
+                        $('#u_pay_cc_bank').append('<option value="">Select Account</option>');
+                        $('#u_pay_cc_bank').val('-1');
+                        $('#u_pay_cc_bank').trigger('change');
+                        $.each(response.CardAccount, function (j) {
+                            var newOption = new Option(response.CardAccount[j].Text, response.CardAccount[j].Id, (response.CardAccount[j].Id === -1) ? true : false, (response.CardAccount[j].Id === -1) ? true : false);
+                            $('#u_pay_cc_bank').append(newOption).trigger('change');
+                        });
+                    }
+                    if ((response.BankAccount).length > 0) {
+                         $('#u_pay_bt_bank').empty();
+                         $('#u_pay_bt_bank').append('<option value="">Select Bank</option>');
+                         $('#u_pay_bt_bank').val('-1');
+                         $('#u_pay_bt_bank').trigger('change');
+
+                         $('#u_pay_chq_bank').empty();
+                         $('#u_pay_chq_bank').append('<option value="">Select Bank</option>');
+                         $('#u_pay_chq_bank').val('-1');
+                         $('#u_pay_chq_bank').trigger('change');
+
+                        $.each(response.BankAccount, function (j) {
+                            var newOption = new Option(response.BankAccount[j].Text, response.BankAccount[j].Id, (response.BankAccount[j].Id === -1) ? true : false, (response.BankAccount[j].Id === -1) ? true : false);
+                            $('#u_pay_bt_bank').append(newOption).trigger('change');
+                             $('#u_pay_chq_bank').append(newOption).trigger('change');
+                        });
+                    }
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            }).done(function () {
+                $('#u_pay_cash_bank').val('@Model.pay_cash_bank').trigger("chnage");
+                $('#u_pay_cc_bank').val('@Model.pay_cc_bank').trigger("chnage");
+                $('#u_pay_bt_bank').val('@Model.pay_bt_bank').trigger("chnage");
+                $('#u_pay_chq_bank').val('@Model.pay_chq_bank').trigger("chnage");
+            });
+        }
+    };
+    //#endregion
+
+    //#region Validate Text Box with One Decimal and numeric only on Key Press
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : event.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Adding Validation
+    var validation = function () {
+        $("#form_EditAdvancePayment").validate({
+            focusInvalid: true,
+            rules:
+            {
+                pay_date: {
+                    required: true,
+                },
+                pay_cash_bank: {
+                    required: function () {
+                        var _pay_cash = $('#u_pay_cash').val();
+                        console.log(_pay_cash);
+                        if (_pay_cash != undefined && _pay_cash != "" && _pay_cash > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_cc_bank: {
+                    required: function () {
+                        var _pay_cc = $('#u_pay_cc').val();
+                        if (_pay_cc != undefined && _pay_cc != "" && _pay_cc > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_bt_bank: {
+                    required: function () {
+                        var _pay_bt = $('#u_pay_bt').val();
+                        if (_pay_bt != undefined && _pay_bt != "" && _pay_bt > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_chq_no: {
+                    required: function () {
+                        var _pay_chq = $('#u_pay_chq').val();
+                        if (_pay_chq != undefined && _pay_chq != "" && _pay_chq > 0 )
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_chq_date: {
+                    required: function () {
+                        var _pay_chq = $('#u_pay_chq').val();
+                        if (_pay_chq != undefined && _pay_chq != "" && _pay_chq > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_chq_bank: {
+                    required: function () {
+                        var _pay_chq = $('#u_pay_chq').val();
+                        if (_pay_chq != undefined && _pay_chq != "" && _pay_chq > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+            },
+            messages: {
+                pay_date: {
+                    required: "Select Payment Date",
+                },
+                pay_cash_bank: {
+                    required: "Select Cash Account",
+                },
+                pay_cc_bank: {
+                    required: "Select Card Account",
+                },
+                pay_bt_bank: {
+                    required: "Select Transfer Account",
+                },
+                pay_chq_no: {
+                    required: "Enter Cheque No#",
+                },
+                pay_chq_date: {
+                    required: "Enter Cheque Date",
+                },
+                pay_chq_bank: {
+                    required: "select Cheque Bank",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    $('#u_pay_date').keypress(function (e) {
+        var charCode = (e.which) ? e.which : e.keyCode
+        if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+            return false;
+
+        }
+        else {
+            if (e.target.value.length >= 18)
+                return false;
+        }
+    });
+    $('#u_pay_chq_date').keypress(function (e) {
+        var charCode = (e.which) ? e.which : e.keyCode
+        if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+            return false;
+
+        }
+        else {
+            if (e.target.value.length >= 18)
+                return false;
+        }
+    });
+
+    var AmountValid = function()
+    {
+        let count = 0;
+        if ($("#u_pay_cash").val().length !== 0 && $("#u_pay_cash").val() !== "" && $("#u_pay_cash").val() !== null)
+        {
+            if ($("#u_pay_cash").val() > 0)
+                count++;
+        }
+        if ($("#u_pay_cc").val().length !== 0 || $("#u_pay_cc").val() !== "" || $("#u_pay_cc").val() !== null)
+        {
+            if ($("#u_pay_cc").val() > 0)
+                count++;
+        }
+        if ($("#u_pay_chq").val().length !== 0 || $("#u_pay_chq").val() !== "" || $("#u_pay_chq").val() !== null)
+        {
+            if ($("#u_pay_chq").val() > 0)
+                count++;
+        }
+        if ($("#u_pay_bt").val().length !== 0 || $("#u_pay_bt").val() !== "" || $("#u_pay_bt").val() !== null)
+        {
+            if ($("#u_pay_bt").val() > 0)
+                count++;
+        }
+
+        if (count > 0)
+            return true;
+        else {
+
+            return false;
+        }
+    }
+
+    //#endregion
+
+    //#region TextBox on Focus Out Event
+    $("#u_pay_cash").focusout('input', function () {
+        if ($("#u_pay_cash").val().length === 0 || $("#u_pay_cash").val() === "" || $("#u_pay_cash").val() === null)
+            $("#u_pay_cash").val("0.00");
+        CheckRefundAmount('pay_cash');
+    });
+    $("#u_pay_cc").focusout('input', function () {
+        if ($("#u_pay_cc").val().length === 0 || $("#u_pay_cc").val() === "" || $("#u_pay_cc").val() === null)
+            $("#u_pay_cc").val("0.00");
+        CheckRefundAmount('pay_cc');
+    });
+    $("#u_pay_chq").focusout('input', function () {
+        if ($("#u_pay_chq").val().length === 0 || $("#u_pay_chq").val() === "" || $("#u_pay_chq").val() === null)
+            $("#u_pay_chq").val("0.00");
+        CheckRefundAmount('pay_chq');
+    });
+    $("#u_pay_bt").on('change', function () {
+        if ($("#u_pay_bt").val().length === 0 || $("#u_pay_bt").val() === "" || $("#u_pay_bt").val() === null)
+            $("#u_pay_bt").val("0.00");
+        CheckRefundAmount('pay_bt');
+    });
+    $("#u_pay_cc_per2").on('change', function () {
+        if ($("#u_pay_cc_per2").val().length === 0 || $("#u_pay_cc_per2").val() === "" || $("#u_pay_cc_per2").val() === null)
+            $("#u_pay_cc_per2").val("0");
+    });
+
+    var CheckRefundAmount = function (id) {
+        var rdo_type = $("input[name='rdoType']:checked").val();
+        $("#error_message").text('');
+        if (rdo_type == "Refund") {
+            let total_advance_amount = @Model.total_advance_amount;
+            let advance_used = @Model.advance_used;
+            let total_paid = @Model.total_paid;
+            let total_pending = (parseFloat(total_advance_amount - advance_used) + parseFloat(total_paid));
+            let _cash = $("#u_pay_cash").val();
+            let _chq = $("#u_pay_chq").val();
+            let _bt = $("#u_pay_bt").val();
+            let _cc = $("#u_pay_cc").val();
+            let total_pay = 0;
+            if (_cash === "" || _cash === undefined || _cash === null)
+                _cash = 0;
+            if (_chq === "" || _chq === undefined || _chq === null)
+                _chq = 0;
+            if (_bt === "" || _bt === undefined || _bt === null)
+                _bt = 0;
+            if (_cc === "" || _cc === undefined || _cc === null)
+                _cc = 0;
+
+            total_pay = (parseFloat(_cash) + parseFloat(_chq) + parseFloat(_bt) + parseFloat(_cc));
+
+            if (parseFloat(total_pay) > parseFloat(total_pending)) {
+                $('#' + id).parent().addClass('has-error');
+                $("#error_message").text('Payment should be less than Advance Amount');
+                $('#btn_Update').hide();
+                Error_Timeout(id);
+                return false;
+            }
+            else {
+                $("#error_message").text('');
+                $('#btn_Update').show();
+               return true;
+            }
+        }
+        else {
+            $("#error_message").text('');
+            return true;
+        }
+    }
+    //#endregion
+
+    //#region Update Advance Payment on Button Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+        var t = 0;
+        if ($('#form_EditAdvancePayment').valid()) {
+            if (AmountValid() && CheckRefundAmount()) {
+                var rdo_type = '@Model.pay_type';
+                Swal.fire({
+                    title: "Update",
+                    text: "Are you sure you want to Update " + rdo_type + " Payment!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-warning mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _data = {
+                            "payId": '@Model.payId',
+                            "pay_code": '@Model.pay_code',
+                            "pay_type": rdo_type,
+                            "pay_date": $('#u_pay_date').val().trim(),
+                            "pay_supplier": '@Model.pay_supplier',
+                            "pay_cash": $('#u_pay_cash').val().trim(),
+                            "pay_cc": $('#u_pay_cc').val().trim(),
+                            "pay_cc_per2": $('#u_pay_cc_per2').val().trim(),
+                            "pay_chq": $('#u_pay_chq').val().trim(),
+                            "pay_chq_no": $('#u_pay_chq_no').val().trim(),
+                            "pay_chq_date": $('#u_pay_chq_date').val().trim(),
+                            "pay_bt": $('#u_pay_bt').val().trim(),
+                            "pay_chq_bank": $('#u_pay_chq_bank').val(),
+                            "pay_bt_bank": $('#u_pay_bt_bank').val(),
+                            "pay_advance": '@Model.pay_advance',
+                            "pay_notes": $('#u_pay_notes').val().trim(),
+                            "pay_cash_bank": $('#u_pay_cash_bank').val(),
+                            "pay_cc_bank": $('#u_pay_cc_bank').val(),
+                            "pay_branch": '@Model.pay_branch',
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            url: '@Url.Action("UpdateAdvancePayment", "AdvancePayments", new { area = "MaterialManagement" })',
+                            type: "POST",
+                            dataType: "json",
+                            data: _data,
+                            beforeSend: function () {
+                                $('#btn_Update').removeClass("btn btn-warning");
+                                $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').parent().addClass("curdrop");
+                                $('#btn_Update').html("Saving.. Please Wait");
+                                $('.btn-close').addClass("disabled");
+                            },
+                            async: false,
+                            success: function (data) {
+                                $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-warning");
+                                $('#btn_Update').parent().removeClass("curdrop");                               
+                                $('#btn_Update').html(" Save Changes");
+                                $('.btn-close').removeClass("disabled");
+                                if (data.isInserted) {
+                                    Get_AdvancePayments($('#u_pay_date').val().trim(), $('#u_pay_date').val().trim());
+                                    var alertPlaceholder = document.getElementById("Edit_Adv_Payment_Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i>" + rdo_type + " Payment Updated Successfully!", "success");
+                                    $('#edit_advancepayment_modal').modal('toggle');
+                                    Timeout();
+                                }
+                                else {
+                                    $("#edit_adv_payment_error").html('');
+                                    var error_message = data.message;
+                                    if (error_message == "Error While Updating Payment!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle'></i>&nbsp;Error While Updating " + rdo_type + " Payment!&nbsp;</strong></div></div>";
+                                        $("#edit_adv_payment_error").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-white' ></i>&nbsp;Validation Error.. Please correct before you Update!&nbsp;</strong><br/><ul>";
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+                                        html += "</ul></div></div>";
+                                        $("#edit_adv_payment_error").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-warning");
+                                $('#btn_Update').parent().removeClass("curdrop");
+                                $('#btn_Update').html(" Save Changes");
+                                $('.btn-close').removeClass("disabled");
+                                var alertPlaceholder = document.getElementById("Edit_Adv_Payment_Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-x-circle text-white'></i> Failed to Update " + rdo_type +" Payment!", "danger");
+                                $('#edit_advancepayment_modal').modal('toggle');
+                                Timeout();
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+                var alertPlaceholder = document.getElementById("edit_adv_payment_error");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-exclamation-triangle text-warning'></i>Please Fill Mandatory fields & Enter One Payment Mode At Least!", "warning");
+                Timeout();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+            var alertPlaceholder = document.getElementById("edit_adv_payment_error");
+            function alert(e, t) {
+                var l = document.createElement("div");
+                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+            }
+            alert("<i class='fa fa-exclamation-triangle text-warning'></i>Please Fill Mandatory fields!", "warning");
+            Timeout();
+        }
+    });
+    //#endregion
+
+    //#region Clear Data
+    var clearData = function () {
+        $("#u_pay_date").bootstrapdatepicker("setDate", "today");        
+        $('#u_pay_cash').val('0.00');
+        $('#u_pay_cc').val('0.00');
+        $('#u_pay_bt').val('0.00');
+        $('#u_pay_chq').val('0.00');
+        $('#u_pay_chq_no').val('');
+        $('#u_pay_chq_date').val('');
+        $('#error_message').text('');
+        $('#u_pay_chq_bank').empty();
+        $('#u_pay_cash_bank').empty();
+        $('#u_pay_cc_bank').empty();
+        $('#u_pay_bt_bank').empty();
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+
+</script>
+

@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Filler Injection";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Temporary Filler Injection consent form - (نموذج موافقة الحقن المؤقت (الفلر</h3>
+            </div>
+            <div class="card-body">
+                <div id="FillerInjection_add" style="display:none">
+                </div>
+                <div id="FillerInjection_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="FillerInjection_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetFillerInjectionInfo();
+        FillerInjectionPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetFillerInjectionInfo
+    var GetFillerInjectionInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetFillerInjectionData", "FillerInjection", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditFillerInjection();
+                        $("#FillerInjection_add").hide();
+                        $("#FillerInjection_edit").show();
+
+                    }
+                    else {
+                        $("#FillerInjection_add").show();
+                        $("#FillerInjection_edit").hide();
+                        AddFillerInjection();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load FillerInjection
+
+    //#region Add FillerInjection
+    function AddFillerInjection() {
+        var x = $("#FillerInjection_add");
+        x.load("@Url.Action("CreateFillerInjection", "FillerInjection", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add FillerInjection
+
+    //#region Update FillerInjection
+    function EditFillerInjection() {
+        var x = $("#FillerInjection_edit");
+        x.load("@Url.Action("UpdateFillerInjection", "FillerInjection", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update FillerInjection
+
+    //#region Histroy of FillerInjection
+    function FillerInjectionPreviousHistory() {
+        var x = $("#FillerInjection_history");
+        x.load("@Url.Action("FillerInjectionPreviousHistory", "FillerInjection", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

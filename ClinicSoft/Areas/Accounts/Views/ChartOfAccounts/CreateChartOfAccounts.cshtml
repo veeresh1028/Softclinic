@@ -1,0 +1,622 @@
+﻿@model BusinessEntities.Accounts.Accounting.ChartOfAccounts
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Create Chart of Account</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_AddAccount" autocomplete="off">
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.acc_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Period&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.acc_period, new SelectList(Model.PeriodList, "id", "text"), "Please Select", new { @class = "form-select select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Group&nbsp;<span class="text-danger">*</span>&nbsp;<a id="btnAddGroup" style="cursor: pointer"><i class="fa fa-plus text-success"></i></a></label>
+                    <select id="acc_group" name="acc_group" class="form-select select2" data-placeholder="Select Account Group"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Category&nbsp;<span class="text-danger">*</span>&nbsp;<a id="btnAddCategory" style="cursor: pointer"><i class="fa fa-plus text-success"></i></a></label>
+                    <select id="acc_category" name="acc_category" class="form-select select2" data-placeholder="Select Account Category"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Code&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.acc_code, new { @class = "form-control disabled text-danger", @placeholder = "AS1-1-1", @maxlength = "25", @readonly = "readonly" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Type&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.acc_type, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Text="General", Value = "G" },
+                        new SelectListItem{ Text="Cash", Value = "C" },
+                        new SelectListItem{ Text="Bank", Value = "B" }
+                    }, "Select Type", new { @class = "form-select select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Name&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.acc_name, new { @class = "form-control", @placeholder = "Ex : Commission Amount", @maxlength = "50" })
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorCreateCOA"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert_Account">Create Account</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $("#acc_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddAccount'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#acc_period").select2({
+            placeholder: 'Select Account Period',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddAccount'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#acc_type").select2({
+            placeholder: 'Select Account Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddAccount'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#acc_group").select2({
+            placeholder: 'Select Account Group',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddAccount'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#acc_category").select2({
+            placeholder: 'Select Account Category',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_AddAccount'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        var selectedValue = $('#acc_period option:eq(1)').val();
+        var selectedText = $('#acc_period option:eq(1)').text();
+        $('#acc_period').val(selectedValue).trigger('change');
+
+        var select2SelectEvent = jQuery.Event("select2:select", {
+            params: {
+                data: {
+                    id: selectedValue,
+                    text: selectedText
+                }
+            }
+        });
+
+        $('#acc_period').trigger(select2SelectEvent);
+
+        validation();
+    });
+    //#endregion
+
+    //#region Load & Select Events
+    $('#acc_branch').on('select2:select', function () {
+        load_acc_groups();
+
+        $('#acc_group').val(null).trigger('select2:select');
+
+        load_acc_code();
+    });
+
+    $('#acc_period').on('select2:select', function () {
+        load_acc_groups();
+        load_acc_code();
+    });
+
+    var load_acc_groups = function () {
+        if ($('#acc_period').val() != null && $('#acc_branch').val() != "") {
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetAccountGroupsByBranchPeriod", "AccountGroups", new { area = "Accounts" })?ag_period=' + $('#acc_period').val() + "&ag_branch=" + $('#acc_branch').val().toString(),
+                dataType: 'json',
+                success: function (response) {
+                    $("#acc_group").empty();
+                    $("#acc_category").empty();
+
+                    $('#acc_group').val("").text("").trigger("change");
+                    $('#acc_category').val("").text("").trigger("change");
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id, false, false);
+                            $('#acc_group').append(newOption).trigger('change');
+                        });
+                    }
+
+                    $('#acc_group').val(null).trigger('change');
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    console.log("Failed to Load Groups! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        else {
+            $('#acc_group').val("").text("").trigger("change");
+            $('#acc_category').val("").text("").trigger("change");
+        }
+    }
+
+    $('#acc_group').on('select2:select', function () {
+        if ($("#acc_group").val() != "" && $("#acc_period").val() != "" && $('#acc_branch').val() != "") {
+
+            var _data = {
+                "Branches": $('#acc_branch').val(),
+                "Period": $('#acc_period').val(),
+                "Groups": $('#acc_group').val()
+            }
+
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetCategories", "AccountCategories", new { area = "Accounts" })',
+                dataType: 'json',
+                data: _data,
+                success: function (response) {
+                    $("#acc_category").empty();
+                    $('#acc_category').val("").text("").trigger("change");
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id, false, false);
+                            $('#acc_category').append(newOption).trigger('change');
+                        });
+                    }
+
+                    $('#acc_category').val(null).trigger('change');
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                load_acc_code();
+            });
+        }
+        else {
+            $('#acc_category').val("").text("").trigger("change");
+        }
+    });
+
+    $('#acc_category').on('select2:select', function () {
+        load_acc_code();
+    });
+    //#endregion
+
+    //#region Load COA Code Based on Branch, Period & Category
+    var load_acc_code = function () {
+        
+        if ($("#acc_branch").val() != "" && $("#acc_period").val() != "" && $('#acc_category').val() != null) {
+            
+            var _data = {
+                "acc_branch": $('#acc_branch').val(),
+                "acc_period": $('#acc_period').val(),
+                "acc_category": $('#acc_category').val()
+            }
+
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetCOACode", "ChartOfAccounts", new { area = "Accounts" })',
+                dataType: 'json',
+                data: _data,
+                success: function (response) {                    
+
+                    $("#acc_code").val("");
+
+                    $("#acc_code").val(response.acc_code);
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        else {
+            $('#acc_code').val("").trigger("change");
+        }
+    }
+    //#endregion
+
+    //#region Adding Validation on Fields
+    var validation = function () {
+        $("#form_AddAccount").validate({
+            focusInvalid: true,
+            rules:
+            {
+                acc_branch: {
+                    required: true
+                },
+                acc_period: {
+                    required: true
+                },
+                acc_type: {
+                    required: true
+                },
+                acc_group: {
+                    required: true
+                },
+                acc_category: {
+                    required: true
+                },
+                acc_name: {
+                    required: true
+                }
+            },
+            messages: {
+                acc_branch: {
+                    required: "Select Branch"
+                },
+                acc_period: {
+                    required: "Select Account Period"
+                },
+                acc_type: {
+                    required: "Select Account Type"
+                },
+                acc_group: {
+                    required: "Select Account Group"
+                },
+                acc_category: {
+                    required: "Select Account Category"
+                },
+                acc_name: {
+                    required: "Enter Account Name"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#acc_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#acc_period').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#acc_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#acc_group').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#acc_category').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Insert Account on Click
+    $('#btn_Insert_Account').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_AddAccount').valid()) {
+
+            var _dataInsert = {
+                "accId"          : 0,
+                "acc_group"      : $('#acc_group').val(),
+                "acc_branch"     : $('#acc_branch').val(),
+                "acc_period"     : $('#acc_period').val(),
+                "acc_category"   : $('#acc_category').val(),
+                "acc_type"       : $('#acc_type').val(),
+                "acc_name"       : $('#acc_name').val().trim()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertChartOfAccount", "ChartOfAccounts", new { area = "Accounts" })",
+                dataType: "json",
+                data: _dataInsert,
+                beforeSend: function () {
+                    $('#btn_Insert_Account').removeClass("btn btn-success");
+                    $('#btn_Insert_Account').addClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_Account').html("Creating....");
+                },
+                success: function (data) {
+                    $('#btn_Insert_Account').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_Account').addClass("btn btn-success");
+                    $('#btn_Insert_Account').html("Create Account");
+
+                    if (data.isInserted > 0) {
+                        getChartofAccounts();
+
+                        alert("<i class='fe fe-check-circle text-white'></i> Chart of Account Created Successfully!", "success");
+
+                        $("#acc_name").val("");
+
+                        $('#add_account_modal').modal('toggle');
+
+                        Timeout();
+                    }
+                    else {
+                        $("#errorCreateCOA").html('');
+
+                        if (data.message == "Chart of Account already exists!" || data.message == "Error While Creating Chart of Account!") {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+                            $("#errorCreateCOA").html(html);
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+
+                            html += "</ul></div></div>";
+
+                            $("#errorCreateCOA").html(html);
+                        }
+
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert_Account').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_Account').addClass("btn btn-success");
+                    $('#btn_Insert_Account').html("Create Account");
+
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Create Account!", "danger");
+                    $('#add_account_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Create Account Group
+    $('#btnAddGroup').on('click', function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreateAccountGroup", "AccountGroups", new { area = "Accounts" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#add_account_modal').modal('hide');
+                $('#add_group_modal').attr("data-modal-from", "create-account");
+
+                $("#add_group_modal_body").html(data);
+                $('#add_group_modal').modal('show');
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    });
+
+    $('#add_group_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("newGroup") != null) {
+            var group = localStorage.getItem("newGroup");
+
+            set_group(group);
+
+            localStorage.removeItem("newGroup");
+        }
+    });
+
+    var set_group = function (group) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetAccountGroupsById", "AccountGroups", new { area = "Accounts" })?agId=" + group,
+            dataType: 'json',
+            success: function (response) {
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+                $('#acc_group').append(newOption).trigger('change');
+
+                var data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+
+                $('#acc_group').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Create Account Category
+    $('#btnAddCategory').on('click', function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreateAccountCategory", "AccountCategories", new { area = "Accounts" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#add_account_modal').modal('hide');
+                $('#add_category_modal').attr("data-modal-from", "create-account");
+
+                $("#add_category_modal_body").html(data);
+                $('#add_category_modal').modal('show');
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    });
+
+    $('#add_category_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("newCategory") != null) {
+            var category = localStorage.getItem("newCategory");
+
+            set_category(category);
+
+            localStorage.removeItem("newCategory");
+        }
+    });
+
+    var set_category = function (category) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetAccountCategoryById", "AccountCategories", new { area = "Accounts" })?acId=" + category,
+            dataType: 'json',
+            success: function (response) {
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+                $('#acc_category').append(newOption).trigger('change');
+
+                var data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+
+                $('#acc_category').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Holder
+    var alertPlaceholder = document.getElementById("AccountsAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

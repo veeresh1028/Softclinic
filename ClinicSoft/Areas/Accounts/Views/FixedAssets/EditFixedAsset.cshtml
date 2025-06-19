@@ -1,0 +1,753 @@
+﻿
+
+@model BusinessEntities.Accounts.Accounting.FixedAssets
+
+<style type="text/css">
+    #sizeCJ {
+        max-width: 1000px;
+    }
+
+    #tbl_list_entries_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update Fixed Asset</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-group" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_EditFixedAsset" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @*@Html.DropDownListFor(m => m.fa_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2" })*@
+                    <h6><b class="text-cyan">@Html.DisplayFor(m => m.branch_name)</b></h6>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Item &nbsp;<span class="text-danger">*&nbsp;<label id="lbl_message" class="fw-bold"></label></span></label>
+                    <h6><b class="text-cyan">@Html.DisplayFor(m => m.item_name)</b></h6>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Item Group&nbsp;<span class="text-danger">*&nbsp;<label id="lbl_message" class="fw-bold"></label></span></label>
+                    <h6><b class="text-cyan">@Html.DisplayFor(m => m.group_name)</b></h6>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-0">
+                    <label class="form-label text-black" title="">Purchase Date&nbsp;<span class="text-danger">*</span> </label>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBox("ufa_pdate", Model.fa_pdate, new { @class = "form-control", @placeholder = "Select Purchase Date", maxlength = "18" })
+                </div>
+            </div>
+
+            <div class="col-sm-3 col-md-3 col-lg-4">
+                <div class="form-group">
+                    <label class="form-label text-black">Supplier&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownList("ufa_supplier", new List<SelectListItem>
+                        { }, "Select Supplier", new { @class = "form-control select2" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Location&nbsp;</label>
+                    @Html.TextBox("ufa_loc", Model.fa_loc, new { @class = "form-control", @placeholder = "Ex: Store Room", @maxlength = "100" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Purchase Price&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("ufa_net", Model.fa_net, new { @class = "form-control  text-end", @placeholder = "0", @maxlength = "100", @value = "0", @oninput = "validate(this,100000000)" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">VAT %&nbsp;<span class="text-danger">*</span></label>
+                    <select class="form-control" id="ufa_vat_per">
+                        <option value="0">0 %</option>
+                        <option value="5">5 %</option>
+                    </select>
+                    @*@{
+                        string propertyName = nameof(Model.fa_vat_type);
+                        string nameWithoutModel = "u" + propertyName.Substring(propertyName.LastIndexOf('.') + 1);
+                        string selectedValue = Model.fa_vat_type.ToString();
+                        string idWithoutModel = ViewData.TemplateInfo.GetFullHtmlFieldId(nameWithoutModel);
+                    }
+                    @Html.DropDownList(idWithoutModel, new List<SelectListItem>
+                    {
+                        new SelectListItem { Text="0 %", Value = "0", Selected = (selectedValue == "0") },
+                        new SelectListItem { Text="5 %", Value = "5", Selected = (selectedValue == "5") }
+                    }, "Select VAT", new { @class = "form-control select2 mb-4", name = nameWithoutModel })*@
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">VAT</label>
+                    @Html.TextBox("ufa_vat", Model.fa_vat, new { @class = "form-control  text-end", @placeholder = "0", @readonly = "readonly", @value = "0" })
+                    <span class="text-danger" id="ufa_vat_error"></span>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">Net + VAT&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("ufa_price", Model.fa_price, new { @class = "form-control  text-end", @placeholder = "0", @readonly = "readonly", @value = "0" })
+                    <span class="text-danger" id="lbl_u_netvat_error"></span>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Residual Value&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("ufa_residual_value", Model.fa_residual_value, new { @class = "form-control text-end", @placeholder = "0.00", @oninput = "validate(this,1000000)" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Method&nbsp;<span class="text-danger">*</span></label>
+                    @{
+                        string propertyName = nameof(Model.fa_method);
+                        string nameWithoutModel = "u" + propertyName.Substring(propertyName.LastIndexOf('.') + 1);
+                        string selectedValue = Model.fa_method;
+                        string idWithoutModel = ViewData.TemplateInfo.GetFullHtmlFieldId(nameWithoutModel);
+                    }
+                    @Html.DropDownList(idWithoutModel, new List<SelectListItem>
+                    {
+                        new SelectListItem { Text="Straight Line", Value = "Straight Line", Selected = (selectedValue == "Straight Line") },
+                        new SelectListItem { Text="Declining Balance", Value = "Declining Balance", Selected = (selectedValue == "Declining Balance") }
+                    }, "Select Method", new { @class = "form-control select2 mb-4", name = nameWithoutModel })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4 d-none" id="divuDepre_per">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Depreciation Percentage (Monthly)&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("ufa_depreciation_per", Model.fa_depreciation_per, new { @class = "form-control text-end", @placeholder = "0.00", @oninput = "validate(this,100)" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4 d-none" id="divuLife_spain">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Useful Life Span (Months)</label>
+                    @Html.TextBox("ufa_life_span", Model.fa_life_span, new { @class = "form-control text-end", @placeholder = "0", @oninput = "validate(this,240)" })
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorCreate_ufa"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1 close-group" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+
+    //#region Page Load
+    $(function () {
+
+        $("#ufa_method").select2({
+            placeholder: 'Select Method',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditFixedAsset'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $('#ufa_pdate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            endDate: new Date()
+        });
+
+        $('#ufa_supplier').select2({
+            dropdownParent: $('#form_EditFixedAsset'),
+            placeholder: 'Select Supplier',
+            width: '100%'
+        });
+
+        $("#ufa_vat_per").select2({
+            placeholder: 'VAT Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditFixedAsset'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+
+
+        let method = '@Model.fa_method';
+
+
+        if (method === "Straight Line") {
+            $('#divuDepre_per').addClass('d-none');
+            $('#divuLife_spain').removeClass('d-none');
+        }
+        else if (method == "Declining Balance") {
+            $('#divuLife_spain').addClass('d-none');
+            $('#divuDepre_per').removeClass('d-none');
+        } else {
+            $('#divuDepre_per').addClass('d-none');
+            $('#divuLife_spain').addClass('d-none');
+        }
+        $('#ufa_pdate').val(moment('@Model.fa_pdate.ToString("MM/dd/yyyy")', 'MM/DD/YYYY').format('DD-MMMM-YYYY'));
+
+        let _vat_type = '@Model.fa_vat_type';
+        $('#ufa_vat_per').val(parseInt(_vat_type)).trigger('change');
+
+        GetSupplier();
+        validation();
+    });
+    //#endregion
+
+
+    //#region Fixed Asset Method Change Event
+    $('#ufa_method').on('select2:select', function (e) {
+        var _method = $('#ufa_method').val();
+
+        if (_method === "Straight Line") {
+            $('#divuDepre_per').addClass('d-none');
+            $('#divuLife_spain').removeClass('d-none');
+        }
+        else if (_method == "Declining Balance") {
+            $('#divuLife_spain').addClass('d-none');
+            $('#divuDepre_per').removeClass('d-none');
+        } else {
+            $('#divuDepre_per').addClass('d-none');
+            $('#divuLife_spain').addClass('d-none');
+        }
+    });
+
+    //#endregion
+
+    //#region Load Supplier Dropdown
+
+    var GetSupplier = function () {
+        $('#lbl_message').text('');
+        $('#ufa_supplier').empty();
+
+        var supId = '@Model.fa_supplier';
+        var branchId = '@Model.fa_branch';
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetSupplierByBranches", "PurchaseOrders", new { area = "MaterialManagement" })?branchId=' + branchId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === '@Model.fa_supplier') ? true : false, (parseInt(response[j].Value) === '@Model.fa_supplier') ? true : false);
+                            $('#ufa_supplier').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            }).done(function () {
+                if (supId > 1) {
+                    setTimeout(function () {
+                        $('#ufa_supplier').val(supId).trigger('change');
+                    }, 200);
+                }
+            });
+        }
+    };
+    //#endregion
+
+    //#region Item VAT Calculation
+    $("#ufa_net").on('change', function () {
+        var _net = $("#ufa_net").val();
+        if (_net === '') {
+            $("#ufa_net").val("0");
+        }
+        AddingCalculation();
+    });
+    $("#ufa_residual_value").on('change', function () {
+        var _net = $("#ufa_residual_value").val();
+        if (_net === '') {
+            $("#ufa_residual_value").val("0");
+        }
+    });
+
+    $("#ufa_vat_per").on('change', function () {
+        AddingCalculation();
+    });
+
+    var AddingCalculation = function () {
+        $("#lbl_u_netvat_error").text("");
+        let _vat_per = $("#ufa_vat_per").val();
+        let _price = $("#ufa_net").val();
+        let netAmount = 0;
+        let vatAmount = 0;
+        let netvatAmount = 0;
+
+        netAmount = parseFloat(_price);
+
+        if (_vat_per > 0) {
+            vatAmount = (parseFloat(netAmount) * parseFloat(_vat_per)) / 100;
+            netvatAmount = (parseFloat(vatAmount)).toFixed(2);
+        }
+        netvatAmount = parseFloat(netAmount) + parseFloat(netvatAmount);
+
+        if (netAmount < 0) {
+            $("#lbl_u_netvat_error").text("Invalid Input");
+            $("#ufa_net").attr("style", "border:1px solid red;color:red;");
+        }
+        else {
+            $("#lbl_net_error").text("");
+            $("#fua_net").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+        if (vatAmount < 0) {
+            $("#lbl_u_netvat_error").text("Invalid Input");
+            $("#ufa_vat_per").attr("style", "border:1px solid red;color:red;");
+        }
+        else {
+            $("#lbl_u_netvat_error").text("");
+            $("#ufa_vat_per").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+        if (netvatAmount < 0) {
+            $("#lbl_u_netvat_error").text("Invalid Input");
+            $("#ufa_price").attr("style", "border:1px solid red;color:red;");
+        }
+        else {
+            $("#lbl_u_netvat_error").text("");
+            $("#ufa_price").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+
+        $("#ufa_net").val(parseFloat(netAmount).toFixed(2));
+        $("#ufa_vat").val(parseFloat(vatAmount).toFixed(2));
+        $("#ufa_price").val(parseFloat(netvatAmount).toFixed(2));
+    }
+
+    //#endregion
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion
+
+    //#region Adding Validation on Fields
+    var validation = function () {
+        $("#form_EditFixedAsset").validate({
+            focusInvalid: true,
+            rules:
+            {
+                ufa_pdate: {
+                    required: true
+                },
+                ufa_price: {
+                    required: true
+                },
+                ufa_supplier: {
+                    required: true
+                },
+                ufa_residual_value: {
+                    required: true
+                },
+                ufa_method: {
+                    required: true
+                },
+                uft_amount: {
+                    required: true
+                },
+                ufa_life_span: {
+                    required: function () {
+                        var fa_method = $('#ufa_method').val();
+                        if (fa_method === "Straight Line")
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                ufa_depreciation_per: {
+                    required: function () {
+                        var fa_method = $('#ufa_method').val();
+                        if (fa_method === "Declining Balance")
+                            return true;
+                        else
+                            return false;
+                    }
+                }
+            },
+            messages: {
+                ufa_pdate: {
+                    required: "Select Purchase Date"
+                },
+                ufa_price: {
+                    required: "Enter Purchase Price"
+                },
+                ufa_residual_value: {
+                    required: "Enter Residual Value"
+                },
+                ufa_supplier: {
+                    required: "Select Supplier"
+                },
+                ufa_method: {
+                    required: "Select Depreciation"
+                },
+                ufa_life_span: {
+                    required: "Enter Asset Life Span in Months"
+                },
+                ufa_depreciation_per: {
+                    required: "Enter Monthly Depreciation in Percentage"
+                }
+
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#ufa_pdate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#ufa_method').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#ufa_price').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#ufa_net').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#ufa_vat').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#ufa_net').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#ufa_vat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+
+        $('#ufa_price').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#ufa_residual_value').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#ufa_residual_value').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#ufa_depreciation_per').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#ufa_depreciation_per').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#ufa_life_span').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#ufa_life_span').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+    }
+    //#endregion
+
+    //#region Update Fixed Asset on Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+        if ($('#form_EditFixedAsset').valid()) {
+            let error_message = "";
+
+            if ($('#ufa_price').val() === undefined || $('#ufa_price').val() === null || parseFloat($('#ufa_price').val()) <= 0) {
+                error_message = "Purchase Price Shoud Be More Than 0 !";
+            }
+            if ($('#ufa_residual_value').val() === undefined || $('#ufa_residual_value').val() === null || parseFloat($('#ufa_residual_value').val()) <= 0) {
+                error_message += "<br> Residual Value of Asset Should Be More Than 0 !";
+            }
+
+            if ($('#ufa_residual_value').val() !== undefined && $('#ufa_residual_value').val() !== null && parseFloat($('#ufa_residual_value').val()) > 0 &&
+                $('#ufa_price').val() !== undefined && $('#ufa_price').val() !== null && parseFloat($('#ufa_price').val()) > 0) {
+                if (parseFloat($('#ufa_residual_value').val()) >= parseFloat($('#ufa_price').val())) {
+                    error_message += "<br> Residual Value of Asset Should Be Less Than Purchase Value";
+                }
+            }
+
+            if ($('#ufa_method').val() === "Straight Line") {
+                if ($('#ufa_life_span').val() === undefined || $('#ufa_life_span').val() === null || parseFloat($('#ufa_life_span').val()) <= 0) {
+                    error_message += "<br> Useful Life Span of Asset Should Be More Than 0 Months!";
+                }
+            }
+
+            if ($('#ufa_method').val() === "Declining Balance") {
+                if ($('#ufa_depreciation_per').val() === undefined || $('#ufa_depreciation_per').val() === null || parseFloat($('#ufa_depreciation_per').val()) <= 0) {
+                    error_message += "<br> Monthly Depreciation Should Be More Than 0% !";
+                }
+            }
+
+
+            if (error_message === "") {
+                Swal.fire({
+                    title: "Save",
+                    text: "Are you sure you want to Save Changes!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _dataInsert = {
+                            "faId": '@Model.faId',
+                            "fa_refno": '@Model.fa_refno',
+                            "fa_branch": '@Model.fa_branch',
+                            "fa_item": '@Model.fa_item',
+                            "fa_item_group": '@Model.fa_item_group',
+                            "fa_poId": '@Model.fa_poId',
+                            "fa_supplier": $('#ufa_supplier').val(),
+                            "fa_net": $('#ufa_net').val().trim(),
+                            "fa_vat": $('#ufa_vat').val().trim(),
+                            "fa_vat_type": $('#ufa_vat_per').val().trim(),
+                            "fa_pdate": $('#ufa_pdate').val().trim(),
+                            "fa_price": $('#ufa_price').val().trim(),
+                            "fa_residual_value": $('#ufa_residual_value').val().trim(),
+                            "fa_loc": $('#ufa_loc').val().trim(),
+                            "fa_method": $('#ufa_method').val(),
+                            "fa_depreciation_per": $('#ufa_depreciation_per').val().trim(),
+                            "fa_life_span": $('#ufa_life_span').val().trim(),
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("UpdateFixedAsset", "FixedAssets", new { area = "Accounts" })",
+                            dataType: "json",
+                            data: _dataInsert,
+                            beforeSend: function () {
+                                $('#btn_Update').removeClass("btn btn-warning");
+                                $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').html("Saving....");
+                            },
+                            success: function (data) {
+                                $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-warning");
+                                $('#btn_Update').html("Save Changes");
+
+                                if (data.isUpdate > 0) {
+                                    GetFixedAssets();
+
+                                    alert("<i class='fe fe-check-circle text-white'></i> Fixed Asset Updated Successfully!", "success");
+
+                                    $('#edit_fixedasset_modal').modal('toggle');
+
+                                    Timeout();
+                                }
+                                else {
+                                    $("#errorCreate_ufa").html('');
+
+                                    if (data.message == "Error While Updating Fixed Asset!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+
+                                        $("#errorCreate_ufa").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+
+                                        html += "</ul></div></div>";
+
+                                        $("#errorCreate_ufa").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-warning");
+                                $('#btn_Update').html("Save Changes");
+
+                                alert("<i class='fe fe-x-circle text-white'></i> Failed to Updated Fixed Asset!", "danger");
+                                $('#edit_fixedasset_modal').modal('toggle');
+                                Timeout();
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+
+                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                    "<div class='alert alert-light-warning' role='alert'>" +
+                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                    "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+
+                $("#errorCreate_ufa").html(html);
+            }
+
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alter Holder
+    var alertPlaceholder = document.getElementById("FixedAssetsAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

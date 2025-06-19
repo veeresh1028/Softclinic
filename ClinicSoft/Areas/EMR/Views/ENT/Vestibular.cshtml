@@ -1,0 +1,370 @@
+﻿
+@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Vestibular";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-6 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class='badge bg-danger'>Required</span>
+                        <span class="text-info" style="font-size:smaller">Please Fill atlest One Entry</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 col-lg-12">
+                        <div>
+                            <h4 class="page-title mb-0 text-primary">
+                                ENT Examination - Ear
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div id="Vestibular_add" style="display:none">
+
+                </div>
+                <div id="Vestibular_edit">
+                </div>
+                <div>
+                    <h4 class="page-title mb-0 text-primary">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_PreVestibular" class="table table-striped table-bordered text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Pinna R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Pinna L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Preaurical<br /> Region R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Preaurical<br /> Region L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Post <br /> Sulcus R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Post <br /> Sulcus L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">EAC R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">EAC L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Timpanic <br /> Membrane R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Timpanic <br /> Membrane L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Mastoid <br /> Tenderness R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Mastoid <br /> Tenderness L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Facial <br />  Nerves R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Facial <br />  Nerves L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Nystagmus R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Nystagmus L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Eustachian <br /> Tube R</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Eustachian <br /> Tube L</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            GetPreviousVestibular();
+            GetVestibular();
+
+        });
+    //#endregion Page Load
+
+    //#region Load Vestibular
+        var GetVestibular = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllVestibular", "ENT", new { area = "EMR" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditVestibular();
+                            $("#Vestibular_add").hide();
+                            $("#Vestibular_edit").show();
+
+                        }
+                        else {
+                            $("#Vestibular_add").show();
+                            $("#Vestibular_edit").hide();
+                            AddVestibular();
+
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load Vestibular
+
+
+    //#region Load PreviousVestibular
+        var GetPreviousVestibular = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreVestibular", "ENT", new { area = "EMR" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_PreVestibular')) {
+                            table = $('#tbl_PreVestibular').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableP(response);
+                        }
+
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load PreviousVestibular
+
+   //#region Previous Bind Datatable
+        var BindDataTableP = function (response) {
+            var table = $("#tbl_PreVestibular").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "peeId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data, type, row, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(data).format("DD-MM-YYYY");
+                            }
+                            return moment(data).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_pinr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_pinl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_pregr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_pregl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_postr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_postl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_eacr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_eacl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_tympr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_tympl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_masr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_masl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_facr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_facl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_nysr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_nysl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_eustr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_eustl",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "ee_notes",
+                        "className": 'text-justify text-wrap'
+                    },
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous  Vestibular',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous  Vestibular',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous  Vestibular',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous  Vestibular',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_PreVestibular_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add Vestibular
+        function AddVestibular() {
+            var x = $("#Vestibular_add");
+            x.load("@Url.Action("CreateVestibular", "ENT", new { area = "EMR" })" , function () {
+            });
+        }
+    //#endregion Add Vestibular
+
+
+    //#region Edit Vestibular
+        function EditVestibular() {
+            var x = $("#Vestibular_edit");
+            x.load("@Url.Action("EditVestibular", "ENT", new { area = "EMR" })?appId=" + @emr.appId, function () {
+            });
+        }
+    //#endregion Edit Vestibular
+
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    </script>
+}
+

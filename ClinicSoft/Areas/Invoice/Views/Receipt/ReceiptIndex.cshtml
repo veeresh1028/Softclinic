@@ -1,0 +1,1778 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Receipts for Invoices";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="receipts-for-invoices">
+                <span data-lang-key="receipts-invoices">Receipts For Invoices</span></span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+            @*<button class="btn btn-azure" type="button" id="btnRec_PostToAccount">
+            <i class="fe fe-plus-circle"></i> Post to Account
+        </button>*@
+            <button class="btn btn-vimeo ms-lg-2" type="button" id="btnPostAccount">
+                <i class="fa fa-line-chart"></i> 
+                <span data-lang-key="post-to-account">Post To Account</span>
+            </button>
+            <button class="btn btn-secondary" type="button" id="btnRec_Add">
+                <i class="mdi mdi-plus"></i>&nbsp;
+                <span data-lang-key="add-receipt">Add Receipt</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-blue"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="departments">Department<small>(s)</small></span></label>
+                                <select class="form-control" id="select_dept" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="doctors">Doctor<small>(s)</small></span></label>
+                                <select class="form-control" id="select_doctor" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select Receipt Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select Receipt Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+
+                        <div class="col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Patient<small class="ms-2 text-info">(Search By MRN/EID/Mobile/Name)</small></label>
+                                <select class="form-control select2-show-search" id="select_patient"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="invoice-number">Invoice No.</span></label>
+                                <input id="select_inv_no" class="form-control" placeholder="Invoice No." type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="receipt-code">Receipt Code</span></label>
+                                <input id="select_rec_code" class="form-control" placeholder="Receipt Code" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="status">Status<small>(es)</small></span></label>
+                                <select class="form-control select2-show-search" id="select_status" multiple="multiple"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-1">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row mb-lg-3 mb-sm-2">
+                    <div class="col-md-12">
+                        <small>
+                            <span class="text-info">
+                                C.C - <strong>Credit Card</strong> | Chq. - <strong>Cheque</strong>  | B.T - <strong>Bank Transfer</strong> | Adv. - <strong>Advance Allocated</strong> |
+                                V.A - <strong>Voucher Amount</strong> | L.A - <strong>Loyalty Amount</strong> | B.D - <strong>Bad Debit</strong> |
+                                Self. - <strong>Selfology</strong> | G&amp;A - <strong>Group-n Add</strong> | Recv. - <strong>Received</strong> | Refn. - <strong>Refunded</strong>
+                            </span>
+                        </small>
+                    </div>
+                </div>
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_receipts" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-invoice-info">Receipt &amp; Invoice Info</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-info">Patient Info</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cash">Cash</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Credit Card">C.C</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Cheque">Chq.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Bank Transfer">B.T</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Advance Allocated">Adv.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Voucher Amount">V.A</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Loyalty Amount">L.A</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Bad Debit">B.D</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="tabby">Tabby</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Selfology" data-lang-key="self">Self.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="spotify">Spotify</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cobon">Cobon</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Group-n Add">G&amp;A</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="stripe">Stripe</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="tamara">Tamara</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Received" data-lang-key="recv">Recv.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><span title="Refunded" data-lang-key="refn">Refn.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="net">Net</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-code">Receipt Code</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-date">Receipt Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-madeby">Receipt Made By</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="receipt-branch">Receipt Branch</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="mrn">MRN</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-name">Patient Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-type">Patient Type</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="EID-number">EID Number</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="EID-expiry">EID Expiry</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-license">Doctor License</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-name">Doctor Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-department">Doctor Department</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="credit-card">Credit Card</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="credit-card-charges">Credit Card Charges</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cheque">Cheque</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cheque-no">Cheque No</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cheque-bank">Cheque Bank</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="cheque-date">Cheque Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="bank-transfer">Bank Transfer</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="transfer-account">Transfer Account</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="allocated">Allocated</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="voucher">Voucher</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="voucher-amount">Voucher Amount</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="loyalty">Loyalty</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-ang-key="loyalty-amt">Loyalty Amount</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="bad-debit">Bad Debit</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="self">Selfology</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="group-add">Group-n Add</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="recv">Received</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="refn">Refunded</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="notes">Notes</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="posting-status">Posting Status</span></th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end fs-14 font-weight-semibold" style="text-align: right !important;">
+                                    <span data-lang-key="total">Total:</span></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th colspan="14"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th colspan="3"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Patient Details -->
+<div class="modal fade overflow-auto" id="patient_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="receipt-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Details -->
+<!-- Modal Add New Receipt -->
+<div class="modal fade overflow-auto" id="addnew_receipt_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="addnew_receipt_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Add New Receipt -->
+<!-- Modal Edit Receipt -->
+<div class="modal fade overflow-auto" id="edit_receipt_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="edit_receipt_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Edit Receipt -->
+<!-- Modal Documents -->
+<div class="modal fade overflow-auto" id="receipt_documents" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="patient">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="receipt_documents_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Documents -->
+<!-- Modal Invoice Log Details -->
+<div class="modal fade overflow-auto" id="receipt_log" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="receipt_log_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Invoice Log Details -->
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Toggle Sidebar
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            // Load Advanced Filters
+            load_filters();
+
+            // Load Receipts
+            load_receipts();
+        });
+        //#endregion
+
+        //#region Dropdown Bindings
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_departments();
+            load_doctors();
+            load_patients();
+            load_status();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+    }
+
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "Invoice", new { area = "Invoice" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+                pageLoad = false;
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+
+        // Load Departments
+        var load_departments = function () {
+            $('#select_dept').SumoSelect({
+                placeholder: 'Select Department(s)',
+                captionFormat: '{0} Department(s) Selected',
+                captionFormatAllSelected: 'All {0} Department(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "Invoice", new { area = "Invoice" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_dept').html('');
+                    $('#select_dept')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_dept')[0].sumo.add(response[j].id, response[j].text);
+                        //$('#select_dept')[0].sumo.selectItem([response[j].id]);
+                    });
+
+                    $('#select_dept')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+
+        // Load Doctors
+        var load_doctors = function () {
+            $("#select_doctor").SumoSelect({
+                placeholder: 'Select Doctor(s)',
+                captionFormat: '{0} Doctor(s) Selected',
+                captionFormatAllSelected: 'All {0} Doctors selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_doctor').html('');
+            $('#select_doctor')[0].sumo.reload();
+        }
+
+        // On Departments select
+        $('#select_dept').on('change', function (e) {
+            if ($(this).val() != "" && $('#select_branch').val() != "") {
+
+                var _data = {
+                    "Departments": $('#select_dept').val(),
+                    "Branches": $('#select_branch').val(),
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetDoctorsByDepartment", "Invoice", new { area = "Invoice" })',
+                    dataType: 'JSON',
+                    data: _data,
+                    success: function (response) {
+
+                        $('#select_doctor').html('');
+                        $('#select_doctor')[0].sumo.reload();
+
+                        $.each(response, function (j) {
+                            $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#select_doctor')[0].sumo.selectItem([response[j].id]);
+                        });
+
+                        $('#select_doctor')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_doctor').html('');
+                $('#select_doctor')[0].sumo.reload();
+            }
+        });
+
+        // Load Patients
+        var load_patients = function () {
+
+            $('#select_patient').select2({
+                placeholder: 'Search Patient',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("GetPatients", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 0
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+
+        // Load Status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                captionFormat: '{0} Status(es) Selected',
+                captionFormatAllSelected: 'All {0} Status(es) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+
+            $('#select_status')[0].sumo.add("Submitted", "Submitted");
+            $('#select_status')[0].sumo.add("Bounced", "Bounced");
+            $('#select_status')[0].sumo.add("Cleared", "Cleared");
+            $('#select_status')[0].sumo.add("Deleted", "Deleted");
+
+            $('#select_status')[0].sumo.reload();
+        }
+        //#endregion
+
+        //#region Search Invoices
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if (($("#select_dept").val() != null && $("#select_dept").val() != 0 && $("#select_dept").val() != "" && $("#select_dept").val() != undefined) ||
+                ($("#select_doctor").val() != null && $("#select_doctor").val() != 0 && $("#select_doctor").val() != "" && $("#select_doctor").val() != undefined) ||
+                ($("#select_inv_no").val() != null && $("#select_inv_no").val() != 0 && $("#select_inv_no").val() != "" && $("#select_inv_no").val() != undefined) ||
+                ($("#select_rec_code").val() != null && $("#select_rec_code").val() != 0 && $("#select_rec_code").val() != "" && $("#select_rec_code").val() != undefined) ||
+                ($("#select_patient").val() != null && $("#select_patient").val() != 0 && $("#select_patient").val() != "" && $("#select_patient").val() != undefined) ||
+                ($("#select_status").val() != null && $("#select_status").val() != 0 && $("#select_status").val() != "" && $("#select_status").val() != undefined) ||
+                ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) ||
+                ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+
+                let isValid = true;
+
+                let inv_frm = moment($("#select_date_from").val());
+                let inv_to = moment($("#select_date_to").val());
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!inv_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Invoiced From"
+                        });
+                    }
+                }
+
+                // Check if Date To is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!inv_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Invoiced To"
+                        });
+                    }
+                }
+
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) &&
+                    ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (inv_frm.isValid() && inv_to.isValid()) {
+                        if (inv_to.diff(inv_frm, 'days') <= -1) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Receipts From Date should be less than To Date!"
+                            });
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    load_receipts();
+                }
+
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Search by Either of the following filters : Department(s) / Doctor(s) / Receipt Date / Invoice No. / Receipt Code / Patient / Status(es)",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Receipts
+        var load_receipts = function () {
+
+            var _data = {
+                "branch_ids": $('#select_branch').val().toString(),
+                "dept_ids": $('#select_dept').val().toString(),
+                "emp_ids": $('#select_doctor').val().toString(),
+                "inv_no": $('#select_inv_no').val(),
+                "patient": $('#select_patient').val(),
+                "rec_code": $('#select_rec_code').val().toString(),
+                "rec_statuses": $('#select_status').val().toString(),
+                "rec_date_from": $('#select_date_from').val(),
+                "rec_date_to": $('#select_date_to').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetInvoiceReceipts", "Receipt", new { area = "Invoice" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    $('#progress-loader').hide();
+
+                    //#region Load Datatable
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_receipts')) {
+                        table = $('#tbl_receipts').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+
+                    }
+                    else {
+                        BindDataTable(response);
+                    }
+
+                    setTimeout(function () {
+                        $('#tbl_receipts').DataTable().columns.adjust().draw();
+                    }, 450);
+                    //#endregion
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+        // Bind Datatable
+        var BindDataTable = function (response) {
+            var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_receipts").DataTable({
+                processing: true,
+                "deferRender": true,
+                "pageLength": 50,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "recId" },
+                    { "mData": "recId" },
+                    { "mData": "patId" },
+                    { "mData": "rec_cash" },
+                    { "mData": "rec_cc" },
+                    { "mData": "rec_chq" },
+                    { "mData": "rec_bt" },
+                    { "mData": "rec_allocated" },
+                    { "mData": "rec_vamount" },
+                    { "mData": "rec_lamount" },
+                    { "mData": "rec_debit" },
+                    { "mData": "rec_tabby" },
+                    { "mData": "rec_self" },
+                    { "mData": "rec_spoti" },
+                    { "mData": "rec_cob" },
+                    { "mData": "rec_group" },
+                    { "mData": "rec_stripe" },
+                    { "mData": "rec_tamara" },
+                    { "mData": "received_total" },
+                    { "mData": "rf_total" },
+                    { "mData": "net" },
+                    { "mData": "rec_status" },
+                    { "mData": "recId" },
+                    { "mData": "rec_code" },
+                    { "mData": "rec_date" },
+                    { "mData": "madeby_name" },
+                    { "mData": "set_company" },
+                    { "mData": "pat_code" },
+                    { "mData": "pat_name" },
+                    { "mData": "pat_class" },
+                    { "mData": "pat_emirateid" },
+                    { "mData": "id_card_edate" },
+                    { "mData": "emp_license" },
+                    { "mData": "emp_name" },
+                    { "mData": "emp_dept_name" },
+                    { "mData": "rec_cc" },
+                    { "mData": "rec_cc_per" },
+                    { "mData": "rec_chq" },
+                    { "mData": "rec_chq_no" },
+                    { "mData": "rec_chq_bank" },
+                    { "mData": "rec_chq_date" },
+                    { "mData": "rec_bt" },
+                    { "mData": "rec_bt_bank" },
+                    { "mData": "rec_allocated" },
+                    { "mData": "rec_voucher" },
+                    { "mData": "rec_vamount" },
+                    { "mData": "rec_loyalty" },
+                    { "mData": "rec_lamount" },
+                    { "mData": "rec_debit" },
+                    { "mData": "rec_self" },
+                    { "mData": "rec_group" },
+                    { "mData": "received_total" },
+                    { "mData": "rf_total" },
+                    { "mData": "rec_notes" },
+                    { "mData": "rec_status" },
+                    { "mData": "rec_status2" },
+
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "aTargets": [1],
+                        "className": 'text-center',
+                        "render": function (data, type, full, meta) {
+                            var html = '<span class="text-success font-weight-semibold  fs-14">' + full.rec_code + '</span> | <span class="text-info  fs-14 font-weight-semibold">' + full.inv_no + '</span><br/>' +
+                                '<a onclick="patientDetails(\'' + full.patId + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span></a><br/>' +
+                                '<span class="text-danger">' + full.set_company + '</span><br/>';
+
+                            html += full.madeby_name + "<br/><i class='fe fe-calendar text-dark'></i> <b class='text-dark me-1'>" + moment(full.rec_date).format("DD-MM-YYYY") + "</b>";
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [2],
+                        "visible": false,
+                        "render": function (data, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var gender = full.pat_gender;
+                            var emid = full.pat_emirateid;
+
+                            if (emid == "") {
+                                emid = "999-9999-9999999-9";
+                            }
+
+
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a> ';
+                            }
+                            else {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + full.pat_name + '</span></a> ';
+                            }
+
+                            pat_det += '<br/><span class="btn-indigo btn-sm">' + full.pat_code + '</span>'
+                            // Check EMID Expiry
+                            if (emid != null && emid != "" && emid != undefined) {
+
+                                let id_card_edate = moment(full.id_card_edate);
+                                if (id_card_edate.isValid()) {
+                                    let today = moment();
+                                    if (id_card_edate.diff(today, 'days') <= 0) {
+                                        pat_det += ' <div class="badge bg-danger-transparent font-weight-semibold mt-2" style="margin-left:5px;font-size: 0.9em">' + emid + '<span class="tag-addon"><i class="fa fa-exclamation-circle" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;"></i></span></div>';
+                                    }
+                                    else {
+                                        pat_det += '<span class="badge bg-primary-transparent text-dark ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span>';
+                                    }
+                                }
+                            }
+
+
+                            var html = pat_det;
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [3],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [4],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [5],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [6],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [7],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [8],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [9],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [10],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [11],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [12],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [13],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [14],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [15],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [16],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [17],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [18],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [19],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [20],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [21],
+                        "render": function (data, type, full, meta) {
+                            var html = "";
+
+                            if (full.rec_status == "Bounced") {
+                                html += "<span class='dot-label bg-danger me-2 w-2 h-2'></span><span class='text-danger'>Bounced</span>";
+                            }
+                            else if (full.rec_status == "Cleared") {
+                                html += "<span class='dot-label bg-success me-2 w-2 h-2'></span><span class='text-success'>Cleared</span>";
+                            }
+                            else if (full.rec_status == "Submitted") {
+                                html += "<span class='dot-label bg-info me-2 w-2 h-2'></span><span class='text-info'>Submitted</span>";
+                            }
+                            else if (full.rec_status == "Deleted") {
+                                html += "<span class='dot-label bg-danger me-2 w-2 h-2'></span><span class='text-danger'>Deleted</span>";
+                            }
+                            else {
+                                html += "<span class='dot-label bg-dark me-2 w-2 h-2'></span><span class='text-dark'>" + full.rec_status + "</span>";
+                            }
+
+                            html += "<br/>"
+
+                            if (full.rec_status2 == "Posted") {
+                                html += "<span class='dot-label bg-success me-2 w-2 h-2'></span><span class='text-success'>Posted</span>";
+                            }
+                            else if (full.rec_status2 == "Pending") {
+                                html += "<span class='dot-label bg-info me-2 w-2 h-2'></span><span class='text-info'>Pending</span>";
+                            }
+                            else {
+                                html += "<span class='dot-label bg-dark me-2 w-2 h-2'></span><span class='text-dark'>" + full.rec_status2 + "</span>";
+                            }
+
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [22],
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (recId, type, full, meta) {
+                            var rec_status = full.rec_status;
+                            var rec_status2 = full.rec_status2;
+
+                            var more = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (rec_status != "Deleted" && rec_status2 != "Posted") {
+                                more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="editReceipt(\'' + recId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="deleteReceipt(\'' + recId + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="printReceipt(\'' + recId + '\')"><i class="fe fe-printer text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Print</a>'+
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="documentsReceipt(\'' + recId + '\', \'' + full.rec_code +'\')"><i class="fe fe-folder-plus text-info" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Document</a>'+
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)"><i class="fa fa-whatsapp text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Send in Whatsapp</a>'+
+                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)"><i class="fe fe-mail text-secondary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Send in Mail</a>';
+                            }
+
+
+                            more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)"  onclick="receiptLog(\'' + recId + '\')"><i class="fe fe-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058"></i>&nbsp;Logs</a>' +
+                                '</div>' +
+                                '</div>';
+
+
+                            return more;
+                        }
+                    },
+                    {
+                        "aTargets": [23],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [24],
+                        "visible": false,
+                        "render": function (data) {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "aTargets": [25],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [26],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [27],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [28],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [29],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [30],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [31],
+                        "visible": false,
+                        "render": function (data) {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "aTargets": [32],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [33],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [34],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [35],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [36],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [37],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [38],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [39],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [40],
+                        "visible": false,
+                        "render": function (data) {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "aTargets": [41],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [42],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [43],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [44],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [45],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [46],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [47],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [48],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [49],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [50],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [51],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [52],
+                        "visible": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [53],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [54],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [55],
+                        "visible": false
+                    }
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[2, 'asc']],
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Receipts For Invoices',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 3, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+                                      46, 47, 11, 48, 13, 14, 49, 16, 17, 50, 51, 19, 52, 53, 54, 55]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Receipts For Invoices to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Receipts For Invoices',
+                        footer: 'true',
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL',
+                        customize: function (doc) {
+                            var fontSize = 5; // Adjust the font size as needed
+                            doc.defaultStyle.fontSize = fontSize;
+                        },
+                        exportOptions: {
+                            columns: [23, 24, 25,  27, 28, 33, 34, 3, 35, 36, 37,   41, 43, 
+                                 47, 11, 48, 13,  49, 16, 17, 51, 19, 52, 53, 54, 55]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Receipts For Invoices to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Receipts For Invoices',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 3, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+                                46, 47, 11, 48, 13, 14, 49, 16, 17, 50, 51, 19, 52, 53, 54, 55]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Receipts For Invoices to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Receipts For Invoices',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 3, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+                                46, 47, 11, 48, 13, 14, 49, 16, 17, 50, 51, 19, 52, 53, 54, 55]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Receipts For Invoices!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Receipts </span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    rec_cash = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(numberRenderer1(rec_cash.toFixed(2)));
+
+                    rec_cc = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(4).footer()).html(numberRenderer1(rec_cc.toFixed(2)));
+
+                    rec_chq = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(numberRenderer1(rec_chq.toFixed(2)));
+
+                    rec_bt = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(numberRenderer1(rec_bt.toFixed(2)));
+
+                    rec_allocated = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer1(rec_allocated.toFixed(2)));
+
+                    rec_vamount = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(numberRenderer1(rec_vamount.toFixed(2)));
+
+                    rec_lamount = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(9).footer()).html(numberRenderer1(rec_lamount.toFixed(2)));
+
+                    rec_debit = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(10).footer()).html(numberRenderer1(rec_debit.toFixed(2)));
+
+                    rec_tabby = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(11).footer()).html(numberRenderer1(rec_tabby.toFixed(2)));
+
+                    rec_self = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(12).footer()).html(numberRenderer1(rec_self.toFixed(2)));
+
+                    rec_spoti = api.column(13).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(13).footer()).html(numberRenderer1(rec_spoti.toFixed(2)));
+
+                    rec_cob = api.column(14).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(14).footer()).html(numberRenderer1(rec_cob.toFixed(2)));
+
+                    rec_group = api.column(15).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(15).footer()).html(numberRenderer1(rec_group.toFixed(2)));
+
+                    rec_stripe = api.column(16).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(16).footer()).html(numberRenderer1(rec_stripe.toFixed(2)));
+
+                    rec_tamara = api.column(17).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(17).footer()).html(numberRenderer1(rec_tamara.toFixed(2)));
+
+                    received_total = api.column(18).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(18).footer()).html(numberRenderer1(received_total.toFixed(2)));
+
+                    rf_total = api.column(19).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(19).footer()).html(numberRenderer1(rf_total.toFixed(2)));
+
+                    net = api.column(20).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(20).footer()).html(numberRenderer1(net.toFixed(2)));
+
+                    //Hidden Totals
+
+                    tot_c35 = api.column(35).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(35).footer()).html(numberRenderer1(tot_c35.toFixed(2)));
+
+                    tot_c36 = api.column(36).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(36).footer()).html(numberRenderer1(tot_c36.toFixed(2)));
+
+                    tot_c37 = api.column(37).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(37).footer()).html(numberRenderer1(tot_c37.toFixed(2)));
+
+
+                    tot_c41 = api.column(41).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(41).footer()).html(numberRenderer1(tot_c41.toFixed(2)));
+
+                    tot_c43 = api.column(43).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(43).footer()).html(numberRenderer1(tot_c43.toFixed(2)));
+
+                    tot_c45 = api.column(45).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(45).footer()).html(numberRenderer1(tot_c45.toFixed(2)));
+
+                    tot_c47 = api.column(47).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(47).footer()).html(numberRenderer1(tot_c47.toFixed(2)));
+
+                    tot_c48 = api.column(48).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(48).footer()).html(numberRenderer1(tot_c48.toFixed(2)));
+
+                    tot_c49 = api.column(49).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(49).footer()).html(numberRenderer1(tot_c49.toFixed(2)));
+
+                    tot_c50 = api.column(50).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(50).footer()).html(numberRenderer1(tot_c50.toFixed(2)));
+
+                    tot_c51 = api.column(51).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(51).footer()).html(numberRenderer1(tot_c51.toFixed(2)));
+
+                    tot_c52 = api.column(52).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(52).footer()).html(numberRenderer1(tot_c52.toFixed(2)));
+
+
+                },
+                rowCallback: function (row, data, index) {
+                    if (data.rec_status === "Deleted") {
+                        $('td:eq(0)', row).find("input[type='checkbox']").remove();
+                    }
+                },
+            });
+            table.buttons().container().appendTo('#tbl_receipts_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region View Patient Details
+        var patientDetails = function (patId, pat_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PatientDetail", "Patient", new { area = "Patient" })?patId=" + patId + "&pat_name=" + pat_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#patient_details_body").html(response);
+                    $("#patient_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region New Receipt
+        $("#btnRec_Add").click(function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NewReceipt", "Receipt", new { area = "Invoice" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#addnew_receipt_modal_body").html(response);
+                    $("#addnew_receipt_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        });
+        //#endregion
+
+        //#region Delete Receipt
+        var deleteReceipt = function (recId) {
+            Swal.fire({
+            title: "Are you sure you want to delete this Pay Receipt ?",
+            html: "This action will delete this Receipt and its Recalculate the invoice paid amount and all!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeletePayReceipt", "Receipt", new { area = "Invoice" })?recId=' + recId ,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.isSuccess) {
+                                    load_receipts();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Receipt is Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Delete the Receipt!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete this Receipt!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Receipt! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Print Receipt
+        var printReceipt = function (recId) {
+            window.open("@Url.Action("PrintReceipt", "Receipt", new { area = "Invoice" })?recId=" + recId, "Receipt Print");
+        }
+        //#endregion
+
+        //#region Edit Receipt
+        var editReceipt = function (recId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditReceipt", "Receipt", new { area = "Invoice" })?recId=" + recId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#edit_receipt_modal_body").html(response);
+                    $("#edit_receipt_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Receipt Documents
+        var documentsReceipt = function (recId, rec_code) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ReceiptDocument", "Receipt", new { area = "Invoice" })?recId=" + recId + "&rec_code=" + rec_code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#receipt_documents_body").html(response);
+                    $("#receipt_documents").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Receipt Logs
+        var receiptLog = function (recId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ReceiptAuditLog", "Receipt", new { area = "Invoice" })?recId=" + recId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#receipt_log_body").html(response);
+                    $("#receipt_log").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Post Receipt to Chart of Accounts
+        $("#btnRec_PostToAccount").click(function (event) {
+            var table = $("#tbl_receipts").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                Swal.fire({
+                    title: "This action will Post selected Receipts to Chart of Account!",
+                    html: "Are you sure you want to post selected receipt(s) to <span class='text-danger'>Chart of Accounts</span> ? <br/>Once it's posted to Account you can't do any operation on the receipt!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _recIds = [];
+
+                        $.each(rows, function (index, rowId) {
+                            var _data = table.row(rowId).data();
+                            _recIds.push(_data.recId);
+                        });
+
+                        var receiptsBulkStatus = {
+                            recIds: _recIds
+                        }
+
+                        $.ajax({
+                            url: '@Url.Action("PostToAccountReceipts", "Receipt", new { area = "Invoice" })',
+                            type: "POST",
+                            dataType: "json",
+                            data: receiptsBulkStatus,
+                            async: false,
+                            success: function (response) {
+                                if (response.isSuccess) {
+                                    load_receipts();
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.notice({
+                                        title: "Success",
+                                        message: response.message
+                                    });
+                                }
+                                else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.error({
+                                        title: "Error",
+                                        message: response.message
+                                    });
+                                }
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                        });
+
+                    }
+                });
+            }
+            else {
+                event.preventDefault();
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast One Receipt in the list to Post to Account",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+
+        });
+        //#endregion
+
+        //#region Post Receipt To Account
+        $('#btnPostAccount').click(function () {
+            var table = $("#tbl_receipts").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            if (rows.length > 0) {
+                Swal.fire({
+                    title: "Are you sure you want to Post ?",
+                    text: "This action will post the selected Receipt(s) to chart of account!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _Ids = "";
+                        $.each(rows, function (index, rowId) {
+                            var _data = table.row(rowId).data();
+                            if (index == 0)
+                                _Ids = _data.recId;
+                            else
+                                _Ids += "," + _data.recId;
+                        });
+                        if (_Ids === null || _Ids === undefined || _Ids.length <= 0) {
+                            Swal.fire({
+                                title: "Alert!",
+                                text: "Row Selection Error. Please Refresh Page And Try Again!",
+                                icon: "info",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                        else {
+                            PostToAccount(_Ids);
+                        }
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select at least one Receipt to post!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+
+        var PostToAccount = function (pinvId) {
+
+            $.ajax({
+                url: "@Url.Action("PostReceiptToAccount", "Receipt", new { area = "Invoice" })?data=" + pinvId,
+                type: "POST",
+                dataType: "JSON",
+                success: function (data) {
+                    if (data.isUpdated) {
+                        Swal.fire({
+                            title: "Success!",
+                            text: "Posted Successfully!!",
+                            icon: "success",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                        });
+                        GetInvoices();
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Error!",
+                            text: data.message,
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    Swal.fire({
+                        title: "Error!",
+                        text: "Failed to Post to Account! Please refresh the Page and Try Again.",
+                        icon: "error",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                    })
+                }
+            });
+        };
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+    </script>
+}
+

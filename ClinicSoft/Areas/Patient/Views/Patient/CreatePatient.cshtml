@@ -1,0 +1,3463 @@
+﻿@model BusinessEntities.Patient.PatientWithInsurance
+@using System.Configuration;
+@{
+    bool isPAP = (bool)TempData["isPAP"];
+}
+
+<!-- INTERNAL telephoneinput css-->
+<link rel="stylesheet" href="~/assets/plugins/telephoneinput/telephoneinput.css">
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Create New Patient</h5>
+    @if (!isPAP)
+    {
+        <div class="btn-list btn-animation">
+            <button type="button" class="btn btn-outline-primary ms-4" id="btn_Read">Read Data From EMID</button>
+            <button type="button" class="btn btn-outline-danger ms-4" id="btn_Disconnect">Disconnect the Reader</button>
+            <button type="button" class="btn btn-outline-warning ms-4" id="btn_Clean">Clean the Cache in Reader</button>
+        </div>
+    }
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-patient-model" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    @if (isPAP)
+    {
+        <div class="row">
+            <div class="col-sm-4 col-md-4 col-lg-4 mb-4 font-weight-semibold">
+                <div class="btn-list btn-animation">
+                    <button type="button" class="btn btn-outline-primary" id="btn_PAP_Read">Read PAP Public Data From EMID</button>
+                    <img id="finger" src="~/assets/images/clinicsoft9/FingerPrint/fingers.jpg" style="height: 2.6rem; display: none;" alt="" />
+                    <button type="button" class="btn btn-outline-success" id="btnVerifyFingerPrint" style="display:none">Verify Fingerprint</button>
+                    <input type="hidden" id="fingerIndex" />
+                </div>
+            </div>
+            <div class="col-sm-3 col-md-3 col-lg-3 mb-4 font-weight-semibold" style="display:none">
+                <select id="cboCancelReason" class="form-select select2" placeholder="Select Reason">
+                    <option value="0">Select Reason for Cancel</option>
+                    <option value="1">No Finger Print on Card</option>
+                    <option value="2">Medical Reason</option>
+                    <option value="3">Patient Refusal to Authentication</option>
+                    <option value="4">System Down</option>
+                    <option value="5">Data Component Issues</option>
+                </select>
+
+            </div>
+            <div class="col-sm-1 col-md-1 col-lg-1 mb-4 font-weight-semibold" style="display:none">
+                <div class="btn-list btn-animation">
+                    <button type="button" class="btn btn-outline-danger" id="btnCancelVerification">Cancel</button>
+                </div>
+            </div>
+            <div class="col-sm-4 col-md-4 col-lg-4 mb-4 font-weight-semibold">
+                <span id="fingerDescription" class="mt-2" style="display:none"></span>
+            </div>
+        </div>
+    }
+
+    <form id="form_Patient_Create" enctype="multipart/form-data" autocomplete="off" title="">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+                <br />
+                <span class="text-danger" style="font-size:smaller">Identity Enter Atlest One **</span>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="panel-group accordion-panel" role="tablist" aria-multiselectable="true">
+                <div class="panel panel-default active">
+                    <div class="panel-heading bg-danger-1" role="tab" id="required-headingOne1">
+                        <h4 class="panel-title">
+                            <a role="button" data-bs-toggle="collapse" data-parent="#required-accordion1" href="#required-collapseOne1" aria-expanded="true" aria-controls="required-collapseOne1">
+                                <span style="color:white; pointer-events:none;">Main Demographic Information</span>
+                                <span class="float-end" style="color:white;"><i class="fe fe-chevrons-down"></i></span>
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="required-collapseOne1" class="panel-collapse collapse show" role="tabpanel" aria-labelledby="required-headingOne1">
+                        <div class="col mt-5">
+                            <div class="row">
+                                <div class="col-sm-2 col-md-1">
+                                    <img alt="Photo" src="~/assets/images/clinicsoft9/emid.jpg" id="PhotoBase64" class="avatar avatar-xxl bradius" />
+                                    @Html.HiddenFor(model => model.patient.pat_photo, new { @id = "pat_photo" })
+                                </div>
+                                <div class="col-sm-2 col-md-1">
+                                    <div class="form-group">
+                                        <label class="form-label">MRN<span class="text-danger">*</span></label>
+                                        @Html.TextBoxFor(model => model.patient.pat_code, new { @class = "form-control mb-2", @placeholder = "Ex:1234", @id = "pat_code", @readonly = "readonly" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Branch&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.DropDownListFor(m => m.patient.pat_branch, (IEnumerable<SelectListItem>)ViewData["BranchList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_branch" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-1">
+                                    <div class="form-group">
+                                        <label class="form-label">Title</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_title, new List<SelectListItem>
+                                        {
+                                            new SelectListItem{ Value="MR", Text="MR", Selected=true},
+                                            new SelectListItem{ Value="MRS", Text="MRS"},
+                                            new SelectListItem{ Value="MS", Text="MS"},
+                                            new SelectListItem{ Value="DR", Text="DR"},
+                                            new SelectListItem{ Value="REV", Text="REV"},
+                                        }, "Select Title", new { @class = "form-select select2 mb-2", @id = "pat_title" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label">First Name&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.HiddenFor(model => model.patient.patId, new { @id = "patId" })
+                                        @Html.TextBoxFor(model => model.patient.pat_name, new { @class = "form-control mb-2", @placeholder = "Ex : Alan", @id = "pat_name", @maxlength = "60" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Middle Name</label>
+                                        @Html.TextBoxFor(model => model.patient.pat_mname, new { @class = "form-control mb-2", @placeholder = "Ex : AR", @id = "pat_mname", @maxlength = "50" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Last Name&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.TextBoxFor(model => model.patient.pat_lname, new { @class = "form-control mb-2", @placeholder = "Ex : Alfred", @id = "pat_lname", @maxlength = "60" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Emirate Id&nbsp;<span class="text-danger">**</span></label>
+                                        @Html.TextBoxFor(model => model.patient.pat_emirateid, new { @class = "form-control mb-2", @placeholder = "Ex:784-1991-1234567-8", @id = "pat_emirateid", @maxlength = "20" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Mobile&nbsp;<span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_mob, new { @type = "tel", @class = "form-control mb-2", @placeholder = "Ex:512345678", @id = "pat_mob", @style = "width:100%;", @maxlength = "20" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-md-2">
+                                    <div class="form-group mb-2">
+                                        <label class="form-label">Date of Birth&nbsp;<span class="text-danger">*</span></label>
+                                    </div>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <i class="fe fe-calendar"></i>
+                                            </div>
+                                        </div>
+                                        @Html.TextBoxFor(model => model.patient.pat_dob, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "pat_dob" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Gender&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.DropDownListFor(m => m.patient.pat_gender, new List<SelectListItem>
+                                        {
+                                            new SelectListItem{ Value="Male", Text="Male"},
+                                            new SelectListItem{ Value="Female", Text="Female"},
+                                            new SelectListItem{ Value="Unknown", Text="Unknown"},
+                                            new SelectListItem{ Value="Not Available", Text="Not Available"},
+                                            new SelectListItem{ Value="Other", Text="Other"},
+                                        }, "Select Gender", new { @class = "form-select select2 mb-2", @id = "pat_gender" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Class&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.DropDownListFor(m => m.patient.pat_class, new List<SelectListItem>
+                                        {
+                                            new SelectListItem{ Value="Normal", Text="Normal", Selected=true},
+                                            new SelectListItem{ Value="VIP", Text="VIP"},
+                                            new SelectListItem{ Value="Employee Related", Text="Employee Related"},
+                                            new SelectListItem{ Value="Management Related", Text="Management Related"},
+                                        }, "Select Patient Class", new { @class = "form-select select2 mb-2", @id = "pat_class" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Civil Status&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.DropDownListFor(m => m.patient.pat_ms, new List<SelectListItem>
+                                        {
+                                            new SelectListItem{ Value="S", Text="Single"},
+                                            new SelectListItem{ Value="M", Text="Married"},
+                                            new SelectListItem{ Value="D", Text="Divorced"},
+                                            new SelectListItem{ Value="A", Text="Seperated"},
+                                            new SelectListItem{ Value="P", Text="Domestic Partner"},
+                                            new SelectListItem{ Value="W", Text="Widowed"},
+                                            new SelectListItem{ Value="U", Text="Unknown"},
+                                            new SelectListItem{ Value="NA", Text="Not Available"},
+                                        }, "Select Civil Status", new { @class = "form-select select2 mb-2", @id = "pat_ms" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Referral&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.DropDownListFor(m => m.patient.pat_referal, (IEnumerable<SelectListItem>)ViewData["ReferalList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_referal" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Referred By&nbsp;<small class="text-info">(MRN #)</small></label>
+                                        @Html.TextBoxFor(m => m.patient.pat_doc_2, new { @class = "form-control", @placeholder = "Ex : 35265", @id = "pat_doc_2", @maxlength = "15" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Nationality&nbsp;<span class="text-danger">*</span></label>
+                                        @Html.DropDownListFor(m => m.patient.pat_nat, (IEnumerable<SelectListItem>)ViewData["NationalityList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_nat" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel panel-default mt-2">
+                    <div class="panel-heading" role="tab" id="required-headingTwo2">
+                        <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-bs-toggle="collapse" data-parent="#required-accordion1" href="#required-collapseTwo2" aria-expanded="false" aria-controls="required-collapseTwo2">
+                                Additional Demographic Information
+                                <span class="float-end"><i class="fe fe-chevrons-down"></i></span>
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="required-collapseTwo2" class="panel-collapse collapse" role="tabpanel" aria-labelledby="required-headingTwo2">
+                        <div class="col mt-5">
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">First Name (Arabic)</label>
+                                        @Html.TextBoxFor(model => model.patient.pat_name_arabic, new { @class = "form-control", @placeholder = "Ex:آلان", @id = "pat_name_arabic", @dir = "rtl", @maxlength = "100" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Last Name (Arabic)</label>
+                                        @Html.TextBoxFor(model => model.patient.pat_lname_arabic, new { @class = "form-control", @placeholder = "Ex:ألفريد", @id = "pat_lname_arabic", @dir = "rtl", @maxlength = "100" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Passport<span class="text-danger">**</span></label>
+                                        @Html.TextBoxFor(model => model.patient.pat_passport, new { @class = "form-control", @placeholder = "Ex:N123456", @id = "pat_passport", @maxlength = "50" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Telephone</label>
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_tel, new { @type = "tel", @class = "form-control", @placeholder = "Ex:512345678", @id = "pat_tel", @style = "width:100%;", @maxlength = "15" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4 col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Email</label>
+                                        @Html.TextBoxFor(model => model.patient.pat_email, new { @class = "form-control mb-2", @placeholder = "Ex:alan@gmail.com", @id = "pat_email", @type = "email", @maxlength = "50" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Religion</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_religion, (IEnumerable<SelectListItem>)ViewData["ReligionList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_religion" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Profession</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_occupation, (IEnumerable<SelectListItem>)ViewData["ProfessionList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_occupation" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">ID Card Front&nbsp;<a style="cursor:pointer"><i class="fe fe-info text-info fs-14" title="File should be less than 5 MB (Allowed Formats : .jpg/.png/.gif)"></i></a></label>
+                                        <div class="input-group file-browser">
+                                            @Html.TextBoxFor(model => model.patient.id_card_front, new { @class = "form-control browse-file", @placeholder = "Choose", @id = "id_card_front", @readonly = "readonly" })
+                                            <label class="input-group-text btn btn-primary">
+                                                Browse <input type="file" name="id_card_front" class="file-browserinput" style="display: none;" accept=".png,.jpg,.jpeg,.gif" onchange="document.getElementById('id_card_front').value = this.value.split('\\').pop().split('/').pop()">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">ID Card Back&nbsp;<a style="cursor:pointer"><i class="fe fe-info text-info fs-14" title="File should be less than 5 MB (Allowed Formats : .jpg/.png/.gif)"></i></a></label>
+                                        <div class="input-group file-browser">
+                                            @Html.TextBoxFor(model => model.patient.id_card_back, new { @class = "form-control browse-file", @placeholder = "Choose", @id = "id_card_back", @readonly = "readonly" })
+                                            <label class="input-group-text btn btn-primary">
+                                                Browse <input type="file" name="id_card_back" class="file-browserinput" style="display: none;" accept=".png,.jpg,.jpeg,.gif" onchange="document.getElementById('id_card_back').value = this.value.split('\\').pop().split('/').pop()">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-md-2">
+                                    <div class="form-group mb-2">
+                                        <label class="form-label">Issued Date</label>
+                                    </div>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <i class="fe fe-calendar"></i>
+                                            </div>
+                                        </div>
+                                        @Html.TextBoxFor(model => model.patient.id_card_idate, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "id_card_idate" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-2">
+                                    <div class="form-group mb-2">
+                                        <label class="form-label">Expiry Date<span class="text-danger">*</span></label>
+                                    </div>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <i class="fe fe-calendar"></i>
+                                            </div>
+                                        </div>
+                                        @Html.TextBoxFor(model => model.patient.id_card_edate, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "id_card_edate" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4 col-lg-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Country</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_country, (IEnumerable<SelectListItem>)ViewData["CountryList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_country" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Citizenship</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_citizen, (IEnumerable<SelectListItem>)ViewData["CitizenshipList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_citizen" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Emirates</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_rel_address, new List<SelectListItem>
+                                        {
+                                            new SelectListItem{ Value="Abu Dhabi", Text="Abu Dhabi"},
+                                            new SelectListItem{ Value="Dubai", Text="Dubai", Selected=true},
+                                            new SelectListItem{ Value="Sharjah", Text="Sharjah"},
+                                            new SelectListItem{ Value="Ajman", Text="Ajman"},
+                                            new SelectListItem{ Value="Umm Al Quwain", Text="Umm Al Quwain"},
+                                            new SelectListItem{ Value="Ras Al Khaimah", Text="Ras Al Khaimah"},
+                                            new SelectListItem{ Value="Fujairah", Text="Fujairah"}
+                                        }, "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_rel_address" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Race</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_race, new List<SelectListItem> { }, "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_race" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Residential Type</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_fax, new List<SelectListItem>
+                                        {
+                                            new SelectListItem{ Value="UAE Citizen", Text="UAE Citizen"},
+                                            new SelectListItem{ Value="Resident", Text="Resident", Selected=true},
+                                            new SelectListItem{ Value="International Patient", Text="International Patient"}
+                                        }, "Please Select", new { @class = "form-select select2 mb-2", @id = "pat_fax" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12 col-lg-12">
+                                    <div class="row">
+                                        <div class="col-sm-6 col-md-2">
+                                            <div class="form-group">
+                                                <label class="form-label">P.O. Box</label>
+                                                @Html.TextBoxFor(model => model.patient.pat_pobox, new { @class = "form-control mb-2", @placeholder = "Ex:1234", @id = "pat_pobox", @maxlength = "10" })
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6 col-lg-2">
+                                            <div class="form-group">
+                                                <label class="form-label">City</label>
+                                                @Html.DropDownListFor(m => m.patient.pat_city, new List<SelectListItem> { }, "Ex : Dubai", new { @class = "form-select select2 mb-2", @id = "pat_city" })
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6 col-lg-4">
+                                            <div class="form-group">
+                                                <label class="form-label">Ethnic Group</label>
+                                                @Html.DropDownListFor(m => m.patient.pat_ethnic, new List<SelectListItem> { }, "Select Ethnic Group", new { @class = "form-select select2 mb-2", @id = "pat_ethnic" })
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6 col-lg-4">
+                                            <div class="form-group">
+                                                <label class="form-label">Language</label>
+                                                @Html.DropDownListFor(m => m.patient.pat_lang, new List<SelectListItem> { }, "Select Language", new { @class = "form-select select2 mb-2", @id = "pat_lang" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-8 col-lg-8">
+                                    <div class="row">
+                                        <div class="col-sm-6 col-lg-6">
+                                            <div class="form-group">
+                                                <label class="form-label">Address</label>
+                                                @Html.TextAreaFor(model => model.patient.pat_address, new { @class = "form-control mb-2", @placeholder = "Ex:Building No 1234, Internet City, Dubai, UAE", @id = "pat_address", rows = "4", @maxlength = "200" })
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6 col-lg-6">
+                                            <div class="form-group">
+                                                <label class="form-label">Notes/Remarks</label>
+                                                @Html.TextAreaFor(model => model.patient.pat_notes, new { @class = "form-control mb-2", @placeholder = "Ex:This patient recommended by Dr.Amor", @id = "pat_notes", rows = "4", @maxlength = "500" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="panel-group accordion-panel" role="tablist" aria-multiselectable="true">
+                <div class="panel panel-default active">
+                    <div class="panel-heading " role="tab" id="headingOne1">
+                        <h4 class="panel-title">
+                            <a role="button" data-bs-toggle="collapse" data-parent="#accordion1" href="#collapseOne1" aria-expanded="true" aria-controls="collapseOne1">
+                                Emergency Contact Information
+                                <span class="float-end"><i class="fe fe-chevrons-down"></i></span>
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseOne1" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne1">
+                        <div class="col mt-5">
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Contact Person</label>
+                                        @Html.TextBoxFor(model => model.patient.pat_ec_name1, new { @class = "form-control", @placeholder = "Ex: Alston", @id = "pat_ec_name1", @maxlength = "40" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Relationship</label>
+                                        @Html.DropDownListFor(m => m.patient.pat_ec_rel1, (IEnumerable<SelectListItem>)ViewData["RelationshipList"], "Please Select", new { @class = "form-select  select2 ", @id = "pat_ec_rel1" })<br />
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Telephone</label>
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_ec_tel1, new { @type = "tel", @class = "form-control", @placeholder = "Ex: 512345678", @id = "pat_ec_tel1", @style = "width:100%;", @maxlength = "15" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Work/Mobile</label>
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_ec_tel11, new { @type = "tel", @class = "form-control", @placeholder = "Ex: 512345678", @id = "pat_ec_tel11", @style = "width:100%;", @maxlength = "15" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        @Html.TextBoxFor(model => model.patient.pat_ec_name2, new { @class = "form-control", @placeholder = "Ex: Mohammad", @id = "pat_ec_name2", @maxlength = "40" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        @Html.DropDownListFor(m => m.patient.pat_ec_rel2, (IEnumerable<SelectListItem>)ViewData["RelationshipList"], "Please Select", new { @class = "form-select select2", @id = "pat_ec_rel2", style = "margin-bottom:2px !important;" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_ec_tel2, new { @type = "tel", @class = "form-control", @placeholder = "Ex: 512345678", @id = "pat_ec_tel2", @style = "width:100%;", @maxlength = "15" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_ec_tel22, new { @type = "tel", @class = "form-control", @placeholder = "Ex: 512345678", @id = "pat_ec_tel22", @style = "width:100%;", @maxlength = "15" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        @Html.TextBoxFor(model => model.patient.pat_ec_name3, new { @class = "form-control", @placeholder = "Ex: Arun", @id = "pat_ec_name3", @maxlength = "40" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        @Html.DropDownListFor(m => m.patient.pat_ec_rel3, (IEnumerable<SelectListItem>)ViewData["RelationshipList"], "Please Select", new { @class = "form-select select2", @id = "pat_ec_rel3" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_ec_tel3, new { @type = "tel", @class = "form-control", @placeholder = "Ex: 512345678", @id = "pat_ec_tel3", @style = "width:100%;", @maxlength = "15" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <div class="d-flex">
+                                                @Html.TextBoxFor(model => model.patient.pat_ec_tel33, new { @type = "tel", @class = "form-control", @placeholder = "Ex: 512345678", @id = "pat_ec_tel33", @style = "width:100%;", @maxlength = "15" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel panel-default mt-2">
+                    <div class="panel-heading" role="tab" id="headingTwo2">
+                        <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-bs-toggle="collapse" data-parent="#accordion1" href="#collapseTwo2" aria-expanded="false" aria-controls="collapseTwo2">
+                                Medical Insurance Information
+                                <span class="float-end"><i class="fe fe-chevrons-down"></i></span>
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseTwo2" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo2">
+                        <div class="panel-body ">
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">TPA</label>
+                                        @Html.HiddenFor(m => m.insurance.piId, new { @id = "piId" })
+                                        @Html.DropDownListFor(m => m.insurance.pi_insurance, new List<SelectListItem> { }, "Please Select", new { @class = "form-select  mb-2 select2", @id = "pi_insurance" })<br />
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Payer</label>
+                                        @Html.DropDownListFor(m => m.insurance.pi_payer, new List<SelectListItem> { }, "Please Select", new { @class = "form-select  mb-2 select2 ", @id = "pi_payer" })<br />
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Network</label>
+                                        @Html.DropDownListFor(m => m.insurance.pi_scheme, new List<SelectListItem> { }, "Please Select", new { @class = "form-select  mb-2 select2 ", @id = "pi_scheme" })<br />
+                                    </div>
+                                </div>
+                                <div class="col-sm-1 col-lg-1">
+                                    <div class="form-group">
+                                        <label class="form-label">Overall Limit</label>
+                                        @Html.TextBoxFor(model => model.insurance.pi_limit, new { @class = "form-control mb-2 text-right", @placeholder = "Ex : 0.00", @id = "pi_limit", @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-2 col-lg-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Ceiling Amount</label>
+                                        @Html.TextBoxFor(model => model.insurance.pi_ceiling, new { @class = "form-control mb-2 text-right", @placeholder = "Ex : 0.00", @id = "pi_ceiling", @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Insurance Card Number</label>
+                                        @Html.TextBoxFor(model => model.insurance.pi_insno, new { @class = "form-control mb-2", @placeholder = "Ex : INS123456", @id = "pi_insno", @maxlength = "40" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Policy Number</label>
+                                        @Html.TextBoxFor(model => model.insurance.pi_polocyno, new { @class = "form-control mb-2", @placeholder = "Ex : PLS123456", @id = "pi_polocyno" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-md-3">
+                                    <div class="form-group mb-2">
+                                        <label class="form-label">Start Date</label>
+                                    </div>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <i class="fe fe-calendar"></i>
+                                            </div>
+                                        </div>
+                                        @Html.TextBoxFor(model => model.insurance.pi_idate, new { @class = "form-control", @placeholder = "Select Start Date", @id = "pi_idate" })
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-md-3">
+                                    <div class="form-group mb-2">
+                                        <label class="form-label">Expiry Date</label>
+                                    </div>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <i class="fe fe-calendar"></i>
+                                            </div>
+                                        </div>
+                                        @Html.TextBoxFor(model => model.insurance.pi_edate, new { @class = "form-control", @placeholder = "Select Expiry Date", @id = "pi_edate" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">General Consultation Deduction </label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_cded, new { @class = "form-control mb-2", @placeholder = "Ex:0.00", @id = "pi_cded" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_cded_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_cded_type", @onchange = "$('#pi_cded').val('0');$('#pi_cded_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_cded_limit, new { @class = "form-control mb-2", @placeholder = "Ex:0.00", @id = "pi_cded_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Dental Consultation Deduction </label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_dded, new { @class = "form-control mb-2", @placeholder = "Ex:0.00", @id = "pi_dded" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_dded_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_dded_type", @onchange = "$('#pi_dded').val('0');$('#pi_dded_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_dded_limit, new { @class = "form-control mb-2", @placeholder = "Ex:0.00", @id = "pi_dded_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Specialist Consultation Deduction </label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_ip_dcopay, new { @class = "form-control mb-2", @placeholder = "Ex:0.00", @id = "pi_ip_dcopay" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_ip_dcopay_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_ip_dcopay_type", @onchange = "$('#pi_ip_dcopay').val('0');$('#pi_ip_dcopay_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_ip_dcopay_limit, new { @class = "form-control mb-2", @placeholder = "Ex: 0.00", @id = "pi_ip_dcopay_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Routine Dental Co.Payment </label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_dcopay, new { @class = "form-control mb-2", @placeholder = "Ex:0.00", @id = "pi_dcopay" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_dcopay_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_dcopay_type", @onchange = "$('#pi_dcopay').val('0');$('#pi_dcopay_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_dcopay_limit, new { @class = "form-control mb-2", @placeholder = "Ex:0.00", @id = "pi_dcopay_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Co.Payment </label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_copay, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_copay" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_copay_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_copay_type", @onchange = "$('#pi_copay').val('0');$('#pi_copay_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_copay_limit, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_copay_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">High Prof Dental Co.Pay </label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_hdcopay, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_hdcopay" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_hdcopay_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_hdcopay_type", @onchange = "$('#pi_hdcopay').val('0');$('#pi_hdcopay_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_hdcopay_limit, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_hdcopay_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Pharmacy Deduction</label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_pded, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_pded" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_pded_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_pded_type", @onchange = "$('#pi_pded').val('0');$('#pi_pded_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_pded_limit, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_pded_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block;">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Lab Deduction </label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_ided, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_ided" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_ided_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_ided_type", @onchange = "$('#pi_ided').val('0');$('#pi_ided_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_ided_limit, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_ided_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Meternity Deduction</label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_mded, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_mded" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_mded_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_mded_type", @onchange = "$('#pi_mded').val('0');$('#pi_mded_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_mded_limit, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_mded_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Radiology Deduction</label>
+                                        <div class="input-group">
+                                            @Html.TextBoxFor(model => model.insurance.pi_rded, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_rded" })
+                                            <div class="input-group-append">
+                                                @Html.DropDownListFor(m => m.insurance.pi_rded_type, new List<SelectListItem>
+                                                {
+                                                    new SelectListItem{ Value="Fixed", Text="Fixed", Selected=true},
+                                                    new SelectListItem{ Value="%", Text="%"}
+                                                }, "Please Select", new { @class = "form-select select2", @id = "pi_rded_type", @onchange = "$('#pi_rded').val('0');$('#pi_rded_limit').val('0');" })
+                                                @Html.TextBoxFor(model => model.insurance.pi_rded_limit, new { @class = "form-control", @placeholder = "Ex:0.00", @id = "pi_rded_limit" })
+                                            </div>
+                                        </div>
+                                        <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                                            Amount - Type - Limit
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Insurance Card Front</label>
+                                        <div class="input-group file-browser">
+                                            @Html.TextBoxFor(model => model.insurance.pi_image, new { @class = "form-control browse-file", @placeholder = "Choose", @id = "pi_image", @readonly = "readonly" })
+                                            <label class="input-group-text btn btn-primary">
+                                                Browse <input type="file" name="pi_image" class="file-browserinput" style="display: none;" onchange="document.getElementById('pi_image').value = this.value.split('\\').pop().split('/').pop()">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 col-lg-3">
+                                    <div class="form-group">
+                                        <label class="form-label">Insurance Card Back</label>
+                                        <div class="input-group file-browser">
+                                            @Html.TextBoxFor(model => model.insurance.pi_image2, new { @class = "form-control browse-file", @placeholder = "Choose", @id = "pi_image2", @readonly = "readonly" })
+                                            <label class="input-group-text btn btn-primary">
+                                                Browse <input type="file" name="pi_image2" class="file-browserinput" style="display: none;" onchange="document.getElementById('pi_image2').value = this.value.split('\\').pop().split('/').pop()">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="error"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert_Patient">Create Patient</button>
+                    <button type="button" class="btn btn-outline-dark" id="btn_Reset">Reset</button>
+                    <button type="button" data-bs-dismiss="modal" class="btn btn-outline-danger me-1 close-patient-model">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<!--INTERNAL telephoneinput js-->
+<script src="~/assets/plugins/telephoneinput/telephoneinput.js"></script>
+<script type="text/javascript">
+
+    //#region Document Load
+    $(function () {
+        $("#pat_tel").intlTelInput();
+        $("#pat_mob").intlTelInput();
+        $("#pat_ec_tel1").intlTelInput();
+        $("#pat_ec_tel11").intlTelInput();
+        $("#pat_ec_tel2").intlTelInput();
+        $("#pat_ec_tel22").intlTelInput();
+        $("#pat_ec_tel3").intlTelInput();
+        $("#pat_ec_tel33").intlTelInput();
+        $('#pat_emirateid').mask('999-9999-9999999-9');
+
+        $("#pat_title").select2({
+            placeholder: 'Select Title',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_class").select2({
+            placeholder: 'Select Patient Class',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Patient_Create'),
+        });
+
+        $('#pat_dob').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            endDate: new Date()
+        });
+
+        $("#pat_dob").bootstrapdatepicker("setDate", "");
+
+        $("#pat_gender").select2({
+            placeholder: 'Select Gender',
+            minimumResultsForSearch: -1,
+            width: '100%',
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_ms").select2({
+            placeholder: 'Select Civil Status',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_religion").select2({
+            placeholder: 'Select Religion',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_country").select2({
+            placeholder: 'Select Country',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_nat").select2({
+            placeholder: 'Select Nationality',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_citizen").select2({
+            placeholder: 'Select Citizenship',
+            width: '100%',
+            maximumInputLength: 12,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_rel_address").select2({
+            placeholder: 'Select Emirates',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+        $("#pat_city").select2({
+            placeholder: 'Select City',
+            width: '100%',
+            maximumInputLength: 8,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_race").select2({
+            placeholder: 'Select Race',
+            minimumResultsForSearch:-1,
+            width: '100%',
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_fax").select2({
+            placeholder: 'Select Residential',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_referal").select2({
+            placeholder: 'Select Referal',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_occupation").select2({
+            placeholder: 'Select Profession',
+            width: '100%',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_ec_rel1").select2({
+            placeholder: 'Select Relationship',
+            width: '100%',
+            maximumInputLength: 8,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_ec_rel2").select2({
+            placeholder: 'Select Relationship',
+            width: '100%',
+            maximumInputLength: 8,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pat_ec_rel3").select2({
+            placeholder: 'Select Relationship',
+            maximumInputLength: 8,
+            width: '100%',
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $('#id_card_idate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            endDate: new Date()
+        });
+
+        $("#id_card_idate").bootstrapdatepicker("setDate", "");
+
+        $('#id_card_edate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: new Date()
+        });
+
+        $("#id_card_edate").bootstrapdatepicker("setDate", "");
+
+        $("#pi_insurance").select2({
+            placeholder: 'Select TPA',
+            width: '100%',
+            maximumInputLength: 8,
+            dropdownParent: $('#form_Patient_Create'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#pi_payer").select2({
+            placeholder: 'Select Payer',
+            width: '100%',
+            maximumInputLength: 8,
+            dropdownParent: $('#form_Patient_Create'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#pi_scheme").select2({
+            placeholder: 'Select Network',
+            width: '100%',
+            maximumInputLength: 8,
+            dropdownParent: $('#form_Patient_Create'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $('#pi_idate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            endDate: new Date()
+        });
+
+        $("#pi_idate").bootstrapdatepicker("setDate", moment().format("DD-MM-YYYY"));
+
+        $('#pi_edate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: new Date()
+        });
+
+        $("#pi_edate").bootstrapdatepicker("setDate", moment().format("DD-MM-YYYY"));
+
+        $("#pi_cded_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch:-1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_dded_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_ip_dcopay_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_dcopay_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_copay_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_hdcopay_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_pded_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_ided_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_mded_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#pi_rded_type").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+
+        $("#cboCancelReason").select2({
+            placeholder: 'Select Reason',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+        $("#pat_ethnic").select2({
+            placeholder: 'Select Ethnic Group',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Patient_Create')
+        });
+        load_items();
+
+        validation();
+
+        load_malaffinabidhriyati($("#pat_branch").val());
+
+        setTimeout(function () {
+            $('.select2-selection__rendered').removeAttr('title');
+        }, 100);
+    });
+    //#endregion
+
+    $("#pat_branch").on("select2:select", function () {
+        load_malaffinabidhriyati($(this).val());
+    });
+
+    //#region Loading Items
+    var load_items = function () {
+        load_insurance_companies(0);
+        load_insurance_payers();
+        load_insurance_networks();
+    }
+    //#endregion
+
+    //#region load insurance companies
+    var load_insurance_companies = function (icId) {
+        $.ajax({
+            url: '@Url.Action("GetPatient_InsuranceTPA", "PatientInsurance", new { area = "Patient" })?icId=' + icId,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#pi_insurance').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === 1) ? true : false, (parseInt(response[j].Value) === 1) ? true : false);
+                        $('#pi_insurance').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region malaffinabidhriyati Type
+        var load_malaffinabidhriyati = function (id) {
+            $.ajax({
+                url: '@Url.Action("GetSetupinfo", "Employees", new { area = "Masters" })?setId=' + id,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    if (response.length > 0) {
+                        var _type = response[0].set_city;
+                        load_ethnicgroup(_type);
+                        load_race(_type);
+                        load_religion(_type);
+                        load_relationship(_type);
+                        load_relationship1(_type);
+                        load_relationship2(_type);
+                        load_profession(_type);
+                        load_language(_type);
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Specilaities! Error : " + xhr.statusText);
+                }
+            }).done(function () {
+            });
+        };
+    //#endregion
+
+     //#region Load Ethnicgroup
+        var load_ethnicgroup = function (_type) {
+             $.ajax({
+                 url: '@Url.Action("GetEthnicgroup", "Patient", new { area = "Patient" })?_type=' + _type,
+                 type: "GET",
+                 dataType: "json",
+                 async: false,
+                 success: function (response) {
+                     console.log(response);
+                     $("#pat_ethnic").select2({
+                         placeholder: 'Select ethnicgroup',
+                         width: '100%',
+                         minimumResultsForSearch: '',
+                         maximumInputLength: 10,
+                         dropdownParent: $('#form_Patient_Create'),
+                         escapeMarkup: function (markup) {
+                             return markup;
+                         }
+                     });
+
+                     if (response.length > 0) {
+
+                         $.each(response, function (j) {
+                             var newOption = new Option(response[j].text, response[j].id);
+                             $('#pat_ethnic').append(newOption).trigger('change');
+                         });
+                     }
+                 },
+                 error: function (xhr) {
+                     console.log("Failed to Load Ethnicgroup! Error : " + xhr.statusText);
+                 }
+             });
+         };
+     //#endregion
+     //#region Load race
+        var load_race = function (_type) {
+            $.ajax({
+                url: '@Url.Action("Getrace", "Patient", new { area = "Patient" })?_type=' + _type,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pat_race").select2({
+                        placeholder: 'Select Race',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 10,
+                        dropdownParent: $('#form_Patient_Create'),
+                        escapeMarkup: function (markup) {
+                            return markup;
+                        }
+                    });
+
+                    if (response.length > 0) {
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id);
+                            $('#pat_race').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load race! Error : " + xhr.statusText);
+                }
+            });
+        };
+    //#endregion
+     //#region Load religion
+        var load_religion = function (_type) {
+            $.ajax({
+                url: '@Url.Action("Getreligion", "Patient", new { area = "Patient" })?_type=' + _type,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pat_religion").select2({
+                        placeholder: 'Select religion',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 10,
+                        dropdownParent: $('#form_Patient_Create'),
+                        escapeMarkup: function (markup) {
+                            return markup;
+                        }
+                    });
+
+                    if (response.length > 0) {
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id);
+                            $('#pat_religion').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load religion! Error : " + xhr.statusText);
+                }
+            });
+        };
+    //#endregion
+     //#region Load Relationship
+        var load_relationship = function (_type) {
+            $.ajax({
+                url: '@Url.Action("Getrelationship", "Patient", new { area = "Patient" })?_type=' + _type,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pat_ec_rel1").select2({
+                        placeholder: 'Select relationship',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 10,
+                        dropdownParent: $('#form_Patient_Create'),
+                        escapeMarkup: function (markup) {
+                            return markup;
+                        }
+                    });
+
+
+                    if (response.length > 0) {
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id);
+                            $('#pat_ec_rel1').append(newOption).trigger('change');
+
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Relationship! Error : " + xhr.statusText);
+                }
+            });
+        };
+    //#endregion
+     //#region Load Relationship
+        var load_relationship1 = function (_type) {
+            $.ajax({
+                url: '@Url.Action("Getrelationship", "Patient", new { area = "Patient" })?_type=' + _type,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+
+                    $("#pat_ec_rel2").select2({
+                        placeholder: 'Select relationship',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 10,
+                        dropdownParent: $('#form_Patient_Create'),
+                        escapeMarkup: function (markup) {
+                            return markup;
+                        }
+                    });
+
+                    if (response.length > 0) {
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id);
+                            $('#pat_ec_rel2').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Relationship! Error : " + xhr.statusText);
+                }
+            });
+        };
+     //#endregion
+     //#region Load Relationship
+       var load_relationship2 = function (_type) {
+           $.ajax({
+               url: '@Url.Action("Getrelationship", "Patient", new { area = "Patient" })?_type=' + _type,
+               type: "GET",
+               dataType: "json",
+               async: false,
+               success: function (response) {
+
+
+                   $("#pat_ec_rel3").select2({
+                       placeholder: 'Select relationship',
+                       width: '100%',
+                       minimumResultsForSearch: '',
+                       maximumInputLength: 10,
+                       dropdownParent: $('#form_Patient_Create'),
+                       escapeMarkup: function (markup) {
+                           return markup;
+                       }
+                   });
+
+                   if (response.length > 0) {
+
+                       $.each(response, function (j) {
+                           var newOption = new Option(response[j].text, response[j].id);
+                           $('#pat_ec_rel3').append(newOption).trigger('change');
+                       });
+                   }
+               },
+               error: function (xhr) {
+                   console.log("Failed to Load Relationship! Error : " + xhr.statusText);
+               }
+           });
+       };
+    //#endregion
+     //#region Load Profession
+        var load_profession = function (_type) {
+            $.ajax({
+                url: '@Url.Action("Getprofession", "Patient", new { area = "Patient" })?_type=' + _type,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pat_occupation").select2({
+                        placeholder: 'Select Profession',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 10,
+                        dropdownParent: $('#form_Patient_Create'),
+                        escapeMarkup: function (markup) {
+                            return markup;
+                        }
+                    });
+
+                    if (response.length > 0) {
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id);
+                            $('#pat_occupation').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load religion! Error : " + xhr.statusText);
+                }
+            });
+        };
+    //#endregion
+     //#region Load Language
+        var load_language = function (_type) {
+            $.ajax({
+                url: '@Url.Action("Getlanguage", "Patient", new { area = "Patient" })?_type=' + _type,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pat_lang").select2({
+                        placeholder: 'Select language',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 10,
+                        dropdownParent: $('#form_Patient_Create'),
+                        escapeMarkup: function (markup) {
+                            return markup;
+                        }
+                    });
+
+                    if (response.length > 0) {
+
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id);
+                            $('#pat_lang').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load language! Error : " + xhr.statusText);
+                }
+            });
+        };
+    //#endregion
+
+    //#region load insurance payers
+    var load_insurance_payers = function () {
+        $.ajax({
+            url: '@Url.Action("GetPatient_InsurancePayers", "PatientInsurance", new { area = "Patient" })?ip_ins=' + $('#pi_insurance').val(),
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#pi_payer').empty();
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === 1) ? true : false, (parseInt(response[j].Value) === 1) ? true : false);
+                        $('#pi_payer').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region load insurance networks
+    var load_insurance_networks = function () {
+        $.ajax({
+            url: '@Url.Action("GetPatient_InsuranceNetworks", "PatientInsurance", new { area = "Patient" })?is_icId=' + $('#pi_insurance').val(),
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#pi_scheme').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === 1) ? true : false, (parseInt(response[j].Value) === 1) ? true : false);
+                        $('#pi_scheme').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Insurance Change Event
+    $('#pi_insurance').on('select2:select', function (e) {
+        var data = e.params.data;
+
+        load_insurance_payers();
+        load_insurance_networks();
+    });
+    //#endregion
+
+    $("#pat_mob").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 1) {
+            var outputString = $("#pat_mob").val().replace(/\+971 /g, "+971");
+            $("#pat_mob").val(outputString);
+        }
+    });
+
+    //#region Country Select Event
+    $('#pat_country').on('select2:select', function (e) {
+        var data = e.params.data;
+        $('#pat_city').empty();
+
+        $.ajax({
+            url: '@Url.Action("GetCountryInfoById", "Patient", new { area = "Patient" })?id=' + data.id,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                if (response != null && response != "" && response != undefined && response != 0) {
+                    $.getJSON("@Url.Content("~/Data/countries_states.json")", function (data) {
+
+                        var states = data.filter(function (el) {
+                            return el.iso3 == response;
+                        });
+
+                        if (states.length > 0) {
+                            var _states = states[0].states;
+
+                            $.each(_states, function (j) {
+                                var newOption = new Option(_states[j].name, _states[j].name, (parseInt(_states[j].Value) === 1) ? true : false, (parseInt(_states[j].Value) === 1) ? true : false);
+                                $('#pat_city').append(newOption).trigger('change');
+                            });
+                        }
+                    }).fail(function () {
+                        console.log("An error has occurred.");
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr);
+            }
+        });
+
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $('#pat_name').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                return false;
+        });
+
+        $('#pat_mname').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                return false;
+        });
+
+        $('#pat_lname').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                return false;
+        });
+
+        $('#pat_doc_2').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+        $('#pat_dob').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#pat_mob').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#pat_tel').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#pat_email').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^a-z0-9@@.]/g))
+                return false;
+        });
+
+        $('#pat_ec_tel1').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#pat_ec_tel2').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#pat_ec_tel3').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#pat_ec_tel11').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#pat_ec_tel22').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#pat_ec_tel33').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $('#id_card_idate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#id_card_edate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#pi_idate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#pi_edate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#pi_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pi_ceiling').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pi_cded').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_cded_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_cded_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_cded").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_cded").val(0);
+            }
+        });
+
+        $("#pi_cded_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_cded_limit").val(0);
+            }
+        });
+
+        $('#pi_dded').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_dded_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_dded_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_dded").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_dded").val(0);
+            }
+        });
+
+        $("#pi_dded_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_dded_limit").val(0);
+            }
+        });
+
+        $('#pi_ip_dcopay').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_ip_dcopay_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_ip_dcopay_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_ip_dcopay").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_ip_dcopay").val(0);
+            }
+        });
+
+        $("#pi_ip_dcopay_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_ip_dcopay_limit").val(0);
+            }
+        });
+
+        $('#pi_dcopay').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_dcopay_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_dcopay_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_dcopay").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_dcopay").val(0);
+            }
+        });
+
+        $("#pi_dcopay_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_dcopay_limit").val(0);
+            }
+        });
+
+        $('#pi_copay').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_copay_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_copay_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_copay").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_copay").val(0);
+            }
+        });
+
+        $("#pi_dcopay_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_copay_limit").val(0);
+            }
+        });
+
+        $('#pi_hdcopay').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_hdcopay_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_hdcopay_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_hdcopay").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_hdcopay").val(0);
+            }
+        });
+
+        $("#pi_hdcopay_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_hdcopay_limit").val(0);
+            }
+        });
+
+        $('#pi_pded').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_pded_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_pded_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_pded").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_pded").val(0);
+            }
+        });
+
+        $("#pi_pded_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_pded_limit").val(0);
+            }
+        });
+
+        $('#pi_ided').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_ided_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_ided_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_ided").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_ided").val(0);
+            }
+        });
+
+        $("#pi_ided_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_ided_limit").val(0);
+            }
+        });
+
+        $('#pi_mded').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_mded_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_mded_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_mded").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_mded").val(0);
+            }
+        });
+
+        $("#pi_mded_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_mded_limit").val(0);
+            }
+        });
+
+        $('#pi_rded').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+            var Type = $('#pi_rded_type').val();
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            var maxAllowed = (Type === '%' ? 100 : 10000);
+            if (parseFloat(inputValue) > maxAllowed) {
+                return false;
+            }
+        });
+
+        $('#pi_rded_limit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 10000) {
+                return false;
+            }
+        });
+
+        $("#pi_rded").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_rded").val(0);
+            }
+        });
+
+        $("#pi_rded_limit").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#pi_rded_limit").val(0);
+            }
+        });
+
+        jQuery.validator.addMethod('phone', function (value) {
+            return /^(?:\+971|971|0)?(?:50|51|52|53|54|55|56|58|2|3|4|6|7|9)\d{7}$/.test(value);
+            return PhoneRegex.test(phone);
+        }, 'Enter a valid UAE Number');
+
+        $("#form_Patient_Create").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "patient.pat_name": {
+                    required: true,
+                    minlength: 3
+                },
+                "patient.pat_lname": {
+                    required: true,
+                    minlength: 3
+                },
+                "patient.pat_code": {
+                    required: true
+                },
+                "patient.pat_class": {
+                    required: true
+                },
+                "patient.pat_branch": {
+                    required: true
+                },
+                "patient.pat_dob": {
+                    required: true
+                },
+                "patient.pat_gender": {
+                    required: true
+                },
+                "patient.pat_ms": {
+                    required: true
+                },
+                "patient.pat_mob": {
+                    required: true,
+                    phone: true,
+                    minlength: 10
+                },
+                "patient.pat_nat": {
+                    required: true
+                },
+                "patient.pat_emirateid": {
+                    required: '#pat_passport:blank'
+                },
+                "patient.pat_passport": {
+                    required: '#pat_emirateid:blank'
+                },
+                "patient.pat_referal": {
+                    required: true
+                }
+            },
+            messages: {
+                "patient.pat_name": {
+                    required: "Enter First Name",
+                    minlength: "Name should be Minimum 3 Characters"
+                },
+                "patient.pat_lname": {
+                    required: "Enter Last Name",
+                    minlength: "Name should be Minimum 3 Characters"
+                },
+                "patient.pat_code": {
+                    required: "MRN Not Generated"
+                },
+                "patient.pat_class": {
+                    required: "Select Patient Class"
+                },
+                "patient.pat_branch": {
+                    required: "Select Branch"
+                },
+                "patient.pat_dob": {
+                    required: "Select Date of Birth"
+                },
+                "patient.pat_gender": {
+                    required: "Select Gender"
+                },
+                "patient.pat_ms": {
+                    required: "Select Marital Status"
+                },
+                "patient.pat_mob": {
+                    required: "Enter Mobile",
+                    minlength: "Mobile should be Minimum 10 Characters"
+                },
+                "patient.pat_nat": {
+                    required: "Select Nationality"
+                },
+                "patient.pat_emirateid": {
+                    required: "Enter Emirate ID Number"
+                },
+                "patient.pat_passport": {
+                    required: "Passport number is required if emirates id not provided"
+                },
+                "patient.pat_referal": {
+                    required: "Select Referal"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#pat_name').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_lname').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_code').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_class').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_dob').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_gender').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_ms').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_mob').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_nat').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_emirateid').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_passport').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pat_referal').on('change', function () {
+            $(this).trigger('blur');
+        });
+    };
+    //#endregion
+
+    //#region Insert Patient Click
+    $('#btn_Insert_Patient').on('click', function (e) {
+
+        e.preventDefault();
+
+        if ($("#form_Patient_Create").valid()) {
+            if ($("#pat_emirateid").val().startsWith("784")) {
+                let exp = moment($("#id_card_edate").val());
+
+                if (exp.isValid()) {
+
+                    let today = moment();
+                    if (exp.diff(today, 'days') < 0) {
+                        Swal.fire({
+                            title: "EMID Expired!",
+                            html: "We've Identified, the Emirates ID of this patient was expired on <strong style='color:red;'>" + moment(exp).format("DD-MMMM-YYYY") + "</strong>.<br/> Are you sure you want to continue to register this Patient?",
+                            icon: "warning",
+                            showCancelButton: !0,
+                            confirmButtonText: 'Yes! I Confirm',
+                            cancelButtonText: 'No! Reset Please',
+                            confirmButtonClass: "btn btn-success mt-2",
+                            cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                            buttonsStyling: !1
+                        }).then(function (t) {
+                            if (!t.value) {
+                                clearControls()
+                                Swal.fire({
+                                    title: "Cleared!",
+                                    text: "We've reset the registration form",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                })
+                            }
+                            else {
+                                save_patient();
+                            }
+                        });
+                    }
+                    else {
+                        save_patient();
+                    }
+                }
+                else {
+                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                        "<div class='alert alert-danger' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                        "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/>" +
+                        "<ul><li><small>Invalid EMID Expiry Date</small><li></ul></div></div>";
+
+                    $("#error").html(html);
+
+                    var elem = $("#id_card_edate");
+                    $(elem).addClass(" is-invalid");
+
+                    setTimeout(function () {
+                        $(elem).removeClass("is-invalid");
+                    }, 5000);
+                }
+            }
+            else {
+                save_patient();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Validate Decimal
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : evt.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Save Patient
+    var save_patient = function () {
+        $('#btn_Insert_Patient').removeClass("btn btn-success");
+        $('#btn_Insert_Patient').addClass("btn btn-success btn-loaders btn-icon");
+        $('#btn_Insert_Patient').html("Saving the Record....");
+
+        var form = $('#form_Patient_Create')
+        const formData = new FormData(form.get(0));
+
+        formData.append("patId", parseInt($("#patId").val()));
+        formData.append("pat_class", $("#pat_class").val());
+        formData.append("pat_obal", 0);
+        formData.append("pat_obal_type", "");
+        formData.append("pat_rel_address", $("#pat_rel_address").val());
+        formData.append("pat_branch", parseInt($("#pat_branch").val()));
+        formData.append("pat_code", $("#pat_code").val());
+        formData.append("pat_name", $("#pat_name").val());
+        formData.append("pat_mname", $("#pat_mname").val());
+        formData.append("pat_lname", $("#pat_lname").val());
+        formData.append("pat_dob", moment($("#pat_dob").val()).format("YYYY-MM-DD"));
+        formData.append("pat_gender", $("#pat_gender").val());
+        formData.append("pat_name_arabic", $("#pat_name_arabic").val());
+        formData.append("pat_lname_arabic", $("#pat_lname_arabic").val());
+        formData.append("pat_tel", $("#pat_tel").val());
+        formData.append("pat_mob", $("#pat_mob").val());
+        formData.append("pat_email", $("#pat_email").val());
+        formData.append("pat_religion", $("#pat_religion").val());
+        formData.append("pat_race", $("#pat_race").val());
+        formData.append("pat_nat", parseInt($("#pat_nat").val()));
+        formData.append("pat_citizen", $("#pat_citizen").val());
+        formData.append("pat_country", parseInt($("#pat_country").val()));
+        formData.append("pat_ms", $("#pat_ms").val());
+        formData.append("pat_fax", $("#pat_fax").val());
+        formData.append("pat_emirateid", $("#pat_emirateid").val());
+        formData.append("pat_passport", $("#pat_passport").val());
+        formData.append("pat_occupation", $("#pat_occupation").val());
+        formData.append("pat_referal", parseInt($("#pat_referal").val()));
+        formData.append("pat_city", $("#pat_city").val());
+        formData.append("pat_pobox", $("#pat_pobox").val());
+        formData.append("pat_notes", $("#pat_notes").val());
+        formData.append("pat_address", $("#pat_address").val());
+        formData.append("id_card_front", $("#id_card_front").val());
+        formData.append("id_card_back", $("#id_card_back").val());
+        formData.append("id_card_idate", moment($("#id_card_idate").val()).format("YYYY-MM-DD"));
+        formData.append("id_card_edate", moment($("#id_card_edate").val()).format("YYYY-MM-DD"));
+        formData.append("pat_photo", $("#pat_photo").val());
+        formData.append("pat_ec_name1", $("#pat_ec_name1").val());
+        formData.append("pat_ec_rel1", $("#pat_ec_rel1").val());
+        formData.append("pat_ec_tel1", $("#pat_ec_tel1").val());
+        formData.append("pat_ec_tel11", $("#pat_ec_tel11").val());
+        formData.append("pat_ec_name2", $("#pat_ec_name2").val());
+        formData.append("pat_ec_rel2", "");
+        formData.append("pat_ec_tel2", $("#pat_ec_tel2").val());
+        formData.append("pat_ec_tel22", $("#pat_ec_tel22").val());
+        formData.append("pat_ec_name3", $("#pat_ec_name3").val());
+        formData.append("pat_ec_rel3","");
+        formData.append("pat_ec_tel3", $("#pat_ec_tel3").val());
+        formData.append("pat_ec_tel33", $("#pat_ec_tel33").val());
+        formData.append("pat_ethnic", $("#pat_ethnic").val());
+        formData.append("pat_lang", $("#pat_lang").val());
+
+        formData.append("piId", parseInt($("#piId").val()));
+        formData.append("pi_insurance", parseInt($("#pi_insurance").val()));
+        formData.append("pi_payer", parseInt($("#pi_payer").val()));
+        formData.append("pi_scheme", parseInt($("#pi_scheme").val()));
+        formData.append("pi_idate ", moment($("#pi_idate").val()).format("YYYY-MM-DD"));
+        formData.append("pi_edate ", moment($("#pi_edate").val()).format("YYYY-MM-DD"));
+        formData.append("pi_insno", $("#pi_insno").val());
+        formData.append("pi_polocyno", $("#pi_polocyno").val());
+        formData.append("pi_cded_type", $("#pi_cded_type").val());
+        formData.append("pi_cded", parseFloat($("#pi_cded").val()));
+        formData.append("pi_cded_limit", parseFloat($("#pi_cded_limit").val()));
+        formData.append("pi_ip_dcopay_type", $("#pi_ip_dcopay_type").val());
+        formData.append("pi_ip_dcopay", parseFloat($("#pi_ip_dcopay").val()));
+        formData.append("pi_ip_dcopay_limit", parseFloat($("#pi_ip_dcopay_limit").val()));
+        formData.append("pi_dded_type", $("#pi_dded_type").val());
+        formData.append("pi_dded", parseFloat($("#pi_dded").val()));
+        formData.append("pi_dded_limit", parseFloat($("#pi_dded_limit").val()));
+        formData.append("pi_copay_type", $("#pi_copay_type").val());
+        formData.append("pi_copay", parseFloat($("#pi_copay").val()));
+        formData.append("pi_copay_limit", parseFloat($("#pi_copay_limit").val()));
+        formData.append("pi_dcopay_type", $("#pi_dcopay_type").val());
+        formData.append("pi_dcopay", parseFloat($("#pi_dcopay").val()));
+        formData.append("pi_dcopay_limit", parseFloat($("#pi_dcopay_limit").val()));
+        formData.append("pi_hdcopay_type", $("#pi_hdcopay_type").val());
+        formData.append("pi_hdcopay", parseFloat($("#pi_hdcopay").val()));
+        formData.append("pi_hdcopay_limit", parseFloat($("#pi_hdcopay_limit").val()));
+        formData.append("pi_pded_type", $("#pi_pded_type").val());
+        formData.append("pi_pded", parseFloat($("#pi_pded").val()));
+        formData.append("pi_pded_limit", parseFloat($("#pi_pded_limit").val()));
+        formData.append("pi_ided_type", $("#pi_ided_type").val());
+        formData.append("pi_ided", parseFloat($("#pi_ided").val()));
+        formData.append("pi_ided_limit", parseFloat($("#pi_ided_limit").val()));
+        formData.append("pi_rded_type", $("#pi_rded_type").val());
+        formData.append("pi_rded", parseFloat($("#pi_rded").val()));
+        formData.append("pi_rded_limit", parseFloat($("#pi_rded_limit").val()));
+        formData.append("pi_mded_type", $("#pi_mded_type").val());
+        formData.append("pi_mded", parseFloat($("#pi_mded").val()));
+        formData.append("pi_mded_limit", parseFloat($("#pi_mded_limit").val()));
+        formData.append("pi_limit", parseFloat($("#pi_limit").val()));
+        formData.append("pi_ceiling", parseFloat($("#pi_ceiling").val()));
+        formData.append("pi_image", $("#pi_image").val());
+        formData.append("pi_image2", $("#pi_image2").val());
+        formData.append("pat_doc_2", $("#pat_doc_2").val().trim());
+
+        var _from = $('#create_patient_modal').attr("data-modal-from");
+
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("InsertPatient", "Patient", new { area = "Patient" })",
+            dataType: 'json',
+            contentType: false,
+            processData: false,
+            data: formData,
+            success: function (data) {
+                $('#btn_Insert_Patient').removeClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Patient').addClass("btn btn-success");
+                $('#btn_Insert_Patient').html("Create Patient");
+
+                if (data.isSuccess) {
+                    clearControls();
+
+                    if (_from == "create-appointment") {
+                        localStorage.setItem("newPatient", JSON.stringify(data.message));
+                        $('#create_patient_modal').modal('hide');
+                        $('#create_appointment_modal').modal('show');
+                    }
+                    else if (_from == "patient") {
+                        var alertPlaceholder = document.getElementById("PatientAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> Patient Created Successfully..!", "success");
+
+                        $('#create_patient_modal').modal('hide');
+                        GetPatients();
+                        Timeout();
+                    }
+                }
+                else {
+                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                        "<div class='alert alert-light-danger' role='alert'>" +
+                        "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                        "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.&nbsp;</strong><br/><ul>";
+
+                    $.each(data.message, function (_index, value) {
+                        html += "<li><small>" + value + "</small><li>";
+
+                        var index = _index.split(',');
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                console.log($("#" + index[i]));
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+                    });
+
+                    html += "</ul></div></div>";
+
+                    $("#error").html(html);
+                }
+            },
+            error: function (xhr) {
+                $('#btn_Insert_Patient').removeClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Patient').addClass("btn btn-success");
+                $('#btn_Insert_Patient').html("Create Patient");
+                $('#create_patient_modal').modal('toggle');
+
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Close Patient Click
+    $('.close-patient-model').on('click', function (e) {
+        e.preventDefault();
+        var _from = $('#create_patient_modal').attr("data-modal-from");
+
+        if (_from === "create-appointment") {
+            $('#create_patient_modal').modal('hide');
+            $('#create_appointment_modal').modal('toggle');
+        }
+        else if (_from === "update-appointment") {
+            $('#create_patient_modal').modal('hide');
+            $('#update_appointment_modal').modal('toggle');
+        }
+        //else if (_from === "appointment-list") {
+        //    $('#create_patient_modal').modal('hide');
+        //    $('#update_appointment_modal').modal('toggle');
+        //}
+    });
+    //#endregion Close Patient Click
+
+    //#region Reset
+    $('#btn_Reset').on('click', function (e) {
+        e.preventDefault();
+        clearControls();
+    });
+    //#endregion Reset
+
+    //#region Clear Controls
+    var clearControls= function(){
+        $("#pat_photo").val("");
+        $('#PhotoBase64').attr("src", "/assets/images/clinicsoft9/emid.jpg");
+        $("#patId").val(0);
+        $("#pat_class").val("Normal").trigger('change');
+        $("#pat_obal").val(0);
+        $("#pat_obal_type").val("D").trigger('change');
+        $("#pat_branch").val(1).trigger('change');
+        $("#pat_name").val("");
+        $("#pat_mname").val("");
+        $("#pat_lname").val("");
+        $("#pat_dob").bootstrapdatepicker("setDate", "");
+        $("#pat_gender").val(0).trigger('change');
+        $("#pat_name_arabic").val("");
+        $("#pat_lname_arabic").val("");
+        $("#pat_tel").val("+971");
+        $("#pat_mob").val("+971");
+        $("#pat_email").val("");
+        $("#pat_religion").val("VAR").trigger('change');
+        $("#pat_race").val("UN").trigger('change');
+        $("#pat_nat").val(198).trigger('change');
+        $("#pat_citizen").val("BID").trigger('change');
+        $("#pat_country").val(176).trigger('change');
+        $("#pat_ms").val("").trigger('change');
+        $("#pat_fax").val("").trigger('change');
+        $("#pat_emirateid").val("");
+        $("#pat_passport").val("");
+        $("#pat_occupation").val("72").trigger('change');
+        $("#pat_referal").val(1).trigger('change');
+        $("#pat_city").val("");
+        $("#pat_pobox").val("");
+        $("#pat_notes").val("");
+        $("#pat_address").val("");
+        $("#id_card_front").val("");
+        $("#id_card_back").val("");
+        $("#id_card_idate").bootstrapdatepicker("setDate", "");
+        $("#id_card_edate").bootstrapdatepicker("setDate", "");
+
+        $("#pat_ec_name1").val("");
+        $("#pat_ec_rel1").val("");
+        $("#pat_ec_tel1").val("+971");
+        $("#pat_ec_tel11").val("+971");
+        $("#pat_ec_name2").val("");
+        $("#pat_ec_rel2").val("");
+        $("#pat_ec_tel2").val("+971");
+        $("#pat_ec_tel22").val("+971");
+        $("#pat_ec_name3").val("");
+        $("#pat_ec_rel3").val("");
+        $("#pat_ec_tel3").val("+971");
+        $("#pat_ec_tel33").val("+971")
+
+
+        $("#piId").val(0);
+        load_items();
+        $("#pi_idate").bootstrapdatepicker("setDate", "");
+        $("#pi_edate").bootstrapdatepicker("setDate", "");
+        $("#pi_insno").val("");
+        $("#pi_polocyno").val("");
+
+        $("#pi_cded_type").val("Fixed");
+        $("#pi_cded").val(0);
+        $("#pi_cded_limit").val(0);
+
+        $("#pi_ip_dcopay_type").val("Fixed");
+        $("#pi_ip_dcopay").val(0);
+        $("#pi_ip_dcopay_limit").val(0);
+
+        $("#pi_dded_type").val("Fixed");
+        $("#pi_dded").val(0);
+        $("#pi_dded_limit").val(0);
+
+        $("#pi_copay_type").val("Fixed");
+        $("#pi_copay").val(0);
+        $("#pi_copay_limit").val(0);
+
+        $("#pi_dcopay_type").val("Fixed");
+        $("#pi_dcopay").val(0);
+        $("#pi_dcopay_limit").val(0);
+
+        $("#pi_hdcopay_type").val("Fixed");
+        $("#pi_hdcopay").val(0);
+        $("#pi_hdcopay_limit").val(0);
+
+        $("#pi_pded_type").val("Fixed");
+        $("#pi_pded").val(0);
+        $("#pi_pded_limit").val(0);
+
+        $("#pi_ided_type").val("Fixed");
+        $("#pi_ided").val(0);
+        $("#pi_ided_limit").val(0);
+
+        $("#pi_rded_type").val("Fixed");
+        $("#pi_rded").val(0);
+        $("#pi_rded_limit").val(0);
+
+        $("#pi_mded_type").val("Fixed");
+        $("#pi_mded").val(0);
+        $("#pi_mded_limit").val(0);
+
+        $("#pi_limit").val(0);
+        $("#pi_ceiling").val(0);
+        $("#pi_image").val("");
+        $("#pi_image2").val("");
+    }
+    //#endregion
+
+    //#region Read Emirates ID
+    $('#btn_Read').on('click', function (e) {
+        $.support.cors = true;
+        $('#btn_Read').removeClass("btn btn-outline-primary ms-4");
+        $('#btn_Read').addClass("btn btn-primary btn-loaders btn-icon ms-4");
+        $('#btn_Read').html("Data is Reading");
+
+        var settings = {
+            "url": "http://localhost:7500/api/EID/ReadData",
+            "method": "GET",
+            "timeout": 0,
+            "async": false,
+        };
+
+        $.ajax(settings)
+            .done(function (response) {
+
+                if (response != null && response != "") {
+                    $('#btn_Read').removeClass("btn btn-primary btn-loaders btn-icon ms-4");
+                    $('#btn_Read').addClass("btn btn-outline-primary ms-4");
+                    $('#btn_Read').html("Read Data From Card");
+                    var data = JSON.parse(response);
+                    clearControls();
+                    bindEMIDData(data);
+                }
+        })
+        .fail(function (error, status) {
+            $('#btn_Read').removeClass("btn btn-primary btn-loaders btn-icon ms-4");
+            $('#btn_Read').addClass("btn btn-outline-primary ms-4");
+            $('#btn_Read').html("Read Data From Card");
+            console.log(error);
+            console.log(status);
+        })
+        .always(function () {
+            $('#btn_Read').removeClass("btn btn-primary btn-loaders btn-icon ms-4");
+            $('#btn_Read').addClass("btn btn-outline-primary ms-4");
+            $('#btn_Read').html("Read Data From Card");
+        });
+    });
+    //#endregion
+
+    //#region Disconnect Emirates ID From Card
+    $('#btn_Disconnect').on('click', function (e) {
+        e.preventDefault();
+        $('#btn_Disconnect').removeClass("btn btn-outline-danger ms-4");
+        $('#btn_Disconnect').addClass("btn btn-danger btn-loaders btn-icon ms-4");
+        $('#btn_Disconnect').html("Reader is Disconnecting");
+
+        var settings = {
+            "url": "http://localhost:7500/api/EID/Disconnect",
+            "method": "GET",
+            "timeout": 0,
+        };
+
+        $.ajax(settings)
+            .done(function (response) {
+                $('#btn_Disconnect').removeClass("btn btn-danger btn-loaders btn-icon ms-4");
+                $('#btn_Disconnect').addClass("btn btn-outline-danger ms-4");
+                $('#btn_Disconnect').html("Disconnect the Reader");
+                //console.log(response);
+            })
+            .fail(function (error, status) {
+                $('#btn_Disconnect').removeClass("btn btn-danger btn-loaders btn-icon ms-4");
+                $('#btn_Disconnect').addClass("btn btn-outline-danger ms-4");
+                $('#btn_Disconnect').html("Disconnect the Reader");
+                console.log(error);
+                console.log(status);
+            })
+            .always(function () {
+                $('#btn_Disconnect').removeClass("btn btn-danger btn-loaders btn-icon ms-4");
+                $('#btn_Disconnect').addClass("btn btn-outline-danger ms-4");
+                $('#btn_Disconnect').html("Disconnect the Reader");
+            });
+    });
+    //#endregion
+
+    //#region Cleanup the card reader
+    $('#btn_Clean').on('click', function (e) {
+        e.preventDefault();
+        $('#btn_Clean').removeClass("btn btn-outline-warning ms-4");
+        $('#btn_Clean').addClass("btn btn-warning btn-loaders btn-icon ms-4");
+        $('#btn_Clean').html("Clean the Cache in Reader inprocess...");
+
+        var settings = {
+            "url": "http://localhost:7500/api/EID/CleanUp",
+            "method": "GET",
+            "timeout": 0,
+        };
+
+        $.ajax(settings)
+            .done(function (response) {
+                $('#btn_Clean').removeClass("btn btn-warning btn-loaders btn-icon ms-4");
+                $('#btn_Clean').addClass("btn btn-outline-warning ms-4");
+                $('#btn_Clean').html("Clean the Cache in Reader");
+                console.log(response);
+            })
+            .fail(function (error, status) {
+                $('#btn_Clean').removeClass("btn btn-warning btn-loaders btn-icon ms-4");
+                $('#btn_Clean').addClass("btn btn-outline-warning ms-4");
+                $('#btn_Clean').html("Clean the Cache in Reader");
+                console.log(error);
+                console.log(status);
+            })
+            .always(function () {
+                $('#btn_Clean').removeClass("btn btn-warning btn-loaders btn-icon ms-4");
+                $('#btn_Clean').addClass("btn btn-outline-warning ms-4");
+                $('#btn_Clean').html("Clean the Cache in Reader");
+            });
+    });
+    //#endregion Cleanup the card reader
+
+    //#region Bind EMID Data
+    var bindEMIDData = function (data) {
+        splitName(data._NonModifiablePersonalData["FullNameEnglishText"], 1);
+        splitName_Ar(data._NonModifiablePersonalData["FullNameArabicText"], 1);
+        setDOB(data._NonModifiablePersonalData["DateOfBirthText"]);
+        setGender(data._NonModifiablePersonalData["GenderText"]);
+        setCivilStatus(data._ModifiableData["MaritalStatusCodeText"]);
+        setLandline(data._HomeAddressData["Home_LandPhoneNumberText"]);
+        setMobile(data._HomeAddressData["Home_MobilePhoneNumberText"]);
+        setEmail(data._HomeAddressData["Home_EmailText"]);
+        setIssueDate(data._NonModifiablePersonalData["IssueDateText"]);
+        setExpiryDate(data._NonModifiablePersonalData["ExpiryDateText"]);
+
+        let _code = "";
+        if ((data._NonModifiablePersonalData["NationalityCodeText"] != "") && (data._NonModifiablePersonalData["NationalityCodeText"] != undefined) && (data._NonModifiablePersonalData["NationalityCodeText"] != null) ){
+            _code = data._NonModifiablePersonalData["NationalityCodeText"];
+        }
+
+        let _name = "";
+        if ((data._NonModifiablePersonalData["NationalityEnglishText"] != "") && (data._NonModifiablePersonalData["NationalityEnglishText"] != undefined) && (data._NonModifiablePersonalData["NationalityEnglishText"] != null)) {
+            _name = data._NonModifiablePersonalData["NationalityEnglishText"];
+        }
+        select_country_nationality(_code, _name);
+
+        setEIDNumber(data._IdNumberText);
+        setPassport(data._ModifiableData["PassportNumberText"]);
+        setPOBox(data._ModifiableData["Home_PoBoxText"]);
+        setCity(data._ModifiableData["Home_CityEnglishText"]);
+        setProfession(data._ModifiableData["Home_CityEnglishText"]);
+        setAddress(
+            (data._ModifiableData["Home_FlatNumberText"] != undefined) ? data._ModifiableData["Home_FlatNumberText"] : "",
+            (data._ModifiableData["Home_BuildingNameEnglishText"] != undefined) ? data._ModifiableData["Home_BuildingNameEnglishText"] : "",
+            (data._ModifiableData["Home_PoBoxText"] != undefined) ? data._ModifiableData["Home_PoBoxText"] : "",
+            (data._ModifiableData["Home_StreetArabicText"] != undefined) ? data._ModifiableData["Home_StreetArabicText"] : "",
+            (data._ModifiableData["Home_AreaEnglishText"] != undefined) ? data._ModifiableData["Home_AreaEnglishText"] : "",
+            (data._ModifiableData["Home_CityEnglishText"] != undefined) ? data._ModifiableData["Home_CityEnglishText"] : "",
+            (data._ModifiableData["Home_EmirateEnglishText"] != undefined) ? data._ModifiableData["Home_EmirateEnglishText"] : ""
+        );
+
+        // base64 image string
+        var base64Image = 'data:image/jpeg;base64,' + data._ImageData["PublicDataImage"];
+        $('#PhotoBase64').attr("src", base64Image);
+
+        $("#pat_photo").val(data._ImageData["PublicDataImage"]);
+    }
+    //#endregion Bind EMID Data
+
+    //#region Split Name
+    var splitName = function (data, type) {
+        var _names_orgin = (type == 1) ? data.split(",") : data.split(" ");
+        var _names = _names_orgin.filter(function (v) { return v !== '' });
+
+        if (_names.length == 7) {
+            $('#pat_name').val(_names[0] + " " + _names[1]);
+            $('#pat_mname').val(_names[2] + " " + _names[3] + " " + _names[4]);
+            $('#pat_lname').val(_names[5] + " " + _names[6]);
+        }
+        else if (_names.length == 6) {
+            $('#pat_name').val(_names[0] + " " + _names[1]);
+            $('#pat_mname').val(_names[2] + " " + _names[3]);
+            $('#pat_lname').val(_names[4] + " " + _names[5]);
+        }
+        else if (_names.length == 5) {
+            $('#pat_name').val(_names[0] + " " + _names[1]);
+            $('#pat_mname').val(_names[2]);
+            $('#pat_lname').val(_names[3] + " " + _names[4]);
+        }
+        else if (_names.length == 4) {
+            $('#pat_name').val(_names[0] + " " + _names[1]);
+            $('#pat_mname').val(_names[2]);
+            $('#pat_lname').val(_names[3]);
+        }
+        else if (_names.length == 3) {
+            $('#pat_name').val(_names[0]);
+            $('#pat_mname').val(_names[1]);
+            $('#pat_lname').val(_names[2]);
+        }
+        else if (_names.length == 2) {
+            $('#pat_name').val(_names[0]);
+            $('#pat_mname').val(" ");
+            $('#pat_lname').val(_names[1]);
+        }
+        else if (_names.length == 1) {
+            $('#pat_name').val(_names[0]);
+            $('#pat_mname').val("");
+            $('#pat_lname').val("");
+        }
+        else {
+            $('#pat_name').val(_names);
+            $('#pat_mname').val("");
+            $('#pat_lname').val("");
+        }
+    }
+    //#endregion Split Name
+
+    //#region Split Name Arabic
+    var splitName_Ar = function (data, type) {
+        var _names_orgin = (type == 1) ? data.split(",") : data.split(" ");
+        var _names = _names_orgin.filter(function (v) { return v !== '' });
+
+        if (_names.length == 7) {
+            $('#pat_name_arabic').val(_names[0] + " " + _names[1] + " " + _names[2]);
+            $('#pat_lname_arabic').val(_names[3] + " " + _names[4] + " " + _names[5] + " " + _names[6]);
+        }
+        else if (_names.length == 6) {
+            $('#pat_name_arabic').val(_names[0] + " " + _names[1] + " " + _names[2]);
+            $('#pat_lname_arabic').val(_names[3] + " " + _names[4] + " " + _names[5]);
+        }
+        else if (_names.length == 5) {
+            $('#pat_name_arabic').val(_names[0] + " " + _names[1]);
+            $('#pat_lname_arabic').val(_names[2] + " " + _names[3] + " " + _names[4]);
+        }
+        else if (_names.length == 4) {
+            $('#pat_name_arabic').val(_names[0] + " " + _names[1]);
+            $('#pat_lname_arabic').val(_names[2] + " " + _names[3]);
+        }
+        else if (_names.length == 3) {
+            $('#pat_name_arabic').val(_names[0]);
+            $('#pat_lname_arabic').val(_names[1] + " " + _names[2]);
+        }
+        else if (_names.length == 2) {
+            $('#pat_name_arabic').val(_names[0]);
+            $('#pat_lname_arabic').val(_names[1]);
+        }
+        else if (_names.length == 1) {
+            $('#pat_name_arabic').val(_names[0]);
+            $('#pat_lname_arabic').val("");
+        }
+        else {
+            $('#pat_name_arabic').val(_names[0]);
+            $('#pat_lname_arabic').val("");
+        }
+    }
+    //#endregion Split Name
+
+    //#region Bind DOB
+    var setDOB = function (data) {
+        $("#pat_dob").bootstrapdatepicker("setDate", data);
+    }
+    //#endregion Bind DOB
+
+    //#region Bind Gender
+    var setGender = function (data) {
+        var _gender = ((data == "M") ? "Male" : ((data == "F") ? "Female" : "Other"));
+        $("#pat_gender").val(_gender).trigger('change');
+    }
+    //#endregion Bind Gender
+
+    //#region Bind Civil Status
+    var setCivilStatus = function (data) {
+        var _ms = "";
+        if (parseInt(data) == 1) { _ms = "S"; }
+        else if (parseInt(data) == 2) { _ms = "M"; }
+        else if (parseInt(data) == 3) { _ms = "D"; }
+        else if (parseInt(data) == 4) { _ms = "W"; }
+        else { _ms = "U"; }
+        $("#pat_ms").val(_ms).trigger('change');
+    }
+    //#endregion Bind Civil Status
+
+    //#region Bind Landline
+    var setLandline = function (data) {
+        var _tel = data;
+        if (_tel.startsWith("+971")) { _tel = _tel.substring(4, _tel.length) }
+        else if (_tel.startsWith("971")) { _tel = _tel.substring(3, _tel.length) }
+        else if (_tel.startsWith("0")) { _tel = _mob.substring(1, _tel.length) }
+        _tel = $("#pat_tel").val().trim() + _tel;
+        $("#pat_tel").val(_tel);
+    }
+    //#endregion Bind Landline
+
+    //#region Bind Mobile
+    var setMobile = function (data) {
+        var _mob = data;
+        if (_mob.startsWith("+971")) { _mob = _mob.substring(4, _mob.length) }
+        else if (_mob.startsWith("971")) { _mob = _mob.substring(3, _mob.length) }
+        else if (_mob.startsWith("0")) { _mob = _mob.substring(1, _mob.length) }
+        _mob = $("#pat_mob").val().trim() + _mob;
+        $("#pat_mob").val(_mob);
+    }
+    //#endregion Bind Mobile
+
+    //#region Bind Email
+    var setEmail = function (data) {
+        $("#pat_email").val(data);
+    }
+    //#endregion Bind Email
+
+    //#region Bind EIDNumber
+    var setEIDNumber = function (data) {
+        $("#pat_emirateid").val(data);
+        $('#pat_emirateid').mask('999-9999-9999999-9');
+    }
+    //#endregion Bind EIDNumber
+
+    //#region Bind Passport
+    var setPassport = function (data) {
+        $("#pat_passport").val(data);
+    }
+    //#endregion Bind Passport
+
+    //#region Bind PO Box
+    var setPOBox = function (data) {
+        $("#pat_pobox").val(data);
+    }
+    //#endregion
+
+    //#region Bind IssueDate
+    var setIssueDate = function (data) {
+        $("#id_card_idate").bootstrapdatepicker("setDate", data);
+    }
+    //#endregion Bind IssueDate
+
+    //#region Bind ExpiryDate
+    var setExpiryDate = function (data) {
+        $("#id_card_edate").bootstrapdatepicker("setDate", data);
+    }
+    //#endregion Bind ExpiryDate
+
+    //#region Bind City
+    var setCity = function (data) {
+        $("#pat_city").val(data);
+    }
+    //#endregion Bind City
+
+    //#region Bind Profession
+    var setProfession = function (data) {
+        if ((data != "") && (data != undefined) && (data != null)) {
+            let val = $("#pat_occupation").find("option:contains('" + data + "')").val();
+            $("#pat_occupation").val(val).trigger('change');
+        }
+
+    }
+    //#endregion Bind Profession
+
+    //#region Bind Address
+    var setAddress = function (flat, building, pobox, street, area, city, emirate) {
+        $("#pat_address").val(
+            (flat != "") ? (flat + " ") : "" +
+            (building != "") ? (building + " ") : "" +
+            (pobox != "") ? (pobox + " ") : "" +
+            (street != "") ? (street + " ") : "" +
+            (area != "") ? (area + " ") : "" +
+            (city != "") ? (city + " ") : "" +
+            emirate
+        );
+    }
+    //#endregion Bind Address
+
+    //#region Get Country By Code
+    var select_country_nationality = function (code, name) {
+        $.ajax({
+            url: '@Url.Action("GetPatient_CountryAndNationality", "Patient", new { area = "Patient" })?code=' + code + '&name=' + name,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                if (response.length > 0) {
+                    var _c = response[0].countries;
+                    var _n = response[0].nationalities;
+                    var _cz = response[0].citizenship;
+
+                    if (_c.countryId > 0) {
+                        $("#pat_country").val(_c.countryId).trigger('change');
+                    }
+
+                    if (_n.natId > 0) {
+                        $("#pat_nat").val(_n.natId).trigger('change');
+
+                        if (_n.nat_code["ARE"]) {
+                            $("#pat_race").val("NT").trigger('change');
+                            $("#pat_fax").val("UAE Citizen").trigger('change');
+                        }
+                        else if (_n.nat_code["BHR"] || _n.nat_code["SAU"] || _n.nat_code["QAT"] || _n.nat_code["KWT"] || _n.nat_code["OMN"]) {
+                            $("#pat_race").val("GCC").trigger('change');
+                            $("#pat_fax").val("Resident").trigger('change');
+                        }
+                        else {
+                            $("#pat_race").val("NN").trigger('change');
+                            $("#pat_fax").val("Resident").trigger('change');
+                        }
+                    }
+
+                    if (_cz.citizenId > 0) {
+                        $("#pat_citizen").val(_cz.citizen_code).trigger('change');
+                    }
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr);
+            }
+        });
+    }
+    //#endregion Get Country By Code
+
+    //#region Read Emirates ID From PAP Service
+    $('#btn_PAP_Read').on('click', function (e) {
+        e.preventDefault();
+        $('#btn_PAP_Read').removeClass("btn btn-outline-primary");
+        $('#btn_PAP_Read').addClass("btn btn-primary btn-loaders btn-icon");
+        $('#btn_PAP_Read').html("Data is Reading from PAP Service");
+
+        var settings = {
+            "url": "http://localhost:80/PapService/publicData",
+            "method": "POST",
+            "timeout": 0,
+        };
+
+        $.ajax(settings)
+            .done(function (response) {
+                console.log(response);
+                $('#btn_PAP_Read').removeClass("btn btn-primary btn-loaders btn-icon");
+                $('#btn_PAP_Read').addClass("btn btn-outline-primary");
+                $('#btn_PAP_Read').html("Read PAP Public Data From EMID");
+
+                if (response != null) {
+                    if (response["AuthenticationStatus"] == true) {
+                        if (response["PublicData"] != null) {
+                            splitName(response["PublicData"].FullName, 2);
+                            splitName_Ar(response["PublicData"].ArabicFullName, 2);
+                            setDOB(response["PublicData"].DateOfBirth);
+                            setGender(response["PublicData"].Sex);
+                            setCivilStatus(response["PublicData"].MaritalStatus);
+                            setLandline(response["PublicData"].HomeAddressLandPhoneNumber);
+                            setMobile(response["PublicData"].HomeAddressMobilePhoneNumber);
+                            setEmail(response["PublicData"].HomeAddressEmail);
+
+                            let _code = "";
+                            if ((response["PublicData"].NationalityCode != "") && (response["PublicData"].NationalityCode != undefined) && (response["PublicData"].NationalityCode != null)) {
+                                _code = response["PublicData"].NationalityCode;
+                            }
+                            let _name = "";
+                            if ((response["PublicData"].Nationality != "") && (response["PublicData"].Nationality != undefined) && (response["PublicData"].Nationality != null)) {
+                                _name = response["PublicData"].Nationality;
+                            }
+
+                            select_country_nationality(_code, _name);
+
+                            setEIDNumber(response["PublicData"].IdNumber);
+                            setPassport(response["PublicData"].PassportNumber);
+                            setPOBox(response["PublicData"].HomeAddressPoBox);
+                            setCity(response["PublicData"].HomeAddressEmirateDescription);
+                            setProfession(response["PublicData"].Occupation);
+
+                            setAddress(response["PublicData"].HomeAddressFlatNumber, response["PublicData"].HomeAddressBuildingName, response["PublicData"].HomeAddressPoBox,
+                                response["PublicData"].HomeAddressStreetEnglish, response["PublicData"].HomeAddressAreaEnglish,
+                                response["PublicData"].HomeAddressCityDescription, response["PublicData"].HomeAddressEmirateDescription
+                            );
+
+                            // base64 image string
+                            var base64Image = 'data:image/jpeg;base64,' + response["PublicData"].Photography;
+                            $('#PhotoBase64').attr("src", base64Image);
+
+                            var fingerData = response["PublicData"].FingerData;
+                            if (fingerData[0].FingerIndex == 0) {
+                                $("#fingerDescription").html("Patient is Below than 18 Years(Minor) no need authentication..");
+                                $("#fingerDescription").attr("style", "color: blue;");
+                            }
+                            else {
+                                let end_point = "@ConfigurationManager.AppSettings["ClinicSoftEndPoint"].ToString()" + "/assets/images/clinicsoft9/FingerPrint/" + fingerData[0].FingerText + ".jpg";
+                                $("#finger").attr("src", end_point);
+                                $("#fingerDescription").html("Put the " + fingerData[0].FingerText + " finger for authentication");
+                                $("#fingerDescription").attr("style", "color: green;");
+                                $("#fingerIndex").val(fingerData[0].FingerIndex);
+                            }
+
+                            $("#pat_photo").val(response["PublicData"].Photography);
+                        }
+                        else {
+                            $("#fingerDescription").show();
+                            $("#fingerDescription").html(response["Description"]);
+                            $("#fingerDescription").attr("style", "color: blue;");
+                        }
+                    }
+                }
+                else {
+                    console.log("Try Again....");
+                }
+
+            })
+            .fail(function (error, status) {
+                $('#btn_PAP_Read').removeClass("btn btn-primary btn-loaders btn-icon");
+                $('#btn_PAP_Read').addClass("btn btn-outline-primary");
+                $('#btn_PAP_Read').html("Read PAP Public Data From EMID");
+                console.log(error);
+                console.log(status);
+            })
+            .always(function () {
+                $('#btn_PAP_Read').removeClass("btn btn-primary btn-loaders btn-icon");
+                $('#btn_PAP_Read').addClass("btn btn-outline-primary");
+                $('#btn_PAP_Read').html("Read PAP Public Data From EMID");
+            });
+    });
+    //#endregion Read Emirates ID
+
+    //#region Verify Fingerprint From PAP Service
+    $("#btnVerifyFingerPrint").click(function () {
+        $('#btnVerifyFingerPrint').removeClass("btn btn-outline-success");
+        $('#btnVerifyFingerPrint').addClass("btn btn-success btn-loaders btn-icon");
+        $('#btnVerifyFingerPrint').html("Fingerprint Verification inprogress...");
+
+        var settings = {
+            "url": "http://localhost:80/PapService/processFingerprint",
+            "method": "POST",
+            "timeout": 0,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "data": JSON.stringify($("#fingerIndex").val()),
+        };
+
+        $.ajax(settings).done(function (response) {
+            $('#btnVerifyFingerPrint').removeClass("btn btn-success btn-loaders btn-icon");
+            $('#btnVerifyFingerPrint').addClass("btn btn-outline-success");
+            $('#btnVerifyFingerPrint').html("Verify Fingerprint");
+
+            console.log(response);
+            if (response != null) {
+                if (response["ValidationStatus"] == "true") {
+                    $("#fingerDescription").html("Authentication is successful");
+                    $("#fingerDescription").attr("style", "color: green;");
+                }
+                else {
+                    $("#fingerDescription").html("Authentication Failed.. Try again..");
+                    $("#fingerDescription").attr("style", "color: red;");
+                }
+            }
+            else {
+                $("#fingerDescription").html(response["Description"]);
+                $("#fingerDescription").attr("style", "color: red;");
+            }
+        })
+        .fail(function (error, status) {
+            $('#btnVerifyFingerPrint').removeClass("btn btn-success btn-loaders btn-icon");
+            $('#btnVerifyFingerPrint').addClass("btn btn-outline-success");
+            $('#btnVerifyFingerPrint').html("Verify Fingerprint");
+            console.log(error);
+            console.log(status);
+        })
+        .always(function () {
+            $('#btnVerifyFingerPrint').removeClass("btn btn-success btn-loaders btn-icon");
+            $('#btnVerifyFingerPrint').addClass("btn btn-outline-success");
+            $('#btnVerifyFingerPrint').html("Verify Fingerprint");
+        });
+    });
+    //#endregion Verify Fingerprint From PAP Service
+
+    //#region Cancel Verification
+    $("#btnCancelVerification").click(function () {
+        if ($("#cboCancelReason").val() != 0) {
+            $('#btnCancelVerification').removeClass("btn btn-outline-danger ms-4");
+            $('#btnCancelVerification').addClass("btn btn-danger btn-loaders btn-icon ms-4");
+            $('#btnCancelVerification').html("Cancel Verification in Progress...");
+
+            var settings = {
+                "url": "http://localhost:80/PapService/cancelAuthentication",
+                "method": "POST",
+                "timeout": 0,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "data": JSON.stringify($("#cboCancelReason").val()),
+            };
+
+            $.ajax(settings).done(function (response) {
+                $('#btnCancelVerification').removeClass("btn btn-danger btn-loaders btn-icon ms-4");
+                $('#btnCancelVerification').addClass("btn btn-outline-danger ms-4");
+                $('#btnCancelVerification').html("Cancel Verification");
+
+                if (response != null) {
+                    if (response["ValidationStatus"] == true) {
+                        $("#fingerDescription").html("DOH accepted the Reason");
+                        $("#fingerDescription").attr("style", "color: green;");
+                    }
+                    else {
+                        $("#fingerDescription").html("Reason not acceptable.. Try again..");
+                        $("#fingerDescription").attr("style", "color: red;");
+                    }
+                }
+                else {
+                    $("#fingerDescription").html(response["Description"]);
+                    $("#fingerDescription").attr("style", "color: red;");
+                }
+
+                $("#cboCancelReason").val(0);
+            })
+            .fail(function (error, status) {
+                $('#btnCancelVerification').removeClass("btn btn-danger btn-loaders btn-icon ms-4");
+                $('#btnCancelVerification').addClass("btn btn-outline-danger ms-4");
+                $('#btnCancelVerification').html("Cancel Verification");
+                console.log(error);
+                console.log(status);
+            })
+            .always(function () {
+                $('#btnCancelVerification').removeClass("btn btn-danger btn-loaders btn-icon ms-4");
+                $('#btnCancelVerification').addClass("btn btn-outline-danger ms-4");
+                $('#btnCancelVerification').html("Cancel Verification");
+            });
+        }
+        else {
+            $("#fingerDescription").html("Please select the Reason");
+            $("#fingerDescription").attr("style", "color: red;");
+            $("#cboCancelReason").val(0);
+        }
+    });
+    //#endregion Cancel Verification
+
+
+
+</script>

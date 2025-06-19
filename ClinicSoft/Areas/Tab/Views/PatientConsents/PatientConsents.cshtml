@@ -1,0 +1,223 @@
+﻿@{
+    ViewBag.Title = "Patient Appointments Consents";
+    Layout = "~/Areas/Tab/Views/Shared/_Tab_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Patient Appointments Consents</h4>
+    </div>
+</div>
+
+<div class="row mb-2">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-header">
+                <h3 class="card-title">Search Patient By&nbsp;<span class="text-danger">*</span></h3>
+            </div>
+            <div class="card-body">
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left mb-2">
+                    <label class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input" name="rdo_s_patient" value="1">
+                        <span class="custom-control-label">MRN</span>
+                    </label>
+                    <label class="custom-control custom-radio ms-sm-2 md-md-2 ms-lg-2">
+                        <input type="radio" class="custom-control-input" name="rdo_s_patient" value="2">
+                        <span class="custom-control-label">Name</span>
+                    </label>
+                    <label class="custom-control custom-radio ms-sm-2 md-md-2 ms-lg-2">
+                        <input type="radio" class="custom-control-input" name="rdo_s_patient" value="3" checked>
+                        <span class="custom-control-label">Mobile No</span>
+                    </label>
+                    <label class="custom-control custom-radio ms-sm-2 md-md-2 ms-lg-2">
+                        <input type="radio" class="custom-control-input" name="rdo_s_patient" value="4">
+                        <span class="custom-control-label">Emirates ID</span>
+                    </label>
+                </div>
+                <select id="app_patient" name="app_patient" class="form-select select2" title="Visit ID - MRN # - Patient Name - Mobile # - EMID - Insurance Type"></select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2">
+    <div class="col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-body">
+                <div class="table-responsive" style="min-height:fit-content">
+                    <table id="tbl_patient_appointments" class="table table-bordered border-top text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr>
+                                <th class="border-bottom-1 font-weight-semibold text-black">Visit ID</th>
+                                <th class="border-bottom-1 font-weight-semibold text-black">Patient Details</th>
+                                <th class="border-bottom-1 font-weight-semibold text-black">Appointment Details</th>
+                                <th class="border-bottom-1 font-weight-semibold text-black">Forms</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Manager Modal -->
+<div class="modal fade" id="form_manager_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeFM">
+        <div class="modal-content" id="form_manager_body">
+        </div>
+    </div>
+</div>
+<!-- End Form Manager Modal -->
+
+@section myScripts {
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            $("#app_patient").select2({
+                placeholder: 'Select a Patient',
+                width: '100%',
+                minimumInputLength: 3,
+                maximumInputLength: 15,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("SearchPatients", "PatientConsents", new { area = "Tab" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: $("input[name='rdo_s_patient']:checked").val()
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            BindDataTable(null);
+        });
+        //#endregion
+
+        //#region On Patient Select
+        $("#app_patient").on("select2:select", function () {
+            let patId = $(this).val();
+
+            $.ajax({
+                url: "@Url.Action("GetPatientAppointments", "PatientConsents", new { area = "Tab" })?patId=" + patId,
+                method: "GET",
+                dataType: "json",
+                success: function (response) {
+                    if ($.fn.DataTable.isDataTable("#tbl_patient_appointments")) {
+                        let table = $("#tbl_patient_appointments").DataTable();
+                        table.clear();
+                        table.rows.add(response.list).draw();
+                    }
+                    else {
+                        BindDataTable(response.list);
+                    }
+                },
+                failure: function (response) {
+                    console.log(response);
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        });
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_patient_appointments").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 25,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                aoColumns: [
+                    {
+                        "className": 'text-wrap',
+                        "mData": "appId"
+                    },
+                    {
+                        "className": 'text-wrap',
+                        "mData": "patient"
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": 'text-wrap text-center',
+                        "render": function (app_fdate, type, full, meta) {
+                            var dt = '';
+
+                            if (type === 'display' || type === 'filter') {
+                                dt += '<span class="badge bg-primary-light mb-1">Appointment D/T</span><br/>' +
+                                    '<i class="fe fe-calendar text-dark"></i> <b>' + moment(app_fdate).format("DD-MM-YYYY") + '</b><br/>' +
+                                    '<i class="fe fe-clock text-dark"></i> <b class="text-info">' + full.app_ftime + ' - ' + full.app_ttime + '</b><br/>' +
+                                    '<span class="badge bg-primary-light mb-1">Doctor Details</span><br/>';
+
+                                dt += '<b>' + full.emp_name + '</b><br/>[<span class="text-info">' + full.emp_dept_name + '</span>]';
+
+                                return dt;
+                            }
+
+                            return moment(app_fdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "appId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (appId, type, full, meta) {
+                            return `<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewFormManager(${appId}, '${full.app_instype}')">View</button>`;
+                        }
+                    }
+                ],
+                order: [[2, 'desc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search</span>',
+                    lengthMenu: '_MENU_ ',
+                }
+            });
+
+            table.buttons().container().appendTo('#tbl_patient_appointments_wrapper.col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Form Manager
+        function viewFormManager(appId, app_type) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("FormManager", "PatientConsents", new { area = "Tab" })?appId=" + appId + "&app_type=" + app_type,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#form_manager_body").html(data);
+                    $("#form_manager_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Viewing Form Manager : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+    </script>
+}

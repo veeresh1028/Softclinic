@@ -1,0 +1,113 @@
+﻿@model BusinessEntities.Tab.ClaimForms
+@using BusinessEntities;
+
+@{
+    ViewBag.Title = "Claim Forms";
+
+    Layout = "~/Areas/Tab/Views/Shared/_Tab_Layout.cshtml";
+
+    EMRInfo tab = new EMRInfo();
+
+    string ic_name = string.Empty;
+
+    if (TempData["emr_data"] == null)
+    {
+        Response.Redirect("/Tab/PatientConsents/PatientConsents");
+    }
+    else
+    {
+        tab = (EMRInfo)TempData["emr_data"];
+
+        TempData.Keep("emr_data");
+
+        TempData["appId"] = tab.appId;
+
+        ic_name = tab.app_ic_name.Trim().ToLower();
+    }
+}
+
+@Html.Partial("~/Areas/Tab/Views/Shared/_Tab_PatientInfo.cshtml")
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="row me-0 ms-0 d-flex justify-content-center">
+            <div class="col-xl-6 col-lg-6 col-sm-6 pe-0 ps-0">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="form-group mb-2">
+                            <label class="form-label font-weight-semibold">Select Claim Form</label>
+                            @{
+                                var filteredOptions = Model.claimOptionList;
+
+                                if (ic_name.Contains("adnic"))
+                                {
+                                    filteredOptions = filteredOptions.Where(option => option.text.ToLower().Contains("adnic")).ToList();
+                                }
+                            }
+
+                            @Html.DropDownListFor(m => m.claimOption, new SelectList(filteredOptions, "id", "text"), "Please Select", new { @class = "form-select select2" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="viewContainer"></div>
+
+<!-- Modal Signature Pad -->
+<div class="modal fade" id="signature_pad" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:750px;">
+        <div class="modal-content" id="signature_pad_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Signature Pad -->
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $(document).on('select2:open', () => {
+            document.querySelector('.select2-search__field').focus();
+        });
+
+        $("#claimOption").select2({
+            placeholder: 'Select Any Form',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+    });
+    //#endregion
+
+    //#region On Patient Select
+    $("#claimOption").on("select2:select", function () {
+        var selectedValue = $(this).val();
+
+        $("#spinner2").show();
+
+        $("#viewContainer").html("");
+
+        if (selectedValue != "") {
+            $.ajax({
+                url: '@Url.Action("LoadClaimFormView", "ConsentForms", new { area = "Tab" })',
+                type: 'GET',
+                data: { viewName: selectedValue },
+                success: function (data) {
+                    $("#viewContainer").html(data);
+                },
+                error: function () {
+                    $("#viewContainer").html("<p>Error while Loading View!</p>");
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        }
+    });
+    //#endregion
+</script>

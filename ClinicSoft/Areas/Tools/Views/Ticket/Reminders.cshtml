@@ -1,0 +1,269 @@
+﻿@model BusinessEntities.Tools.TicketReminderList
+
+<link href="~/assets/plugins/wysiwyag/richtext.css" rel="stylesheet" />
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Ticket Reminders</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-uom-model" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_reminder" autocomplete="off">
+        @Html.AntiForgeryToken()        
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Message&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextArea("tr_message", null, new { @class = "content", @placeholder = "Reminder Message", maxlength = "999" })
+                </div>
+            </div>
+        </div>
+    </form>
+    <div class="row mt-2">
+        <div id="error"></div>
+        <div class="col-sm-12 col-md-6 col-lg-6 text-center">
+            <button type="submit" class="btn btn-success" id="btn_send_reminder">Send</button>
+            <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                Close
+            </button>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div id="progress-loader" style="display:none;">
+                <div class="progress progress-sm mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table id="tbl_ticketreminder" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                            <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Message</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">SendBy</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- INTERNAL WYSIWYG Editor js -->
+<script src="~/assets/plugins/wysiwyag/jquery.richtext.js"></script>
+<script src="~/assets/js/form-editor.js"></script>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        validation();
+        logs_array = @Html.Raw(Json.Encode(Model.ticketReminderList));
+        BindDataTable(logs_array);
+        resizedt();
+    });
+    //#endregion Page Load
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_ticketreminder").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "tr_datecreated",
+                },
+                {
+                    "orderable": false,
+                    "data": "tr_message",
+                    "render": function (data, type, row) {
+                        if (type === 'display') {
+                            return decodeURIComponent(data);
+                        }
+                        return data;
+                    }
+                },
+                {
+                    "mData": "madeby",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "className": "td_max_width",
+                    "mData": "madeby",
+                    "orderable": false,
+                    "searchable": false,
+                },
+            ],
+            order: [[0, 'asc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Date / Message </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+        });
+        table.buttons().container().appendTo('#tbl_ticketreminder_wrapper .col-md-6:eq(0)');
+
+    }
+    //#endregion Bind Datatable
+
+    //#region Send Reminder on Button Click
+    $('#btn_send_reminder').on('click', function (e) {
+        e.preventDefault();
+        if ($('#form_reminder').valid()) {
+            var _dataInsert = {
+                "trId": 0,
+                "tr_ticket_code": @Model.ticket_code.ToString(),
+                "tr_message": encodeURIComponent($('#tr_message').val()),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("SendTicketReminder", "Ticket", new { area = "Tools"})",
+                dataType: "JSON",
+                data: _dataInsert,
+                beforeSend: function () {
+                    $('#btn_send_reminder').removeClass("btn btn-success");
+                    $('#btn_send_reminder').addClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_send_reminder').html("Sending....");
+                },
+                success: function (data) {
+                    $('#btn_send_reminder').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_send_reminder').addClass("btn btn-success");
+                    $('#btn_send_reminder').html("Send");
+                    if (data.isInserted) {
+                        search_tickets();
+                        var alertPlaceholder = document.getElementById("TicketAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> Reminder Sent Successfully!", "success");
+                        $('#reminder_modal').modal('toggle');
+                        Timeout();
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-warning' role='alert'>" +
+                            "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Reminder Sending Error. please Try Again Later!</strong><br/>" +
+                            "</div></div>";
+                        $("#errorCreate").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_send_reminder').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_send_reminder').addClass("btn btn-success");
+                    $('#btn_send_reminder').html("Send");
+                    var alertPlaceholder = document.getElementById("TicketAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Send Reminder!", "danger");
+                    $('#reminder_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Adding Validation on Feilds
+    var validation = function () {
+        $("#form_reminder").validate({
+            focusInvalid: true,
+            rules:
+            {
+                tr_message: {
+                    required: true,
+                    minlength: 3
+                }
+            },
+            messages: {
+                tr_message: {
+                    required: "Enter Reminder Message",
+                    minlength: "Min 3 characters"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion Adding Validation on Feilds
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion Remove Valiate Error Class Timeout
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion Alert Timeout
+</script>
+

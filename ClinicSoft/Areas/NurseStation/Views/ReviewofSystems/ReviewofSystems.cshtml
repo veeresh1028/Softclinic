@@ -1,0 +1,360 @@
+﻿@using BusinessEntities;
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class='badge bg-danger'>Required</span>
+                        <span class="text-info" style="font-size:smaller">Please Fill Atleast One Entry</span>
+                    </div>
+                </div>
+                <div id="ros_add" style="display:none;">
+                    @*@Html.Action("CreateReviewofSystems", "ReviewofSystems", new { area = "NurseStation" })*@
+                </div>
+                <div id="ros_edit" style="display:none;">
+
+                </div>
+
+                <div>
+                    <h4 class="page-title mb-0 text-primary">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_PreReviewofSystems" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Const</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Skin</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Eye</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">ENT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Respi</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Cardio</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Gastro<br />Intestinal</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Genito<br />Urinary</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Neuro</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Musculo<br />skeletal</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Phych</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Endo</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Hemato<br />Lymphatic</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Allergy<br />Immuno</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Menst<br />History</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Addi<br />ROS</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Note</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+    //#region Page Load
+        $(function () {
+            BindDataTableP(null);
+            GetPreviousReviewofSystems();
+            GetReviewofSystems();
+            AddROS();
+            $("#ros_add").show();
+            $("#ros_edit").hide();
+
+        });
+    //#endregion Page Load
+
+    //#region Load ReviewofSystems
+        var GetReviewofSystems = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllReviewofSystems", "ReviewofSystems", new { area = "NurseStation" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var _data = response;
+                        console.log(response);
+                        if (_data.length > 0) {
+                            EditROS();
+                            $("#ros_add").hide();
+                            $("#ros_edit").show();
+
+                        }
+                        else {
+                            $("#ros_add").show();
+                            $("#ros_edit").hide();
+
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();
+                });
+        }
+    //#endregion Load ReviewofSystems
+
+    //#region Load PreviousReviewofSystems
+        var GetPreviousReviewofSystems = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreReviewofSystems", "ReviewofSystems", new { area = "NurseStation" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_PreReviewofSystems')) {
+                            table = $('#tbl_PreReviewofSystems').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();
+                });
+        }
+    //#endregion Load PreviousReviewofSystems
+
+    //#region Previous Bind Datatable
+        var BindDataTableP = function (response) {
+            var table = $("#tbl_PreReviewofSystems").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "rsId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_1_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_2_type",
+                        "className": 'text-justify text-wrap'
+
+                    },
+                    {
+                        "mData": "rs_3_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_4_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_5_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_6_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_7_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_8_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_9_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_10_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_11_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_12_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_13_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_14_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_15_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_16_type",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "rs_comments",
+                        "className": 'text-justify text-wrap'
+                    },
+
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous ReviewofSystems',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,16,17,18,19]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous ReviewofSystems',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous ReviewofSystems',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous ReviewofSystems',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_PreReviewofSystems_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add ReviewofSystems
+        function AddROS() {
+            var x = $("#ros_add");
+                x.load("@Url.Action("CreateReviewofSystems", "ReviewofSystems", new { area = "NurseStation" })", function () {
+                });
+        }
+    //#endregion Add ReviewofSystems
+
+    //#region Edit ReviewofSystems
+        function EditROS() {
+                var x = $("#ros_edit");
+                x.load("@Url.Action("EditReviewofSystems", "ReviewofSystems", new { area = "NurseStation" })?appId=" + @emr.appId, function () {
+                });
+        }
+    //#endregion Edit ReviewofSystems
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    //#region Remove Error Class
+        function error_timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+    //#endregion
+    </script>
+
+}

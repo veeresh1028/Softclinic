@@ -1,0 +1,471 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.Documentation.CoderQueries
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_AddCoderQuery" class="needs-validation" >
+    @Html.AntiForgeryToken()
+
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-4">
+            <label class="form-label">Message Type&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.qa_type, new List<SelectListItem> { }, "Select Template", new { @class = "form-select mb-2 select2", @id = "qa_type" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <label class="form-label">From&nbsp;<small class="text-info">(Coder)</small>&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.qa_from, new List<SelectListItem> { }, "Select Template", new { @class = "form-select mb-2 select2", @id = "qa_from", @disabled = "" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <label class="form-label">To&nbsp;<small class="text-info">(Physician)</small>&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="form-group">
+                @Html.DropDownListFor(m => m.qa_to, new List<SelectListItem> { }, "Select Template", new { @class = "form-select mb-2 select2", @id = "qa_to", @disabled = "" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-2">
+            <label class="form-label">Date&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <div class="input-group-text">
+                        <i class="fe fe-calendar"></i>
+                    </div>
+                </div>
+                @Html.TextBoxFor(m => m.qa_date, new { @class = "form-control", @placeholder = "DD-MMM-YYYY", @id = "qa_date" })
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <label class="form-label">Subject</label>
+            <div class="form-group">
+                @Html.TextBoxFor(m => m.qa_subject, new { @class = "form-control", @id = "qa_subject", @maxlength = "100", @placeholder = "Ex : Authorization Approved!" })&nbsp;
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-4 col-lg-2">
+            <label class="form-label">Message&nbsp;<span class="text-danger font-weight-semibold">*</span></label>
+        </div>
+        <div class="col-sm-12 col-md-8 col-lg-10">
+            <div id="qa_query">
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-4 col-lg-2 d-none">
+            <label class="form-label">Attachment(s)</label>
+            <div class="form-group">
+                <a href="javascript:void(0)" id="attachBtn" class="btn btn-icon btn-light btn-svg bg-primary-transparent" data-bs-toggle="tooltip" title="" data-bs-original-title="Attach"><i class="fe fe-paperclip text-primary"></i></a>
+                <input type="file" id="fileInput" style="display: none;" multiple>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="btn-list btn-animation">
+                <button type="button" class="btn text-danger btn-outline-danger btn-space" id="btn_Reset_CoderQuery">Reset</button>
+                <button type="submit" class="btn text-primary btn-outline-light" id="btn_Insert_CoderQuery">Send message <i class="fa fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    var quillc;
+    var selectedFiles;
+
+    //#region Partial View Onload
+    $(function () {
+        if ("@emp_designation.ToString()" === "Super Administrator") {
+            $("#btn_Insert_CoderQuery").show();
+        }
+        else {
+            if ("@emr.set_emr_lock" == "NoLock") {
+                if ("@emr.app_ae_date" >= "@emr.today") {
+                    $("#btn_Insert_CoderQuery").show();
+                }
+                else {
+                    $("#btn_Insert_CoderQuery").hide();
+                }
+            }
+            else {
+                $("#btn_Insert_CoderQuery").show();
+            }
+        }
+
+        set_date();
+
+        load_editor();
+
+        load_coders();
+
+        load_doctors();
+
+        $("#qa_type").select2({
+            placeholder: 'Select Message Type',
+            width: '100%',
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_AddCoderQuery'),
+            ajax: {
+                url: '@Url.Action("GetMsgType", "CoderQueries", new { area = "Documentation" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: "",
+                        mt_branch: @emr.app_branch,
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+
+        validate();
+    });
+    //#endregion
+
+    //#region Load Editor
+    var load_editor = function () {
+        var icons = Quill.import('ui/icons');
+
+        icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+        icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+        icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+        icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+        icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+        icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+        var toolbarOptions = [
+            [{
+                'header': [1, 2, 3, 4, 5, 6, false]
+            }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{
+                'list': 'ordered'
+            }, {
+                'list': 'bullet'
+            }]
+        ];
+
+        quillc = new Quill('#qa_query', {
+            modules: {
+                toolbar: toolbarOptions
+            },
+            theme: 'snow'
+        });
+    }
+    //#endregion
+
+    //#region Load Coders
+    var load_coders = function () {
+        $("#qa_from").select2({
+            placeholder: 'Select Coder',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_AddCoderQuery')
+        });
+
+        var all_type_ = "@empId";
+
+        $.ajax({
+            url: '@Url.Action("GetEmployeeDept", "CoderQueries", new { area = "Documentation" })?empId=' + all_type_,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption;
+
+                        if (all_type_ != null && all_type_ != undefined && all_type_ != 0) {
+                            newOption = new Option(response[j].text, response[j].id, (response[j].id == all_type_));
+                        }
+                        else {
+                            newOption = new Option(response[j].text, response[j].id);
+                        }
+
+                        $('#qa_from').append(newOption);
+                    });
+
+                    $('#qa_from').val(@empId).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Load Doctors
+    var load_doctors = function () {
+        $("#qa_to").select2({
+            placeholder: 'Select Physician',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_AddCoderQuery')
+        });
+
+        var id = "@emr.app_doctor";
+
+        $.ajax({
+            url: '@Url.Action("GetEmployeeDept", "CoderQueries", new { area = "Documentation" })?empId=' + id,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption;
+
+                        if (id != null && id != undefined && id != 0) {
+                            newOption = new Option(response[j].text, response[j].id, (response[j].id == id));
+                        }
+                        else {
+                            newOption = new Option(response[j].text, response[j].id);
+                        }
+
+                        $('#qa_to').append(newOption);
+                    });
+
+                    $('#qa_to').val(id).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Set Date
+    var set_date = function () {
+        $('#qa_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        $("#qa_date").bootstrapdatepicker("setDate", "today");
+    }
+    //#endregion
+
+    //#region Validation Initialization
+    var validate = function () {
+        $('#qa_date').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $("#form_AddCoderQuery").validate({
+            rules: {
+                qa_to: {
+                    required: true
+                },
+                qa_from: {
+                    required: true
+                },
+                qa_type: {
+                    required: true
+                },
+                qa_date: {
+                    required: true
+                }
+            },
+            messages: {
+                qa_to: {
+                    required: "Please Select Doctor"
+                },
+                qa_from: {
+                    required: "Please Select Coder"
+                },
+                qa_type: {
+                    required: "Please Select Message Type"
+                },
+                qa_date: {
+                    required: "Please Select Date"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#qa_to').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#qa_from').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#qa_date').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#qa_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region File Change / Click
+    $("#attachBtn").click(function () {
+        $("#fileInput").click();
+    });
+
+    $("#fileInput").change(function () {
+        selectedFiles = this.files;
+
+        for (var i = 0; i < selectedFiles.length; i++) {
+            console.log("Selected File: " + selectedFiles[i].name);
+        }
+    });
+    //#endregion
+
+    //#region Insert Button Click
+    $('#btn_Insert_CoderQuery').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_AddCoderQuery").valid()) {
+            var isvalid = true;
+
+            if (quillc.getText().trim().length == 0) {
+                $("#qa_query").attr("style", "border:1px solid red;");
+
+                error_timeout_quil($("#qa_query"));
+
+                isvalid = false;
+            }
+
+            if (isvalid) {
+                var fileInput = document.getElementById('fileInput');
+
+                var formData = new FormData();
+                formData.append("qaId", 0);
+                formData.append("qa_appId", @emr.appId);
+                formData.append("qa_from", $("#qa_from").val());
+                formData.append("qa_to", $("#qa_to").val());
+                formData.append("qa_type", $("#qa_type").val());
+                formData.append("qa_subject", $("#qa_subject").val());
+                formData.append("qa_date", moment($("#qa_date").val()).format("YYYY-MM-DD"));
+                formData.append("qa_query", quillc.root.innerHTML);
+                formData.append("qa_branch", @emr.app_branch);
+                formData.append("qa_screen", "coder");
+                formData.append("file", fileInput.files[0]);
+                formData.append("qa_close_date", moment("01/01/1900").format("YYYY-MM-DD"));
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertCoderQueries", "CoderQueries", new { area = "Documentation" })",
+                    dataType: 'json',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (data) {
+                        var alertPlaceholder = document.getElementById("Alert");
+
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+
+                        if (data.isSuccess) {
+                            getCoderQueries();
+
+                            alert("<i class='fe fe-check-circle text-white'></i> " + data.message + "!", "success");
+
+                            clearControls();
+
+                            Timeout();
+                        }
+                        else {
+                            alert("<i class='fa fa-ban text-white'></i> " + data.message + "!", "warning");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Required!",
+                    text: "Please Enter Message to Send Query!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+    });
+    //#endregion
+
+    //#region Clear Controls
+    $('#btn_Reset_CoderQuery').on('click', function (e) {
+        e.preventDefault();
+
+        clearControls();
+    });
+
+    var clearControls = function () {
+        quillc.root.innerHTML = "";
+        $("#qa_type").val("").trigger("change");
+        $("#qa_subject").val("").trigger("change");
+        $("#fileInput").val(null).trigger("change");
+        $("#qa_date").bootstrapdatepicker("setDate", "today");
+    }
+    //#endregion
+</script>

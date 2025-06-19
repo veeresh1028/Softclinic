@@ -1,0 +1,612 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Chief Complaints";
+    var id = TempData["Layout"] as string;
+    var layoutPath = string.IsNullOrEmpty(id)
+        ? "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml"
+        : null;
+    Layout = layoutPath;
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">                
+                <div id="complaints_add" style="display:none;">
+                </div>
+                <div id="complaints_edit">
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_complaints" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Complaints</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div>
+                    <h4 class="page-title mb-0 text-primary ">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_Precomplaints" class="table table-striped table-bordered text-nowrap  resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Complaints</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Complaints Modal -->
+<div class="modal fade" id="complaint_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="complaint_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Complaints Modal -->
+<script>
+    //#region Page Load
+        $(function () {
+            AddCheifComplaints();
+            GetCheifComplaints();
+            GetPreviousCheifComplaints();
+
+        });
+    //#endregion Page Load
+
+    //#region Load CheifComplaints
+        var GetCheifComplaints = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllCheifComplaints", "CheifComplaints", new { area = "EMR" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_complaints')) {
+                            table = $('#tbl_complaints').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableComplaint(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+           .done(function () {
+                    resizedt();;
+                });   
+        }
+    //#endregion Load CheifComplaints
+
+    //#region Load PreviousCheifComplaints
+        var GetPreviousCheifComplaints = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreCheifComplaints", "CheifComplaints", new { area = "EMR" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_Precomplaints')) {
+                            table = $('#tbl_Precomplaints').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableComplaintP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();;
+                });
+        }
+    //#endregion Load PreviousCheifComplaints
+
+    //#region Bind Datatable
+        var BindDataTableComplaint = function (response) {
+            var table = $("#tbl_complaints").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "compId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+
+                    {
+                        "mData": "complaint",
+                        "className": 'text-left',
+
+                    },
+
+                    {
+                        "mData": "compId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (compId, type, full, meta) {
+                            var status = full.comp_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="EditCheifComplaints(' + compId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="EditCheifComplaints(' + compId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                    }
+                                    else {
+                                         if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditCheifComplaints(' + compId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                                return ''
+                                            }
+                                    }
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "compId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (compId, type, full, meta) {
+                            var status = full.comp_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteCheifComplaints(' + compId + ',' + full.comp_severity + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="DeleteCheifComplaints(' + compId + ',' + full.comp_severity + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+
+                                        }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteCheifComplaints(' + compId + ',' + full.comp_severity + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Complaints</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Cheif Complaints',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Cheif Complaints',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Cheif Complaints',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Cheif Complaints',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_complaints_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Previous Bind Datatable
+        var BindDataTableComplaintP = function (response) {
+            var table = $("#tbl_Precomplaints").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "compId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "complaint",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "compId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (compId, type, full, meta) {
+                            var Action = '';
+                            //Copy Data
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_Complaint  onclick="CopyPrevious(' + compId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                                else {
+                                if ("@emr.set_emr_lock" == "NoLock") {
+                                    Action += '<a id=btn_Copy_Complaint  onclick="CopyPrevious(' + compId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+
+
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            Action += '<a id=btn_Copy_Complaint  onclick="CopyPrevious(' + compId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                        }
+                                        else {
+                                            Action += ''
+                                            }
+                                    }
+                                }
+
+                                return Action;
+                            }
+                    },
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Complaints</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous CheifComplaints',
+                        footer: 'true',
+                        className:'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous CheifComplaints',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous CheifComplaints',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous CheifComplaints',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_Precomplaints_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add CheifComplaints
+        function AddCheifComplaints() {
+            $('#complaints_edit').hide();
+            var x = $("#complaints_add");
+            x.load("@Url.Action("CreateCheifComplaints", "CheifComplaints", new { area = "EMR" })", function () {
+                $("#complaints_add").show();
+            });
+        }
+    //#endregion Add CheifComplaints
+
+    //#region Edit CheifComplaints
+        function EditCheifComplaints(compId) {
+            $('#complaints_add').hide();
+            var x = $("#complaints_edit");
+            x.load("@Url.Action("EditCheifComplaints", "CheifComplaints", new { area = "EMR" })?compId=" + compId + "&appId=" + @emr.appId, function () {
+                $("#complaints_edit").show();
+            });
+            //hide the Copy Data
+            var dt = $('#tbl_Precomplaints').DataTable();
+            dt.columns([4]).visible(false);
+
+        }
+    //#endregion Edit CheifComplaints
+
+
+    //#region Copy CheifComplaints
+        function CopyPrevious(compId) {
+            var x = $("#btn_Copy_Complaint");
+                $.ajax({
+                type: "GET",
+                    url: "@Url.Action("CopyCheifComplaints", "CheifComplaints", new { area = "EMR" })?compId=" + compId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var _data = response;
+                        console.log(response);
+                        if (_data.length > 0) {
+                            load_complaints(response[0].cm_title);
+                            $("#complaints_edit").hide();
+                            $("#complaints_add").show(_data);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+
+    //#endregion Copy CheifComplaints
+   //#region load CheifComplaints
+    var load_complaints = function (cm_title) {
+            $.ajax({
+                url: '@Url.Action("GetComplaints", "CheifComplaints", new { area = "EMR" })?query=' + cm_title,
+                type: "GET",
+                dataType: "json",
+                async: false,
+
+                success: function (response) {
+                    var data = {
+                        "id": response[0].id,
+                        "text": response[0].text,
+                    };
+                    //$('#ucomplaint').val(response[0].text);
+                    var newOption = new Option(response[0].text, response[0].id, true, true);
+                    $('#cm_title').append(newOption).trigger('change');
+                    $('#cm_title').trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    });
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+
+            });
+        };
+    //#endregion load CheifComplaints
+
+
+    //#region load CheifComplaints
+        $('#cm_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            console.log(data);
+            var realHTML = $('<textarea />').html(data.id).text();
+            quillc.root.innerHTML = realHTML;
+        });
+    //#endregion load CheifComplaints
+
+        //#region Delete CheifComplaints
+        var DeleteCheifComplaints = function (compId, comp_severity) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Complaints ?",
+                text: "The selected Complaints will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteCheifComplaints", "CheifComplaints", new { area = "EMR" })?compId=' + compId + "&comp_severity=" + comp_severity,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetCheifComplaints();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Complaints",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Complaints!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Complaints! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetCheifComplaints();
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion Delete CheifComplaints
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    //#region Remove Error Class Quil
+        function error_timeout_quil(id) {
+            setTimeout(function () {
+                id.attr("style", "border:1px solid black;color:black;");
+            }, 3200);
+        }
+    //#endregion Remove Error Class Quil
+</script>

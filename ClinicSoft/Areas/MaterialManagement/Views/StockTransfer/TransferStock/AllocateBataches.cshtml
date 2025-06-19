@@ -1,0 +1,923 @@
+﻿
+
+@model BusinessEntities.Accounts.MaterialManagement.StockTransferRequest
+
+<div class="modal-header py-4 px-5">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Allocate Batches To Requested Item</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+        </div>
+    </div>
+
+    <form id="form_AllocateStockTransferRequest">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-3 col-md-3 col-lg-3">
+                <div class="form-group">
+                    <label class="form-label text-black">From Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DisplayFor(m => m.from_branch_name)
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-2">
+                    <label class="form-label font-weight-semibold">Requesting Branch</label>
+                    @Html.DisplayFor(m => m.requested_branch_name)
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">Date&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("all_str_date", Model.str_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", maxlength = "18" })
+                </div>
+            </div>
+        </div>
+        <div id="divItems">
+            <div class="row" style="border: 1px solid #0e2672; border-width: 1px 0 1px 0px;">
+                <div class="mt-5">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-sm-12 col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label text-black">Items&nbsp;<span class="text-danger">*&nbsp;<label id="lbl_allocated_message" class="fw-bold"></label></span></label>
+                                    <select class="form-control select2 disabled" disabled="disabled" id="all_request_item_name">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-6 col-lg-3">
+                                <div class="form-group">
+                                    <label class="form-label text-black">Batch<span class="text-danger">&nbsp;*</span></label>
+                                    <select class="form-control select2" id="all_item_batch"></select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <div class="form-group">
+                                    <label class="form-label">Qty / UoM&nbsp;<span class="text-danger">*&nbsp;<label id="lbl_u_qty" class="fw-bold"></label></span></label>
+                                    <div class="input-group">
+                                        <input type="text" id="all_request_item_qty" class="form-control" maxlength="8" onkeypress="return validateOneDecimalNumeric(this,event);" value="0" />
+                                        <div class="input-group-append" style="max-width: 70%; min-width: 50%;">
+                                            <select class="form-control select2" id="all_request_item_uom"></select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-6 col-lg-3">
+                                <div class="form-group">
+                                    <label class="form-label text-black">Items Description</label>
+                                    <input type="text" id="all_request_item_desc" class="form-control" maxlength="495" />
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label text-danger">&nbsp;<span class="text-danger" id="lbl_calculation_error"></span></label>
+                                </div>
+                            </div>
+                            <div class="col-md-12 col-lg-12 d-flex justify-content-center" id="exists">
+                                <div id="ExistAlert"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div id="allocate_stock_error" class="text-center" style="max-width:500px"></div>
+                </div>
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div id="AllocateStockAlert"></div>
+                </div>
+                @if (TempData["ErrorMessage_Update"] != null)
+                {
+                    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <strong>Error!&nbsp;</strong>@TempData["ErrorMessage_Update"]
+                        </div>
+                    </div>
+                }
+                <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                    <label class="form-label text-danger">&nbsp;<span class="text-danger" id="lbl_all_request_branch_error"></span></label>
+                    <label class="form-label text-danger">&nbsp;<span class="text-danger" id="lbl_all_request_calculation_error"></span></label>
+
+                    <button type="submit" class="btn btn-warning" id="btn_AllocateBatches">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        <i class="fe fe-x"></i> Close
+                    </button>
+                    <label class="text-red" id="allocate_error_message"></label>
+                    <input type="hidden" id="hi_all_uom" value="0" />
+                    <input type="hidden" id="hi_all_uom2" value="0" />
+                    <input type="hidden" id="hi_all_uom3" value="0" />
+                    <input type="hidden" id="hi_all_mfactor" value="0" />
+                    <input type="hidden" id="hi_all_mfactor2" value="" />
+                    <input type="hidden" id="hi_all_itemId" value="0" />
+                    <input type="hidden" id="hi_all_ibId" value="0" />
+                    <input type="hidden" id="hi_all_ibQty" value="0" />
+                    <input type="hidden" id="hi_all_ibQty2" value="0" />
+                    <input type="hidden" id="hi_all_ibQty3" value="0" />
+                    <input type="hidden" id="hi_all_item_name" value="" />
+                    <input type="hidden" id="hi_all_item_code" value="" />
+                    <input type="hidden" id="hi_all_batch" value="" />
+                    <input type="hidden" id="hi_all_ib_cost" value="0" />
+                    <input type="hidden" id="hi_all_ib_cost2" value="0" />
+                    <input type="hidden" id="hi_all_ib_cost3" value="0" />
+                    <input type="hidden" id="hi_all_ib_sprice" value="0" />
+                    <input type="hidden" id="hi_all_ib_sprice2" value="0" />
+                    <input type="hidden" id="hi_all_ib_sprice3" value="0" />
+                    <input type="hidden" id="hi_all_ib_expiry" value="0" />
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    var directTransfer_arr = [];
+
+    //#region Page Load
+    $(function () {
+
+        $('#all_request_item_uom').select2({
+            dropdownParent: $('#form_AllocateStockTransferRequest'),
+            placeholder: 'Select UoM',
+            width: '100%'
+        });
+
+        $('#all_item_batch').select2({
+            dropdownParent: $('#form_AllocateStockTransferRequest'),
+            placeholder: 'Select Batch',
+            width: '100%'
+        });
+
+        // Get the current date
+        var currentDate = new Date();
+        // Get last year date
+        var lastYearDate = new Date(moment('@Model.str_date', 'DD/MM/YYYY'));
+
+        $('#all_str_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: lastYearDate,
+            endDate: currentDate
+        });
+
+        ////$("#all_str_date").val(moment('@Model.str_date', 'DD/MM/YYYY').format('DD-MMMM-YYYY'));
+
+        $("#all_str_date").bootstrapdatepicker("setDate", "today");
+
+        $("#all_request_item_name").select2({
+            placeholder: 'Select a Item',
+            width: '100%',
+            dropdownParent: $('#form_AllocateStockTransferRequest'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchItems", "PurchaseOrders", new { area = "MaterialManagement" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    $('#lbl_allocated_message').text('');
+                    if ('@Model.str_from_branch' != null && '@Model.str_from_branch' != "0") {
+                        console.log()
+                        return {
+                            query: query.term,
+                            branch: '@Model.str_from_branch'
+                        };
+                    }
+                    else {
+                        $('#lbl_allocated_message').text('Select From Branch First');
+                        return {
+                            query: '',
+                            branch: 0
+                        }
+                    }
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        setItem('@Model.str_itemId', '@Model.str_from_branch');
+
+        $("#all_request_item_qty").val('@Model.str_oqty');
+        $("#all_request_item_desc").val('@Model.str_notes');
+        $("#hi_all_uom").val('@Model.str_ouom');
+        $("#hi_all_uom2").val('@Model.str_item_uom2');
+        $("#hi_all_uom3").val('@Model.str_item_uom2');       
+        $("#hi_all_item_name").val('@Model.item_name');
+        $("#hi_all_item_code").val('@Model.str_item_code');
+
+        loadBatch('@Model.str_item_code', '@Model.str_from_branch', 'withqty');
+
+        validation();
+    });
+    //#endregion
+
+    //#region Set Item Details
+    var data = '';
+    var setItem = function (itemId, branchId) {
+        $.ajax({
+            url: '@Url.Action("SearchItems", "StockTransfer", new { area = "MaterialManagement" })?query=' + itemId + '&branch=' + branchId + '&type=withId',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                var newOption = new Option(response[0].text, response[0].itemId, true, true);
+                $('#all_request_item_name').append(newOption).trigger('change');
+                GetTransferItemDetail(itemId);
+            },
+            error: function (xhr) {
+                console.log(xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Adding Validation on Main Form
+    var validation = function () {
+        $("#form_AllocateStockTransferRequest").validate({
+            focusInvalid: true,
+            rules:
+            {
+                all_str_date: {
+                    required: true,
+                },
+                all_item_batch: {
+                    required: true,
+                },                
+                all_request_item_qty: {
+                    required: true,
+                },
+            },
+            messages: {
+                all_str_date: {
+                    required: "Select Date",
+                },
+                all_item_batch: {
+                    required: "Select Allocated Batch",
+                },
+                all_request_item_qty: {
+                    required: "Enter Qty",
+                },
+            },
+
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    $('#all_str_date').keypress(function (e) {
+        var charCode = (e.which) ? e.which : e.keyCode
+        if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+            return false;
+
+        }
+        else {
+            if (e.target.value.length >= 18)
+                return false;
+        }
+    });
+    //#endregion
+
+    //#region Validate Text Box with One Decimal and numeric only on Key Press
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : e.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Load Item and Batch
+
+    var GetTransferItemDetail = function (_itemId) {
+        if (_itemId > 0) {
+            $.ajax({
+                url: '@Url.Action("GetRequestedItemDetail", "StockTransfer", new { area = "MaterialManagement" })?id=' + _itemId,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#all_request_item_uom").empty();
+                    if (response.length > 0) {
+                        var item_uom = response[0].item_uom;
+                        var item_uom2 = response[0].item_uom2;
+                        var item_uom3 = response[0].item_uom3;
+                        var newOption = "";
+                        newOption = new Option(item_uom, item_uom, true, true);
+                        $("#all_request_item_uom").append(newOption).trigger('change');
+                        if (item_uom != item_uom2) {
+                            newOption = new Option(item_uom2, item_uom2, true, true);
+                            $("#all_request_item_uom").append(newOption).trigger('change');
+                        }
+                        if (item_uom2 != item_uom3) {
+                            newOption = new Option(item_uom3, item_uom3, true, true);
+                            $("#all_request_item_uom").append(newOption).trigger('change');
+                        }
+                        $('#all_request_item_uom').val(response[0].item_uom).trigger('change');
+
+                                     
+                        $('#hi_all_itemId').val(response[0].itemId);
+                    }
+                    else {
+                        $('#item_request_qty').val('0');
+                        $('#all_request_item_uom').val('-1').trigger('change');                       
+                        
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr.statusText);
+                }
+            }).done(function () {
+                //$('#select2-item_request_name-container').attr("title", $('#hi_item_request_name').val());
+                setTimeout(function () {
+                    $('#select2-item_request_name-container').attr("title", $('#hi_item_request_name').val());
+                }, 100);
+            });
+        }
+    }
+
+    var loadBatch = function (item_code, branchId, type) {
+    $.ajax({
+        url: '@Url.Action("GetBatchesDetail", "MaterialsConsumption", new { area = "MaterialManagement" })?Item_code=' + item_code + "&branchId=" + branchId + "&type=" + type,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                if (response.length > 0) {
+                $('#all_item_batch').empty();
+                $('#all_item_batch').append('<option value="">Select Batch</option>');
+                $('#all_item_batch').val('-1');
+                $('#all_item_batch').trigger('change');
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].text, response[j].id, (response[j].id === '-1') ? true : false, (response[j].id === '-1') ? true : false);
+                    $('#all_item_batch').append(newOption).trigger('change');
+                });
+                }
+                else {
+                    $('#all_item_batch').empty();
+                }
+                AddingCalculation();
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region On Batch Selection Event
+    $('#all_item_batch').on('select2:select', function (e) {
+        var ibId = $('#all_item_batch').val();
+        if (ibId > 0) {
+            $.ajax({
+                url: '@Url.Action("ConsumedBatch_Detail", "MaterialsConsumption", new { area = "MaterialManagement" })?ibId=' + ibId,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    if (response.length > 0) {
+                        $('#hi_all_ibQty').val(parseFloat(response[0].ib_qty).toFixed(2));
+                        $('#hi_all_ibQty2').val(parseFloat(response[0].ib_qty2).toFixed(2));
+                        $('#hi_all_ibQty3').val(parseFloat(response[0].ib_qty3).toFixed(2));
+                        $('#hi_all_ibId').val(response[0].ibId);
+                        $('#hi_all_uom').val(response[0].ib_uom);
+                        $('#hi_all_uom2').val(response[0].ib_uom2);
+                        $('#hi_all_uom3').val(response[0].ib_uom3);
+                        $('#hi_all_mfactor').val(response[0].ib_m_factor);
+                        $('#hi_all_mfactor2').val(response[0].ib_m_factor2);
+                        $('#hi_all_batch').val(response[0].ib_batch);
+
+                        $('#hi_all_ib_cost').val(response[0].ib_cost);
+                        $('#hi_all_ib_cost2').val(response[0].ib_cost2);
+                        $('#hi_all_ib_cost3').val(response[0].ib_cost3);
+                        $('#hi_all_ib_sprice').val(response[0].ib_sprice);
+                        $('#hi_all_ib_sprice2').val(response[0].ib_sprice2);
+                        $('#hi_all_ib_sprice3').val(response[0].ib_sprice3);
+                        $('#hi_all_ib_expiry').val(response[0].ib_edate);
+                    }
+                    else {
+                        $('#hi_all_mfactor').val('0');
+                        $('#hi_all_mfactor2').val('0');
+                        $('#hi_all_uom').val('');
+                        $('#hi_all_uom2').val('');
+                        $('#hi_all_uom3').val('');
+                        $('#hi_all_ibQty').val('0');
+                        $('#hi_all_ibQty2').val('0');
+                        $('#hi_all_ibQty3').val('0');
+                        $('#hi_ibId').val('0');
+                        $('#hi_all_ib_expiry').val('01-April-2000');
+                    }
+                    AddingCalculation();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr.statusText);
+                }
+            });
+        }
+    });
+    //#endregion
+
+    //#region Adding Item Calculation
+    $("#all_request_item_qty").focusout('input', function () {
+        AddingCalculation();
+    });
+
+
+    $('#all_request_item_uom').on('select2:select', function (e) {
+        AddingCalculation();
+    });
+
+    var AddingCalculation = function () {
+        $("#lbl_calculation_error").text("");
+        $("#lbl_u_qty").text("");
+        let _qty = $("#all_request_item_qty").val();
+        let _uom = $("#all_request_item_uom").val();
+        let _ibQty = $("#hi_all_ibQty").val();
+        let _ibQty2 = $("#hi_all_ibQty2").val();
+        let _ibQty3 = $("#hi_all_ibQty3").val();
+        let _ibuom = $("#hi_all_uom").val();
+        let _ibuom2 = $("#hi_all_uom2").val();
+        let _ibuom3 = $("#hi_all_uom3").val();
+        if (_uom !== undefined && _uom !== null && _uom !== "" && _uom.length > 0) {
+            if (_ibuom === undefined || _ibuom === null || _ibuom === "" ||
+                _ibuom2 === undefined || _ibuom2 === null || _ibuom2 === "" ||
+                _ibuom3 === undefined || _ibuom3 === null || _ibuom3 === "") {
+                $('#all_request_item_name').parent().addClass('has-error');
+                Error_Timeout("all_request_item_name");
+                $("#lbl_u_qty").text("Item Qty Not Selected");
+            }
+            else {
+                if (_qty === "" || _qty === null || _qty === undefined) {
+                    _qty = 0;
+                    $("#all_request_item_qty").val("0");
+                }
+
+                if (_ibQty === "" || _ibQty === null || _ibQty === undefined) {
+                    _ibQty = 0;
+                    $("#hi_all_ibQty").val("0");
+                }
+
+                if (_ibQty2 === "" || _ibQty2 === null || _ibQty2 === undefined) {
+                    _ibQty2 = 0;
+                    $("#hi_all_ibQty2").val("0");
+                }
+
+                if (_ibQty3 === "" || _ibQty3 === null || _ibQty3 === undefined) {
+                    _ibQty3 = 0;
+                    $("#hi_all_ibQty3").val("0");
+                }
+
+                if (_uom === _ibuom) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty)) {
+                        $("#lbl_calculation_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom2) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_calculation_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom3) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty3)) {
+                        $("#lbl_calculation_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+            }
+        }
+        else {
+            $('#all_request_item_uom').parent().addClass('has-error');
+
+            Error_Timeout("item_uom");
+        }
+    }
+    //#endregion
+
+    //#region Items Table Validation
+    var ItemsValid = function () {
+        let _qty = $('#all_request_item_qty').val().trim();
+        let _uom = $("#all_request_item_uom").val();
+        let _ibQty = $("#hi_all_ibQty").val();
+        let _ibQty2 = $("#hi_all_ibQty2").val();
+        let _ibQty3 = $("#hi_all_ibQty3").val();
+        let _ibuom = $("#hi_all_uom").val();
+        let _ibuom2 = $("#hi_all_uom2").val();
+        let _ibuom3 = $("#hi_all_uom3").val();
+        var count = 0;
+
+
+        if ($('#all_str_date').val() == undefined || $('#all_str_date').val() == null || $('#all_str_date').val() == '' || $('#all_str_date').val().length == 0) {
+            $("#all_str_date").parent().addClass('has-error');
+            count++;
+            Error_Timeout("all_str_date");
+        }
+
+        if (_qty === "" || _qty === null || _qty === undefined) {
+            $("#lbl_all_request_calculation_error").text("Qty should be more than 0");
+            $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+            count++;
+            Error_Timeout("item_qty");
+        }
+        else {
+            $("#lbl_all_request_calculation_error").text("");
+            $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+
+        if (_uom !== undefined && _uom !== null && _uom !== "" && _uom.length > 0) {
+            if (_ibuom === undefined || _ibuom === null || _ibuom === "" ||
+                _ibuom2 === undefined || _ibuom2 === null || _ibuom2 === "" ||
+                _ibuom3 === undefined || _ibuom3 === null || _ibuom3 === "") {
+                $('#all_request_item_name').parent().addClass('has-error');
+                count++;
+                Error_Timeout("all_request_item_name");
+                $("#lbl_u_qty").text("Item Qty Not Selected");
+            }
+            else {
+                if (_qty === "" || _qty === null || _qty === undefined) {
+                    _qty = 0;
+                    $("#all_request_item_qty").val("0");
+                }
+
+                if (_ibQty === "" || _ibQty === null || _ibQty === undefined) {
+                    _ibQty = 0;
+                    $("#hi_all_ibQty").val("0");
+                }
+
+                if (_ibQty2 === "" || _ibQty2 === null || _ibQty2 === undefined) {
+                    _ibQty2 = 0;
+                    $("#hi_all_ibQty2").val("0");
+                }
+
+                if (_ibQty3 === "" || _ibQty3 === null || _ibQty3 === undefined) {
+                    _ibQty3 = 0;
+                    $("#hi_all_ibQty3").val("0");
+                }
+
+                if (_uom === _ibuom) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty)) {
+                        $("#lbl_calculation_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom2) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty2)) {
+                        $("#lbl_calculation_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else if (_uom === _ibuom3) {
+                    if (parseFloat(_qty) > parseFloat(_ibQty3)) {
+                        $("#lbl_calculation_error").text("Transfer Qty should be less than Batch Qty");
+                        $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#lbl_calculation_error").text("");
+                        $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+            }
+        }
+        else {
+            $('#all_request_item_uom').parent().addClass('has-error');
+            count++;
+            Error_Timeout("item_uom");
+        }
+        if (count == 0) {
+            if (_qty <= 0) {
+                $("#lbl_all_request_calculation_error").text("Qty should be more than 0");
+                $("#all_request_item_qty").attr("style", "border:1px solid red;color:red;");
+                count++;
+                Error_Timeout("item_qty");
+            }
+            else {
+                $("#lbl_all_request_calculation_error").text("");
+                $("#all_request_item_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+        }
+
+        if ($('#hi_all_uom').val() == '' || $('#hi_all_uom').val().length == 0 ||
+            $('#hi_all_mfactor').val() == '' || $('#hi_all_mfactor').val() == 0 ||
+            $('#hi_all_mfactor2').val() == '' || $('#hi_all_mfactor2').val() == 0) {
+
+            $("#select2-item_name-container").parent().addClass('error');
+            $("#select2-item_batch-container").parent().addClass('error');
+            count++;
+            Error_Timeout("item_name");
+            Error_Timeout("item_batch");
+        }
+
+        if (count > 0)
+            return false;
+        else
+            return true;
+    }
+    //#endregion
+
+    //#region Allocate Batches To Stock Transfer Request on Button Click
+    $('#btn_AllocateBatches').on('click', function (e) {
+        e.preventDefault();
+        var t = 0;
+        if ($('#form_AllocateStockTransferRequest').valid()) {
+            if (ItemsValid()) {
+                Swal.fire({
+                    title: "Save Changes",
+                    text: "Are you sure you want to Update Stock Transfer Request!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-warning mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _data = {
+                            "strId": '@Model.strId',
+                            "str_date": $("#all_str_date").val(),
+                            "str_refno": '@Model.str_refno',
+                            "str_itemId": $("#all_request_item_name").val(),
+                            "str_notes": $("#all_request_item_desc").val(),
+                            "str_oqty": $("#all_request_item_qty").val(),
+                            "str_ouom": $("#all_request_item_uom").val(),
+                            "str_item_batch": $("#hi_all_batch").val(),
+                            "str_from_branch": '@Model.str_from_branch',
+                            "str_request_branch": '@Model.str_request_branch',
+                            "str_ibId": $("#hi_all_ibId").val(),
+                            "str_item_uom": $("#hi_all_uom").val(),
+                            "str_item_uom2": $("#hi_all_uom2").val(),
+                            "str_item_uom3": $("#hi_all_uom3").val(),
+                            "str_item_mfactor": $("#hi_all_mfactor").val(),
+                            "str_item_mfactor2": $("#hi_all_mfactor2").val(),
+                            "item_name": $("#hi_all_item_name").val(),
+                            "str_item_code": $("#hi_all_item_code").val(),
+                            "str_item_cost": $("#hi_all_ib_cost").val(),
+                            "str_item_cost2": $("#hi_all_ib_cost2").val(),
+                            "str_item_cost3": $("#hi_all_ib_cost3").val(),
+                            "str_item_sprice": $("#hi_all_ib_sprice").val(),
+                            "str_item_sprice2": $("#hi_all_ib_sprice2").val(),
+                            "str_item_sprice3": $("#hi_all_ib_sprice3").val(),
+                            "str_item_expiry": $("#hi_all_ib_expiry").val(),
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            url: '@Url.Action("AllocateBatchesToRequest", "StockTransfer", new { area = "MaterialManagement" })',
+                            type: "POST",
+                            dataType: "json",
+                            data: _data,
+                            beforeSend: function () {
+                                $('#btn_AllocateBatches').removeClass("btn btn-warning");
+                                $('#btn_AllocateBatches').addClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_AllocateBatches').parent().addClass("curdrop");
+                                $('.btn-close').addClass("disabled");
+                                $('#btn_AllocateBatches').html("Saving.. Please Wait");
+                            },
+                            async: false,
+                            success: function (data) {
+                                $('#btn_AllocateBatches').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_AllocateBatches').addClass("btn btn-warning");
+                                $('#btn_AllocateBatches').parent().removeClass("curdrop");
+                                $('.btn-close').removeClass("disabled");
+                                $('#btn_AllocateBatches').html("Save Changes");
+                                if (data.isUpdated) {
+                                    Get_StockTransferRequests($('#all_str_date').val().trim(), $('#all_str_date').val().trim());
+                                    var alertPlaceholder = document.getElementById("StockTransferRequestAlert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i>Stock Transfer Request Updated Successfully!", "success");
+                                    $('#BatchesAllocation_modal').modal('toggle');
+                                    Timeout();
+                                }
+                                else {
+                                    $("#allocate_stock_error").html('');
+                                    var error_message = data.message;
+                                    if (error_message == "Error While Updating Stock Transfer Request!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+                                        $("#allocate_stock_error").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-white' ></i>&nbsp;Validation Error.. Please correct before you Update!&nbsp;</strong><br/><ul>";
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+                                        html += "</ul></div></div>";
+                                        $("#allocate_stock_error").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_AllocateBatches').removeClass("btn btn-warning btn-loaders btn-icon");
+                                $('#btn_AllocateBatches').addClass("btn btn-warning");
+                                $('#btn_AllocateBatches').parent().removeClass("curdrop");
+                                $('.btn-close').removeClass("disabled");
+                                $('#btn_AllocateBatches').html("Save Changes");
+                                var alertPlaceholder = document.getElementById("StockTransferRequestAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Stock Transfer Request!", "danger");
+                                $('#BatchesAllocation_modal').modal('toggle');
+                                Timeout();
+                            }
+                        });
+
+                    }
+                });
+            }
+            else {
+                var alertPlaceholder = document.getElementById("allocate_stock_error");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-exclamation-triangle text-warning'></i>Check Item Detail and Try Again!", "warning");
+                Timeout();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+            var alertPlaceholder = document.getElementById("allocate_stock_error");
+            function alert(e, t) {
+                var l = document.createElement("div");
+                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+            }
+            alert("<i class='fa fa-exclamation-triangle text-warning'></i>Fill Mandatory fields!", "warning");
+            Timeout();
+        }
+    });
+    //#endregion
+
+    //#region Clear Text Boxes Data
+    var clearData = function () {
+        $('#all_request_item_name').val('0').trigger('change');
+        $('#all_item_batch').val('-1').trigger('change');
+        $('#allocate_error_message').val('');
+        $('#lbl_cal_error').val('');
+        $('#lbl_u_qty').val('');
+        $('#lbl_allocated_message').val('');
+        $('#all_request_item_desc').val('');
+        $('#all_request_item_qty').val('0');
+        $('#all_request_item_uom').val('0');
+        $('#item_ibQty').val('0');
+        $('#item_ibQty2').val('0');
+        $('#item_ibQty3').val('0');
+        $('#hi_all_item_name').val('');
+        $('#hi_all_item_code').val('');
+        $('#hi_all_batch').val('');
+        $('#hi_all_uom').val('');
+        $('#hi_all_uom2').val('');
+        $('#hi_all_uom3').val('');
+
+    }
+    //#endregion
+
+    //#region Rest Items Detail Feilds
+    $('#btn_Reset').click(function () {
+        clearData();
+    });
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+</script>
+

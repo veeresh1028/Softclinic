@@ -1,0 +1,108 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+
+    TempData.Keep("emr_data");
+    ViewBag.Title = "DemographicFormIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Demographic Form
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="DemographicForm_add" style="display:none">
+                </div>
+                <div id="DemographicForm_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DemographicForm_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        GetDemographicFormInfo();
+        DemographicFormPreviousHistory();
+
+    });
+    //#endregion Page Load
+
+    //#region Load GetDemographicFormInfo
+    var GetDemographicFormInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetDemographicFormData", "DemographicForm", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditDemographicForm();
+                        $("#DemographicForm_add").hide();
+                        $("#DemographicForm_edit").show();
+
+                    }
+                    else {
+                        $("#DemographicForm_add").show();
+                        $("#DemographicForm_edit").hide();
+                        AddDemographicForm();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load DemographicForm
+
+    //#region Add DemographicForm
+    function AddDemographicForm() {
+        var x = $("#DemographicForm_add");
+        x.load("@Url.Action("CreateDemographicForm", "DemographicForm", new { area = "ConsentForms" })", function () {
+      });
+    }
+    //#endregion Add DemographicForm
+
+    //#region Update DemographicForm
+    function EditDemographicForm() {
+        var x = $("#DemographicForm_edit");
+        x.load("@Url.Action("UpdateDemographicForm", "DemographicForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion Update DemographicForm
+
+    //#region History of DemographicForm
+    function DemographicFormPreviousHistory() {
+        var x = $("#DemographicForm_history");
+        x.load("@Url.Action("DemographicFormPreviousHistory", "DemographicForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion History of DemographicForm
+
+
+</script>

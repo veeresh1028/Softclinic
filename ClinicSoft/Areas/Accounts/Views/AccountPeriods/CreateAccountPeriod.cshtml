@@ -1,0 +1,369 @@
+﻿@model BusinessEntities.Accounts.Accounting.AccountPeriod
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Create Financial Period</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_AddPeriod" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Name&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ap_name, new { @class = "form-control", @placeholder = "Ex : Jan 2023 - Dec 2023", autocomplete = "off", maxlength = "99" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Period From&nbsp;<span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <div class="input-group-text">
+                                <i class="fe fe-calendar"></i>
+                            </div>
+                        </div>
+                        @Html.TextBoxFor(m => m.ap_fdate, new { @class = "form-control", @placeholder = "Select From Date", maxlength = "18" })
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Period To&nbsp;<span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <div class="input-group-text">
+                                <i class="fe fe-calendar"></i>
+                            </div>
+                        </div>
+                        @Html.TextBoxFor(m => m.ap_tdate, new { @class = "form-control", @placeholder = "Select To Date", maxlength = "18" })
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorCreate"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert">Create Period</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        var year = new Date().getFullYear();
+        var start = "01-01-" + year;
+        var end = "31-12-" + year;
+
+        $('#ap_fdate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        $("#ap_fdate").bootstrapdatepicker("setDate", moment(start, "DD-MM-YYYYY").format("DD-MMMM-YYYY"));
+
+        $('#ap_tdate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        $("#ap_tdate").bootstrapdatepicker("setDate", moment(end, "DD-MM-YYYYY").format("DD-MMMM-YYYY"));
+
+        validation();
+    });
+    //#endregion
+
+    //#region Adding Validation on Fields
+    var validation = function () {
+        $.validator.addMethod("greaterThanDateIn", function (value, element, params) {
+            var startDate = new Date(value);
+            var endDate = new Date($(params).val());
+            return startDate > endDate;
+        }, "To Date must be greater than From date");
+
+
+        $("#form_AddPeriod").validate({
+            focusInvalid: true,
+            rules:
+            {
+                ap_name: {
+                    required: true,
+                    minlength: 3
+                },
+                ap_fdate: {
+                    required: true,
+                    date: true
+                },
+                ap_tdate: {
+                    required: true,
+                    date: true,
+                    greaterThanDateIn: "#ap_fdate"
+                }
+            },
+            messages: {
+                ap_name: {
+                    required: "Enter Account Period Name",
+                    minlength: "Min 3 characters"
+                },
+                ap_fdate: {
+                    required: "Select Account Period From Date",
+                    date: "Invalid Date"
+                },
+                ap_tdate: {
+                    required: "Select Account Period To Date",
+                    date: "Invalid Date"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#ap_fdate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#ap_tdate').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+    }
+    //#endregion
+
+    //#region Insert Account Period on Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_AddPeriod').valid()) {
+
+            let isValid = true;
+            let date_frm = moment($("#ap_fdate").val(), "DD-MMMM-YYYY");
+            let date_to = moment($("#ap_tdate").val(), "DD-MMMM-YYYY");
+
+            if (($("#ap_fdate").val() != null && $("#ap_fdate").val() != 0 && $("#ap_fdate").val() != "" && $("#ap_fdate").val() != undefined) && ($("#ap_tdate").val() != null && $("#ap_tdate").val() != 0 && $("#ap_tdate").val() != "" && $("#ap_tdate").val() != undefined)) {
+                if (date_frm.isValid() && date_to.isValid()) {
+                   
+                    if (date_to.diff(date_frm, 'days') > 365) {
+                        isValid = false;
+
+                        var index = [];
+                        index.push("ap_fdate");
+                        index.push("ap_tdate");
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+
+                        e.stopPropagation();
+
+                        return $.growl.error({
+                            title: "Error!",
+                            message: "The Period From and To should not be greater than 1 year!"
+                        });
+                    }
+                }
+            }
+
+            if (isValid) {
+                var _dataInsert = {
+                    "apId": 0,
+                    "ap_name": $('#ap_name').val().trim(),
+                    "ap_fdate": $('#ap_fdate').val(),
+                    "ap_tdate": $('#ap_tdate').val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertAccountPeriod", "AccountPeriods", new { area = "Accounts" })",
+                    dataType: "json",
+                    data: _dataInsert,
+                    beforeSend: function () {
+                        $('#btn_Insert').removeClass("btn btn-success");
+                        $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert').html("Creating....");
+                    },
+                    success: function (data) {
+                        $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert').addClass("btn btn-success");
+                        $('#btn_Insert').html("Create Period");
+
+                        if (data.isInserted > 0) {
+                            getAccountPeriods();
+
+                            alert("<i class='fe fe-check-circle text-white'></i> Account Period Created Successfully!", "success");
+
+                            $("#ap_name").val("");
+                            var year = new Date().getFullYear();
+                            var start = "01-01-" + year;
+                            var end = "31-12-" + year;
+                            $("#ap_fdate").bootstrapdatepicker("setDate", moment(start, "DD-MM-YYYYY").format("DD-MMMM-YYYY"));
+                            $("#ap_tdate").bootstrapdatepicker("setDate", moment(end, "DD-MM-YYYYY").format("DD-MMMM-YYYY"));
+
+                            $('#period_add_modal').modal('toggle');
+
+                            Timeout();
+                        }
+                        else {
+                            $("#errorCreate").html('');
+
+                            if (data.message == "Account Period already exists!" || data.message == "Error While Creating Account Period!") {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-light-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+                                $("#errorCreate").html(html);
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-light-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+
+                                html += "</ul></div></div>";
+                                $("#errorCreate").html(html);
+                            }
+
+                            Timeout();
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert').addClass("btn btn-success");
+                        $('#btn_Insert').html("Create Period");
+
+                        alert("<i class='fe fe-x-circle text-white'></i> Failed to Create Account Period!", "danger");
+                        $('#period_add_modal').modal('toggle');
+                        Timeout();
+                    }
+                });
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alter Holder
+    var alertPlaceholder = document.getElementById("AccountPeriodAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

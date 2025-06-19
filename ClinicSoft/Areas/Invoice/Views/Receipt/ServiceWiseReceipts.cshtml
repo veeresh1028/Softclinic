@@ -1,0 +1,1059 @@
+﻿@model BusinessEntities.Invoice.ServiceWiseReceiptsInfo
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Dental Insurance Treatments";
+}
+<style type="text/css">
+    #dtTable_invAddTreatments_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 100px;
+    }
+</style>
+
+<div class="modal-header py-3 px-4" id="cashInvoiceHeader">
+    @Html.HiddenFor(m => m.rec_code)
+    @Html.HiddenFor(m => m.recId)
+    <h5 class="modal-title text-primary font-weight-semibold">Service Wise receipts: <span class="text-secondary" id="rec_code"></span></h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4" id="cashInvoiceBody">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+        </div>
+    </div>
+
+    <form id="form_quick_cash">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Services&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.pt_treatment, (IEnumerable<SelectListItem>)ViewData["TreatmentList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "pt_treatment" })
+                    <input type="hidden" value="0" id="hi_srId">
+                    <input type="hidden" value="0" id="hi_pt_tr_code">
+                    <input type="hidden" value="0" id="hi_pt_tr_name">
+                    <input type="hidden" value="0" id="hi_isPackage">
+                    <input type="hidden" id="hisrId" value="0" />
+                </div>
+            </div>
+
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Total&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="sr_total" name="sr_total" oninput="validate(this,100000)">
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Balance&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="sr_bal" name="sr_bal" oninput="validate(this,0)" readonly>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Allocated</label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="sr_paid" name="sr_paid" oninput="validate(this,100000)">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label mt-1">&nbsp;<span class="text-danger" id="error_msg"></span></label>
+                    <button type="submit" class="btn btn-info" id="btnAddTreatment"><i class="fe fe-plus"></i> Add Treatment/Service</button>
+                    <button type="button" class="btn btn-outline-dark" id="btn_Reset">Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <form id="form_quick_cash_edit_bill">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Treatments &amp; Procedures&nbsp;<span class="text-danger">*</span></label>
+                    <select placeholder="Select Any" class="form-select select2 mb-2" id="ecupt_treatment" name="ecupt_treatment">
+                    </select>
+                    <input type="hidden" value="0" id="euhi_pt_tr_code">
+                    <input type="hidden" value="0" id="euhi_pt_tr_name">
+                    <input type="hidden" value="0" id="euhi_ptId">
+                </div>
+            </div>
+
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Total&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="ecusr_total" name="ecusr_total" oninput="validate(this,100000)">
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Balance&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="ecusr_bal" name="ecusr_bal" oninput="validate(this,0)" readonly>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Allocated</label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="ecusr_paid" name="ecusr_paid" oninput="validate(this,100000)">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label mt-1">&nbsp;<span class="text-danger" id="uerror_msg"></span></label>
+                    <button type="submit" class="btn btn-info" id="ubtnEditTreatment"><i class="fe fe-plus"></i> Save Changes</button>
+                    <button type="button" class="btn btn-outline-dark" id="eubtn_Reset">Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="card" id="listItems">
+        <div class="card-body p-0">
+            <div class="table-responsive" style="min-height:unset;">
+                <table id="dtTable_invAddTreatments" class="table table-striped table-bordered" style="width:100%">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                            <th class="border-bottom-0 font-weight-semibold text-white text-end">ID</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">CPT Code</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Services</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white d-none">Balance</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Allocated</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3" class="text-end fs-14 font-weight-semibold" style="text-align: right !important;">Total:</th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold d-none"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="border p-3">
+                <div class="row">
+                    <div class="col-lg-10 col-sm-12 col-md-12">
+                        <textarea id="sr_notes" name="sr_notes" class="form-control" rows="2" placeholder="Enter notes..."></textarea>
+                    </div>
+                    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div id="error"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-footer py-1 px-3">
+    <div class="form-group">
+        <button type="button" class="btn btn-success" id="btnConfirmBilling"><i class="fe fe-check-circle"></i> Allocate</button>
+        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" aria-label="Close">
+            <i class="fe fe-x"></i> Close
+        </button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="table-responsive" id="tbl_rec_data">
+            <table id="tbl_service_receipts" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Service</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Paid</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Bal.</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <th colspan="4" class="text-end fs-14 font-weight-semibold" style="text-align: right !important;">Total:</th>
+                        <th class="text-end fs-14 font-weight-semibold"></th>
+                        <th class="text-end fs-14 font-weight-semibold"></th>
+                        <th class="text-end fs-14 font-weight-semibold"></th>
+                        <th class="text-end fs-14 font-weight-semibold"></th>
+                        <th class="text-end fs-14 font-weight-semibold"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="alert alert-light-info" role="alert" id="tbl_rec_no_data">
+            <strong>Info!</strong>  No Receipts Found.. Please Create a New Receipt!
+        </div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+    var item_arr = [];
+    var isReceipt = false;
+
+    //#region Load Event
+        $(function () {
+            $("#rec_code").html($("#rec_code").val());
+            $("#form_quick_cash_edit_bill").hide();
+            console.log($("#recId").val());
+            $("#pt_treatment").select2({
+                placeholder: 'Select Service',
+                width: '100%',
+                maximumInputLength: 6,
+                dropdownParent: $('#form_quick_cash')
+            });
+            $("#ecupt_treatment").select2({
+                placeholder: 'Select Service',
+                width: '100%',
+                maximumInputLength: 6,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                dropdownParent: $('#form_quick_cash_edit_bill')
+            });
+            GetServiceReceipts();
+        });
+    //#endregion Load Event
+
+    //#region GetServiceReceipts
+        var GetServiceReceipts = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetServiceReceipts", "Receipt", new { area = "Invoice" })?recId=" + $("#recId").val() +"&srId=0",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_service_receipts')) {
+                            table = $('#tbl_service_receipts').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableServiceReceipts(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt("tbl_service_receipts");
+            });
+        }
+    //#endregion
+
+    //#region BindDataTableServiceReceipts
+        var BindDataTableServiceReceipts = function (response) {
+            var table = $("#tbl_service_receipts").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "srId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "sr_date_modified",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "sr_tr_code",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sr_tr_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sr_total",
+                        "className": "text-end fs-13 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+
+                    },
+                    {
+                        "mData": "sr_paid",
+                        "className": "text-end fs-13 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+
+                    },
+                    {
+                        "mData": "sr_bal",
+                        "className": "text-end fs-13 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+
+                    },
+                    {
+                        "mData": "srId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (srId, type, full, meta) {
+                            return '<button type="button" data-bs-toggle="modal" onclick="EditReceipt(' + srId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                        }
+                    },
+                    {
+                        "mData": "srId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (srId, type, full, meta) {
+                            return '<button type="button" onclick="deleteReceipt(' + srId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous Addendum',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous Addendum',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous Addendum',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous Addendum',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_service_receipts_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion
+
+    //#region Validation
+        var validation = function () {
+            $('#pt_qty').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+
+            });
+
+            $('#pt_ses').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#sr_total').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#sr_bal').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#sr_paid').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#sr_paid_value').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#pt_coupon_disc').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#pt_net').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#pt_vat').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $('#pt_netvat').keypress(function (e) {
+                var charCode = (e.which) ? e.which : event.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                    return false;
+            });
+
+            $("#form_quick_cash").validate({
+                focusInvalid: true,
+                rules:
+                {
+                    "pt_treatment": {
+                        required: true
+                    },
+                    "sr_total": {
+                        required: true,
+                        minlength: 1,
+                    },
+                    "sr_bal": {
+                        required: true,
+                    },
+                    "sr_paid": {
+                        required: true,
+                        minlength: 1,
+                        min: 0,
+                        max: 100000
+                    },
+                },
+                messages: {
+                    "pt_treatment": {
+                        required: "Select Treatment"
+                    },
+                    "sr_total": {
+                        required: "Enter Total",
+                        minlength: "Give atleast 0",
+                        min: "Min. Value is 1",
+                        max: "Max. Value is 100000"
+                    },
+                    "sr_bal": {
+                        required: "Enter Total",
+                        minlength: "Give atleast 0",
+                        min: "Min. Value is 1"
+                    },
+                    "sr_paid": {
+                        required: "Enter Amt",
+                        minlength: "Give atleast 0",
+                        min: "Min. Value is 0",
+                        max: "Max. Value is 100000"
+                    }
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                    } else {
+                        elem.parent().addClass('has-error');
+                    }
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                    } else {
+                        elem.removeClass('has-error');
+                    }
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        element = $("#select2-" + elem.attr("id") + "-container").parent();
+                        error.insertAfter(element);
+                    } else {
+                        error.insertAfter(element);
+                    }
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+
+            $('#pt_treatment').on('change', function () {
+                $(this).trigger('blur');
+            });
+        }
+    //#endregion
+
+    //#region Add service rec
+        $('#btnAddTreatment').on('click', function (e) {
+            e.preventDefault();
+            if ($("#form_quick_cash").valid()) {
+                var exists = false;
+
+
+                if (item_arr.length > 0) {
+                    exists = item_arr.some(function (check) {
+                        return check.ptId == $("#pt_treatment").val();
+                    });
+                }
+
+                if (exists) {
+                    var data = $("#hi_pt_tr_name").val();
+                    data = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+
+                    Swal.fire({
+                        title: "Item Exists!",
+                        html: "<strong style='color:red;'>" + data + "</strong>.<br/> is Already Exists in list Please remove existing one and add again.",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonText: 'OK',
+                        confirmButtonClass: "btn btn-success mt-2",
+                        buttonsStyling: !1
+                    })
+                }
+                else {
+                    bindTreatment();
+                }
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion
+
+    //#region BindTreatment
+        var bindTreatment = function () {
+            var data = {
+                "sr_recId": $("#recId").val(),
+                "sr_ptId": $("#pt_treatment").val(),
+                "sr_tr_code": $("#hi_pt_tr_code").val(),
+                "srId": $("#hi_srId").val(),
+                "sr_tr_name": $("#hi_pt_tr_name").val(),
+                "sr_total": parseFloat($("#sr_total").val()),
+                "sr_bal": parseFloat($("#sr_bal").val()),
+                "sr_paid": parseFloat($("#sr_paid").val())
+            }
+
+            item_arr.push(data);
+
+            GetInvoiceItems(item_arr);
+
+
+            $("#btnConfirmBilling").show();
+            $("#btnConfirmBilling_Package").show();
+            $("#divReceipt").show();
+        }
+    //#endregion
+
+    //#region Treatment Change Event
+        $('#pt_treatment').on('select2:select', function (e) {
+
+            var data = e.params.data;
+            var isPackage = 0;
+            $.ajax({
+                url: '@Url.Action("SelectTreatmentReceipts", "Invoice", new { area = "Invoice" })?ptId=' + data.id ,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    debugger;
+                    console.log(response);
+                    $("#hi_srId").val(response.srId);
+                    $("#hi_pt_tr_code").val(response.sr_tr_code);
+                    $("#hi_pt_tr_name").val(response.sr_tr_name);
+                    $("#sr_total").val(response.sr_total);
+                    $("#sr_paid").val(response.sr_paid);
+                    $("#sr_bal").val(response.sr_bal);
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+
+        });
+    //#endregion
+
+    //#region Load Invoice Items
+        var GetInvoiceItems = function (response) {
+            if (response != null && response != undefined) {
+                var table;
+                if ($.fn.dataTable.isDataTable('#dtTable_invAddTreatments')) {
+                    table = $('#dtTable_invAddTreatments').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindDataTable(response);
+                }
+            }
+        }
+    //#endregion
+
+    //#region Bind Treatment DataTable
+        var BindDataTable = function (response) {
+
+
+            var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#dtTable_invAddTreatments").DataTable({
+                processing: true,
+                paging: false,
+                ordering: false,
+                info: false,
+                "searching": false,
+                "retrieve": true,
+                lengthChange: false,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "sr_ptId" },
+                    { "mData": "sr_tr_code" },
+                    { "mData": "sr_tr_name" },
+                    { "mData": "sr_total" },
+                    { "mData": "sr_bal" },
+                    { "mData": "sr_paid" }
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [3],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [4],
+                        "className": "fs-13 text-end",
+                        "visible": false,
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [5],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+
+                    total_qty = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(numberRenderer1(total_qty.toFixed(2)));
+
+                    total_qty = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(4).footer()).html(numberRenderer1(total_qty.toFixed(2)));
+
+                    total_ses = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(numberRenderer1(total_ses.toFixed(2)));
+
+                }
+            });
+            table.buttons().container().appendTo('#dtTable_invAddTreatments_wrapper .col-md-6:eq(0)');
+
+            // Remove Items From DataTable
+            table.on('click', '#remove-item', function (e) {
+                var row = $(this).parents('tr');
+                var data_row = table.row($(this).closest('tr')).data();
+                console.log(data_row.ptId)
+
+                Swal.fire({
+                    title: "Are you sure you want to delete this Treatments From List?",
+                    text: "This action will delete this Treatment from Selection!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        item_arr = $.grep(item_arr, function (n, i) {
+                            return (n.ptId !== data_row.ptId);
+                        });
+
+                        console.log(item_arr)
+
+                        if ($(row).hasClass('child')) {
+                            table.row($(row).prev('tr')).remove().draw();
+                        } else {
+                            table.row(row).remove().draw();
+                        }
+
+
+                        Swal.fire({
+                            title: "Success!",
+                            text: "Treatment Deleted Successfully!",
+                            icon: "success",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                        });
+
+
+                    }
+                });
+            });
+
+            resizedt();
+        }
+    //#endregion
+
+    //#region Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion
+
+    //#region Allocate Receipts
+        $('#btnConfirmBilling').on('click', function (e) {
+            e.preventDefault();
+            debugger;
+            if (item_arr.length > 0) {
+                AllocateReceipts();
+            }
+        });
+        var AllocateReceipts = function () {
+        var _from = $('#quick_billing').attr("data-modal-from");
+        debugger;
+        var _invoice = {
+            Service_items: item_arr,
+            sr_notes: $("#sr_notes").val()
+        }
+        $.ajax({
+            url: '@Url.Action("GenerateServiceWiseReceipts", "Receipt", new { area = "Invoice" })',
+            type: "POST",
+            dataType: "json",
+            data: _invoice,
+            async: false,
+            success: function (data) {
+                if (data.isSuccess) {
+                    $("#hiInvId").val(data.invId);
+
+                    let html = "<div class='alert alert-success alert-dismissible' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                        "<strong>Success! " + data.message + "</strong><br/>" +
+                        "</div>";
+
+                    $("#error").html(html);
+
+                    Timeout();
+
+                    clearReceipts();
+
+                    if (_from == "appointment-list") {
+                        GetAppointments(1);
+                    }
+
+                    window.open("@Url.Action("PrintInvoice", "Invoice", new { area = "Invoice" })?invId=" + $("#hiInvId").val(), "Invoice Print")
+
+                    $('#quick_billing').modal('hide');
+                }
+                else {
+                    let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                        "<strong>Error! " + data.message + "</strong><br/>" +
+                        "</div>";
+
+                    $("#error").html(html);
+
+                    Timeout();
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Edit
+        var EditReceipt = function (srId) {
+            $("#hisrId").val(srId);
+            $("#form_quick_cash").hide();
+            $("#listItems").hide();
+            $.ajax({
+                url: "@Url.Action("GetServiceReceipts", "Receipt", new { area = "Invoice" })?recId=" + $("#recId").val() + "&srId=" + srId,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#form_quick_cash_edit_bill").show();
+                    load_PatientTreatments(response[0].sr_ptId, response[0].sr_appId);
+                    $("#hi_srId").val(response[0].srId);
+                    $("#euhi_ptId").val(response[0].sr_ptId);
+                    $("#ecuhi_pt_tr_code").val(response[0].sr_tr_code);
+                    $("#ecuhi_pt_tr_name").val(response[0].sr_tr_name);
+                    $("#ecusr_total").val(response[0].sr_total);
+                    $("#ecusr_paid").val(response[0].sr_paid);
+                    $("#ecusr_bal").val(response[0].sr_bal);
+                    $("#sr_notes").val(response[0].sr_notes);
+                },
+                error: function (xhr) {
+                    $("#update_receipts").hide();
+                    $("#pay_receipts").show();
+
+                    let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                        "<strong>Failed! Error Message: " + xhr.statusText + "</strong><br/>" +
+                        "</div>";
+                    $("#error").html(html);
+                    timeout();
+                }
+            })
+        };
+    //#endregion
+
+    //#region load Treatments For Edit
+    var load_PatientTreatments = function (ptId, sr_appId) {
+
+            $.ajax({
+                url: '@Url.Action("SearchTreatmentsforEdit", "Receipt", new { area = "Invoice" })?ptId=' + ptId + "&appId=" + sr_appId,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    debugger;
+                    var data = {
+                        "id": response[0].id,
+                        "text": response[0].text,
+                    };
+                    $('#ecupt_treatment').val(response[0].text);
+                    var newOption = new Option(response[0].text, response[0].id, true, true);
+                    $('#ecupt_treatment').append(newOption).trigger('change');
+                    $('#ecupt_treatment').trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    });
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+
+            });
+        };
+    //#endregion
+
+    //#region Delete
+        var deleteReceipt = function (srId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Receipt ?",
+                text: "This action will delete this Receipt!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("deleteReceipt", "Receipts", new { area = "Masters" })?srId=' + srId,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            console.log(data)
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetReceipts();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete Receipts!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Error while Deleting Receipt! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion
+
+    //#region Clear Data
+    var clearEditData = function () {
+        $("#ecupt_treatment").empty();
+    }
+    //#endregion Clear Data
+
+    //#region Update Receipt Click
+        $('#ubtnEditTreatment').on('click', function (e) {
+            e.preventDefault();
+            debugger;
+            if (parseFloat($("#ecusr_total").val()) < $("#ecusr_paid").val()) {
+                $("#uerror_msg").html("Allocated Amount Should be less than or equal to " + $("#ecusr_total").val());
+                Timeout();
+            }
+            else {
+                if ($("#form_quick_cash_edit_bill").valid()) {
+                    var _dataUpdate = {
+                        "srId": $("#hisrId").val(),
+                        "sr_paid": $("#ecusr_paid").val()
+                    }
+
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("UpdateServiceReceipts", "Receipt", new { area = "Invoice" })",
+                        dataType: 'json',
+                        data: _dataUpdate,
+                        success: function (data) {
+                            if (data.isInserted) {
+                                GetServiceReceipts();
+                                let html = "<div class='alert alert-success alert-dismissible' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                    "<strong>Success.. " + data.message + "</strong><br/>" +
+                                    "</div>";
+                                $("#uerror_msg").html(html);
+                                Timeout();
+                            }
+                            else {
+                                let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                    "<strong>Error.. " + data.message + "</strong><br/>" +
+                                    "</div>";
+                                $("#uerror_msg").html(html);
+                                Timeout();
+                            }
+                        },
+                        error: function (xhr) {                           
+                            console.log("Error :" + xhr.statusText);
+                        }
+                    });
+                }
+                else
+                {
+                    $('.modal-body').animate({
+                        scrollTop: ($('.has-error').offset().top - 300)
+                    }, 2000);
+                }
+            }
+
+         });
+    //#endregion
+
+    //#region Resize Datatable
+        function resizedt(tbl_name) {
+            setTimeout(function () {
+                var tables = $.fn.dataTable.tables({ visible: true, api: true });
+                if (tables) {
+                    $('#' + tbl_name).DataTable().columns.adjust();
+                }
+            }, 450);
+        }
+    //#endregion
+
+</script>

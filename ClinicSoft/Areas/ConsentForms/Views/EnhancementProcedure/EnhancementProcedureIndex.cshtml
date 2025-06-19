@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "EnhancementProcedureIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Informed Consent For Enhancement Procedure </h3>
+            </div>
+            <div class="card-body">
+                <div id="EnhancementProcedure_add" style="display:none">
+                </div>
+                <div id="EnhancementProcedure_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="EnhancementProcedure_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetEnhancementProcedureInfo();
+        EnhancementProcedurePreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetEnhancementProcedureInfo
+    var GetEnhancementProcedureInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetEnhancementProcedureData", "EnhancementProcedure", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditEnhancementProcedure();
+                        $("#EnhancementProcedure_add").hide();
+                        $("#EnhancementProcedure_edit").show();
+
+                    }
+                    else {
+                        $("#EnhancementProcedure_add").show();
+                        $("#EnhancementProcedure_edit").hide();
+                        AddEnhancementProcedure();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load EnhancementProcedure
+
+    //#region Add EnhancementProcedure
+    function AddEnhancementProcedure() {
+        var x = $("#EnhancementProcedure_add");
+        x.load("@Url.Action("CreateEnhancementProcedure", "EnhancementProcedure", new { area = "ConsentForms" })", function () {
+      });
+    }
+    //#endregion Add EnhancementProcedure
+
+    //#region Update EnhancementProcedure
+    function EditEnhancementProcedure() {
+        var x = $("#EnhancementProcedure_edit");
+        x.load("@Url.Action("UpdateEnhancementProcedure", "EnhancementProcedure", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+      //#endregion Update EnhancementProcedure
+
+      //#region Histroy of EnhancementProcedure
+    function EnhancementProcedurePreviousHistory() {
+        var x = $("#EnhancementProcedure_history");
+        x.load("@Url.Action("EnhancementProcedurePreviousHistory", "EnhancementProcedure", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion History of EnhancementProcedure
+
+
+</script>

@@ -1,0 +1,380 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Treatment Record Sheet";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Treatment Record Sheet</h3>
+            </div>
+            <div class="card-body">
+                <div id="TreatmentRecordSheet_add" style="display:none">
+                </div>
+                <div id="TreatmentRecordSheet_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_TreatmentRecordSheet" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white d-none">Treatments Id</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatments Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">LOT number</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Expiry date of medication</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="TreatmentRecordSheet_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetTreatmentRecordSheetInfo();
+        TreatmentRecordSheetPreviousHistory();
+        AddTreatmentRecordSheet();
+        $("#TreatmentRecordSheet_add").show();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetTreatmentRecordSheetInfo
+    var GetTreatmentRecordSheetInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetTreatmentRecordSheetData", "TreatmentRecordSheet", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+
+                if (response.isAuthorized != false) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_TreatmentRecordSheet')) {
+                        table = $('#tbl_TreatmentRecordSheet').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        console.log(response);
+                        BindDataTable(response);
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+            .done(function () {
+                resizedt();
+            });
+    }
+    //#endregion Load TreatmentRecordSheet
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_TreatmentRecordSheet").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "trs_treat",
+                    "className": "text-left",
+                    "visible": false,
+                },
+                {
+                    "mData": "trs_treat_name",
+                    "className": "text-left",
+
+
+                },
+                {
+                    "mData": "trs_1",
+                    "className": 'text-left',
+
+                },
+                {
+                    "mData": "trs_date1",
+                    "className": "text-left",
+                    "render": function (data) {
+                        return moment(data).format('DD-MM-YYYY')
+                    }
+                },
+                {
+                    "mData": "trs_notes",
+                    "className": "text-left"
+                },
+
+                {
+                    "mData": "trsId",
+                    "className": 'btn-edit text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (trsId, type, full, meta) {
+                        var status = full.trs_status;
+                        if (status === "Active") {
+                            if ("@emr.emp_designation.ToString()" === "Super Administrator") {
+                                return '<button type="button"  onclick="EditTreatmentRecordSheet(' + trsId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                            }
+                            else {
+                                if ("@emr.set_emr_lock" == "NoLock") {
+                                    return '<button type="button"  onclick="EditTreatmentRecordSheet(' + trsId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+
+                                }
+                                else {
+                                    if ("@emr.app_ae_date" >= "@emr.today") {
+                                        return '<button type="button"  onclick="EditTreatmentRecordSheet(' + trsId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                    }
+                                    else {
+                                        return ''
+                                    }
+                                }
+
+                            }
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "mData": "trsId",
+                    "className": 'btn-delete text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (trsId, type, full, meta) {
+                        var status = full.trs_status;
+                        if (status === "Active") {
+                            if ("@emr.emp_designation.ToString()" === "Super Administrator") {
+                                return '<button type="button" onclick="DeleteTreatmentRecordSheet(' + trsId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                            }
+                            else {
+                                if ("@emr.set_emr_lock" == "NoLock") {
+
+                                    return '<button type="button" onclick="DeleteTreatmentRecordSheet(' + trsId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+                                    }
+                                else {
+                                    if ("@emr.app_ae_date" >= "@emr.today") {
+                                        return '<button type="button" onclick="DeleteTreatmentRecordSheet(' + trsId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                    }
+                                    else {
+                                        return ''
+                                        }
+                                }
+                            }
+
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                }
+
+            ],
+            order: [[0, 'asc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                lengthMenu: '_MENU_',
+                scrollX: "100%",
+            },
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Treatment Record Sheet',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Treatment Record Sheet',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Treatment Record Sheet',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Treatment Record Sheet',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                    }
+                }
+            ]
+        });
+        table.buttons().container().appendTo('#tbl_TreatmentRecordSheet_wrapper .col-md-6:eq(0)');
+    };
+//#endregion Bind Datatable
+
+    //#region Add TreatmentRecordSheet
+    function AddTreatmentRecordSheet() {
+        $('#TreatmentRecordSheet_edit').hide();
+        var x = $("#TreatmentRecordSheet_add");
+        x.load("@Url.Action("CreateTreatmentRecordSheet", "TreatmentRecordSheet", new { area = "ConsentForms" })", function () {
+            $("#TreatmentRecordSheet_add").show();
+        });
+    }
+    //#endregion Add TreatmentRecordSheet
+
+    //#region Edit TreatmentRecordSheet
+    function EditTreatmentRecordSheet(trsId) {
+        $('#TreatmentRecordSheet_add').hide();
+        var x = $("#TreatmentRecordSheet_edit");
+        x.load("@Url.Action("UpdateTreatmentRecordSheet", "TreatmentRecordSheet", new { area = "ConsentForms" })?trsId=" + trsId + "&appId=" + @emr.appId, function () {
+        $("#TreatmentRecordSheet_edit").show();
+    });
+
+
+    }
+    //#endregion Edit TreatmentRecordSheet
+
+    //#region Delete TreatmentRecordSheet
+    var DeleteTreatmentRecordSheet = function (trsId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this TreatmentRecordSheet ?",
+            text: "The selected TreatmentRecordSheet will be deleted!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: '@Url.Action("DeleteTreatmentRecordSheet", "TreatmentRecordSheet", new { area = "ConsentForms" })?trsId=' + trsId,
+                    type: "POST",
+                    dataType: 'JSON',
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "TreatmentRecordSheet Deleted Successfully!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                                GetTreatmentRecordSheetInfo();
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "You Can't Change the status! Already exist an active TreatmentRecordSheet",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have Enough Privileges to Delete this TreatmentRecordSheet!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Delete TreatmentRecordSheet! Please Refresh The Page & Try Again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                        GetTreatmentRecordSheetInfo();
+                    }
+                });
+            }
+        });
+    }
+    //#endregion Delete TreatmentRecordSheet
+
+    // #region Histroy of TreatmentRecordSheet
+    function TreatmentRecordSheetPreviousHistory() {
+        var x = $("#TreatmentRecordSheet_history");
+        x.load("@Url.Action("TreatmentRecordSheetPreviousHistory", "TreatmentRecordSheet", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion History of TreatmentRecordSheet
+
+    //#region Resize Datatable
+    function resizedt() {
+        setTimeout(function () {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }, 350);
+    }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion Alert Timeout
+</script>

@@ -1,0 +1,365 @@
+﻿@model BusinessEntities.EMR.CheifComplaints
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_AddComplaints" class="needs-validation" >
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class='badge bg-danger'>Required</span>
+            <span class="text-info" style="font-size:smaller">Please Fill Complaints</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-4">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Template&nbsp;</label>
+                @Html.DropDownListFor(m => m.cm_title, new List<SelectListItem> { }, "Select Template", new { @class = "form-select  mb-2 select2", @id = "icm_title" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-2">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">&nbsp;</label>
+                <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addComplaints">
+                    <i class="fa fa-bullseye"></i>
+                    Add Complaints
+                </button>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-2">
+            <div class="form-group mb-3">
+                <label class="form-label">Type&nbsp;</label>
+                <div class="d-inline-flex">
+                    <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                        <label class="custom-control custom-radio ms-sm-2 md-md-2 ms-lg-2">
+                            <input type="radio" class="custom-control-input" name="comp_severity" value="Chronic" id="Chronic">
+                            <span class="custom-control-label">Chronic</span>
+                        </label>
+                    </div>
+                    <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                        <label class="custom-control custom-radio ms-sm-2 md-md-2 ms-lg-2">
+                            <input type="radio" class="custom-control-input" name="comp_severity" value="Normal" id="Normal" checked>
+                            <span class="custom-control-label">Normal</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Complaints&nbsp;<span class="text-danger">*</span></label>
+                <div id="complaint">
+                </div>
+                @*@Html.TextAreaFor(m => m.complaint, new { @class = "form-control", @placeholder = "Enter Complaints", @row = "6" })*@
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-success" id="btn_Insert_Complaints">Add</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_Reset_Complaints">Reset</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_Complaints" style="display:none">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Partial View Onload
+        var quillc;
+        $(function () {
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                $("#btn_Insert_Complaints").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Insert_Complaints").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Insert_Complaints").show();
+                    }
+                    else {
+                        $("#btn_Insert_Complaints").hide();
+                    }
+                }
+            }
+            $('#btn_Close_Complaints').click(function () {
+                $('#complaints_add').hide();
+            });
+            var icons = Quill.import('ui/icons');
+            icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+            icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+            icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+            icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+            icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+            icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+            var toolbarOptions = [
+                [{
+                    'header': [1, 2, 3, 4, 5, 6, false]
+                }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{
+                    'list': 'ordered'
+                }, {
+                    'list': 'bullet'
+                }]
+
+            ];
+
+            quillc = new Quill('#complaint', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+            });
+            $("#icm_title").select2({
+                placeholder: 'Select Item',
+                width: '100%',
+                minimumResultsForSearch: '',
+                minimumInputLength: 3,
+                dropdownParent: $('#form_AddComplaints'),
+
+                ajax: {
+                    url: '@Url.Action("GetComplaints", "CheifComplaints", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+            //load_complaints();
+
+        });
+    //#endregion Partial View Onload
+
+
+
+    //#region load CheifComplaints
+        var load_complaints = function (cm_title) {
+            $.ajax({
+                url: '@Url.Action("GetComplaints", "CheifComplaints", new { area = "EMR" })?query=' + cm_title,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var data = {
+                        "id": response[0].id,
+                        "text": response[0].text,
+                    };
+                    $('#complaint').val(response[0].text);
+                    console.log("test");
+                    var newOption = new Option(response[0].text, response[0].id, true, true);
+                    $('#icm_title').append(newOption).trigger('change');
+                    $('#icm_title').trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    });
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+
+            });
+        };
+    //#endregion load CheifComplaints
+
+
+
+    //#region Add Complaints Master
+        $('#addComplaints').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateComplaintsMaster", "ComplaintsMaster", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $('#complaint_modal').attr("data-modal-from", "create-complaint");
+                    $("#complaint_modal_body").html(data);
+                    $("#complaint_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+     //#region Create Notes On Modal Close
+        $('#complaint_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newComplaint") != null) {
+                var complaint = JSON.parse(localStorage.getItem("newComplaint"));
+                setNotes(complaint);
+                localStorage.removeItem("newComplaint");
+            }
+        });
+    //#endregion Create Notes On Modal Close
+
+    //#region set Notes
+        var setNotes = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            console.log(data)
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#icm_title').append(newOption).trigger('change');
+            var realHTML = $('<textarea />').html(response.id).text();
+            quillc.root.innerHTML = realHTML;
+            $('#icm_title').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion Set Notes
+
+
+    //#region load CheifComplaints
+    $('#icm_title').on('select2:select', function (e) {
+        var data = e.params.data;
+        var realHTML = $('<textarea />').html(data.id).text();
+        quillc.root.innerHTML = realHTML;
+    });
+    //#endregion load CheifComplaints
+
+    //#region Insert Button Click
+        $('#btn_Insert_Complaints').on('click', function (e) {
+            e.preventDefault();
+            var isvalid = true;
+
+            if (quillc.getText().trim().length == 0) {
+                $("#complaint").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#complaint"));
+                isvalid = false;
+            }
+            if (isvalid) {
+                $('#btn_Insert_Complaints').removeClass("btn btn-success");
+                $('#btn_Insert_Complaints').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Complaints').html("Saving the Record....");
+                    var _dataInsert = {
+                    "compId": 0,
+                    "comp_appId": @emr.appId,
+                        "complaint": quillc.root.innerHTML,
+                        "comp_location": $("#icm_title option:selected").text(),
+                        "comp_severity": $("input[name='comp_severity']:checked").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                console.log(_dataInsert);
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertCheifComplaints", "CheifComplaints", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#btn_Insert_Complaints').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_Complaints').addClass("btn btn-success");
+                        $('#btn_Insert_Complaints').html("Add");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> " + data.message + "", "success");
+                                clearControls();
+                                Timeout();
+                                GetCheifComplaints();
+                                GetPreviousCheifComplaints();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong><i class='fa fa-exclamation-triangle text-warning'></i> " + data.message + "</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Insert_Complaints').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_Complaints').addClass("btn btn-success");
+                        $('#btn_Insert_Complaints').html("Add");
+                        Timeout();
+                    }
+                });
+            }
+
+        });
+     //#endregion Insert Button Click
+
+    //#region Reset
+    $('#btn_Reset_Complaints').on('click', function (e) {
+        clearControls();
+    });
+    //#endregion Reset
+
+    //#region Clear Controls
+    var clearControls = function () {
+        quillc.root.innerHTML = "";
+        $("#icm_title").val("").trigger("change");
+
+    }
+    //#endregion Clear Controls
+</script>
+
+
+
+

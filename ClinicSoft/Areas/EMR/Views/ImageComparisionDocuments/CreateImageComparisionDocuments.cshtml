@@ -1,0 +1,158 @@
+﻿@model BusinessEntities.EMR.ImageComparisionDocuments
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_ImageComparisionDocuments" action="@Url.Action("UploadImages", "ImageComparisionDocuments", new { area = "EMR" })" method="post" enctype="multipart/form-data">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-6">
+            <div class="card overflow-hidden">
+                <div class="card-body pe-2">
+                    <div class="d-flex align-items-center mt-auto">
+                        <h4 class="form-label"> Before</h4>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes&nbsp;<small class="text-info">(Optional)</small></label>
+                        <textarea id="imgc_notes_bfr" name="imgc_notes" class="form-control mb-2" placeholder="Enter Notes" rows="4"></textarea>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="form-label">UPLOAD Image(s)</label>
+                        <input id="imgc_image_bfr" type="file" name="files" accept=".jpg, .png, image/jpeg, image/png,.pdf" multiple>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-6">
+            <div class="card overflow-hidden">
+                <div class="card-body pe-2">
+                    <div class="d-flex align-items-center mt-auto">
+                        <h4 class="form-label">After</h4>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes&nbsp;<small class="text-info">(Optional)</small></label>
+                        <textarea id="imgc_notes_aftr" name="imgc_notes" class="form-control mb-2" placeholder="Enter Notes" rows="4"></textarea>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="form-label">UPLOAD Image(s)</label>
+                        <input id="imgc_image_aftr" type="file" name="files" accept=".jpg, .png, image/jpeg, image/png,.pdf" multiple>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<style>
+    .ff_fileupload_dialog_background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 99999999;
+    }
+</style>
+<script type="text/javascript">
+    //#region page Load
+    $(function () {
+            var token;
+            $('#imgc_image_bfr').FancyFileUpload({
+			    params : {
+				    action : 'fileuploader'
+			    },
+                maxfilesize: 5242880,
+			    startupload: function (SubmitUpload, e, data) {
+                    var formData = new FormData();
+                    formData.append('imgc_appId', @emr.appId);
+                    formData.append('imgc_patId', @emr.patId);
+                    formData.append('imgc_notes', $("#imgc_notes_bfr").val());
+                    formData.append('files', data.files[0]);
+                    formData.append('imgc_type', "Before");
+
+				    $.ajax({
+					    url:  "@Url.Action("UploadImages", "ImageComparisionDocuments", new { area = "EMR" })",
+					    data: formData,
+					    type: 'POST',
+					    contentType: false,
+					    processData: false,
+                        success: function (tokendata) {
+                            token = tokendata;
+                            SubmitUpload();
+					    },
+					    error: function(err) {
+						    console.log(err);
+					    }
+				    });
+			    },
+                continueupload: function (e, data) {
+				    var ts = Math.round(new Date().getTime() / 1000);
+
+                    // Alternatively, just call data.abort() or return false here to terminate the upload but leave the UI elements alone.
+                    if (token.expires < ts)  data.ff_info.RemoveFile();
+			    },
+			    uploadcancelled : function(e, data) {
+				    console.log("uploadcancelled");
+			    },
+                uploadcompleted: function (e, data) {
+                    GetImageComparisionDocumentsByIdInfo(@emr.appId, "EMR");
+				    data.ff_info.RemoveFile();
+			    }
+            });
+
+            $('#imgc_image_aftr').FancyFileUpload({
+                params : {
+	                action : 'fileuploader'
+                },
+                maxfilesize: 5242880,
+                startupload: function (SubmitUpload, e, data) {
+                    var formData = new FormData();
+                    formData.append('imgc_appId', @emr.appId);
+                    formData.append('imgc_patId', @emr.patId);
+                    formData.append('imgc_notes', $("#imgc_notes_aftr").val());
+                    formData.append('files', data.files[0]);
+                    formData.append('imgc_type', "After");
+
+
+
+	                $.ajax({
+		                url:  "@Url.Action("UploadImages", "ImageComparisionDocuments", new { area = "EMR" })",
+		                data: formData,
+		                type: 'POST',
+		                contentType: false,
+		                processData: false,
+                        success: function (tokendata) {
+
+                         GetImageComparisionDocumentsByIdInfo(@emr.appId, "EMR");
+
+			                token = tokendata;
+			                console.log(tokendata);
+                            SubmitUpload();
+		                },
+		                error: function(err) {
+			                console.log(err);
+		                }
+	                });
+                },
+                continueupload : function(e, data) {
+	                var ts = Math.round(new Date().getTime() / 1000);
+
+	                // Alternatively, just call data.abort() or return false here to terminate the upload but leave the UI elements alone.
+	                if (token.expires < ts)  data.ff_info.RemoveFile();
+                },
+                uploadcancelled : function(e, data) {
+	                console.log("uploadcancelled");
+                },
+                uploadcompleted: function (e, data) {
+                GetImageComparisionDocumentsByIdInfo(@emr.appId, "EMR");
+	                data.ff_info.RemoveFile();
+                }
+            });
+    });
+
+    //#endregion page Load
+</script>

@@ -1,0 +1,114 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "ContactLensIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Final Prescription - Contact Lenses</h3>
+            </div>
+            <div class="card-body">
+                <div id="ContactLens_add" style="display:none">
+                </div>
+                <div id="ContactLens_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="ContactLens_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetContactLensInfo();
+            ContactLensPreviousHistory();
+
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetContactLensInfo
+        var GetContactLensInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetContactLensData", "ContactLens", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditContactLens();
+                            $("#ContactLens_add").hide();
+                            $("#ContactLens_edit").show();
+
+                        }
+                        else {
+                            $("#ContactLens_add").show();
+                            $("#ContactLens_edit").hide();
+                            AddContactLens();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load ContactLens
+
+        //#region Add ContactLens
+        function AddContactLens() {
+            var x = $("#ContactLens_add");
+            x.load("@Url.Action("CreateContactLens", "ContactLens", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add ContactLens
+
+        //#region Update ContactLens
+        function EditContactLens() {
+            var x = $("#ContactLens_edit");
+            x.load("@Url.Action("UpdateContactLens", "ContactLens", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update ContactLens
+
+          //#region Histroy of ContactLens
+        function ContactLensPreviousHistory() {
+            var x = $("#ContactLens_history");
+            x.load("@Url.Action("ContactLensPreviousHistory", "ContactLens", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of ContactLens
+
+
+    </script>
+@*}*@

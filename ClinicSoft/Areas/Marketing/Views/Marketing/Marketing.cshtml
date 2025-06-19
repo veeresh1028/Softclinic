@@ -1,0 +1,1880 @@
+﻿@model IEnumerable<BusinessEntities.Marketing.Marketing>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Marketing";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="enquiries"> Enquiries</span> 
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter"> Advanced Filters</span>
+            </button>
+            <a href="" id="btn_Create_Enquiry" data-bs-toggle="modal" data-bs-target="#create_enquiry" class="btn btn-secondary" onclick="AddEnquiry()" data-lang-key="add-enquiry"><i class="mdi mdi-plus"></i>&nbsp;Add Enquiry</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <i class="fa fa-ban"></i> @TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    else if (TempData["InfoMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">×</button>
+                <i class="fa fa-info-circle"></i> @TempData["InfoMessage"]
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+        <div class="mt-2" id="MarketingAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="departments">Department</span><small>(s)</small></label>
+                                <select class="form-control" id="select_dept" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="doctors">Doctor<small>(s)</small></span></label>
+                                <select class="form-control" id="select_doctor" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="nationality">Nationalit<small>(y/es)</small></span></label>
+                                <select class="form-control" id="select_nationality" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="status">Status</span></label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_status"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <spant data-lang-key="patient-search">Patient <small class="ms-2 text-info">(Search By MRN/EID/Mobile/Name)</small></spant></label>
+                                <select class="form-control select2-show-search" id="select_patient"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="manage-by">Managed By</span></label>
+                                <select class="form-control select2-show-search" id="select_madeby" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="sources">Source(s)</span></label>
+                                <select class="form-control select2-show-search" id="select_source" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="campaigns">Campaign(s)</span></label>
+                                <select class="form-control select2-show-search" id="select_campaign" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from_app" class="form-control" placeholder="Select Enquiry Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to_app" class="form-control" placeholder="Select Enquiry Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                @*<label class="form-label font-weight-semibold">&nbsp;</label>*@
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body d-lg-flex">
+                <div class="col-sm-6 col-md-2 col-lg-2">
+                    <div class="form-group">
+                        <select id="sms_email_template" class="form-select select2 mb-4">
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-2 col-lg-2">
+                    <div class="form-group">
+                        <textarea id="sms_email_template_msg" class="form-control mb-4" placeholder="Enter custom message" rows="1"></textarea>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-4">
+                    <div class="btn-list btn-animation">
+                        <button class="btn btn-green mt-2" type="button" id="btnWhatsapp" style="display:none;">
+                            <i class="fa fa-whatsapp"></i> 
+                            <span data-lang-key="send-whatsup">Send WhatsApp</span>
+                        </button>
+                        <button class="btn btn-indigo ms-2 mt-2" type="button" id="btnSMS" style="display:none;">
+                            <i class="fa fa-comment"></i> 
+                            <span data-lang-key="send-sms">Send SMS</span>
+                        </button>
+                        <button class="btn btn-primary ms-lg-2 mt-2" type="button" id="btnSMS_AR" style="display:none;">
+                            <i class="fa fa-comment-o"></i> رسالة قصيرة
+                        </button>
+                        <button class="btn btn-info ms-lg-2 mt-2" type="button" id="btnEmail" style="display:none;">
+                            <i class="fa fa-envelope"></i> 
+                            <span data-lang-key="send-email">Send Email</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_marketing" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="alert">Alert</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="date">Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-details">Patient Details</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="manage-by">Managed By</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="Source">Source</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="campaigns">Campaign</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="follow-up">Follow-Up D/T</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="remarks">Remarks</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="made-by">Made By</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                                <!-- Hidden Export Columns -->
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-name">Patient Name<</span></th><!--12-->
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="email">E-Mail</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="mobile">Mobile No</span>.</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="nationality">Nationality</span>.
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-name">Doctor Name</span>.
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="department">Department</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="appointment-date">Appointment Date</span></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Marketing Toast -->
+    <div class="text-wrap">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="marketingToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto">
+                                <span data-lang-key="marketing">Marketing</span></strong>
+                            <small>
+                                <span data-lang-key="just-now">Just Now</span></small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body">
+                            <i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark"><span data-lang-key=filtered>Filtered </span></b> <b class="text-primary" id="marketing_count"> </b><span data-lang-key="records-in-about">record(s) in about</span>  <b id="etime"></b> ms
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Create Enquiry -->
+<div class="modal fade overflow-auto" id="create_enquiry" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="enqS">
+        <div class="modal-content" id="create_enquiry_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Create Enquiry -->
+<!-- Modal Edit Enquiry -->
+<div class="modal fade overflow-auto" id="update_enquiry" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="enqS">
+        <div class="modal-content" id="update_enquiry_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Edit Enquiry -->
+<!-- Modal Patient Details -->
+<div class="modal fade overflow-auto" id="patient_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Details -->
+<!-- Modal Doctor Details -->
+<div class="modal fade overflow-auto" id="doctor_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="doctor_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Doctor Details -->
+<!-- Modal Marketing Remarks -->
+<div class="modal fade overflow-auto" id="patient_remarks" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="marketing-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_remarks_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Marketing Remarks -->
+<!-- Modal Enquiry Patient -->
+<div class="modal fade" id="inquiry_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeI">
+        <div class="modal-content" id="inquiry_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Enquiry Patient -->
+<!-- Modal Source Create -->
+<div class="modal fade" id="source_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeSource">
+        <div class="modal-content" id="source_body">
+        </div>
+    </div>
+</div>
+<!-- End Source Create -->
+<!-- Modal Campaign Create -->
+<div class="modal fade" id="campaign_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeCamp">
+        <div class="modal-content" id="campaign_body">
+        </div>
+    </div>
+</div>
+<!-- End Campaign Create -->
+@section myScripts{
+    <script type="text/javascript">
+
+        //#region Page Load & Initialization
+        $(function () {
+            // Toggle Sidebar
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Enquiries
+            GetMarketing(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var pageLoad = false;
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_departments();
+            load_doctors();
+            load_nationalities();
+            load_status();
+            load_patients();
+            load_employees();
+            load_sources();
+            load_campaigns();
+
+            $('#select_date_from_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from_app").bootstrapdatepicker("setDate", "");
+            $('#select_date_to_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to_app").bootstrapdatepicker("setDate", "");
+
+            $('#select_date_from_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $("#sms_email_template").select2({
+                placeholder: 'Select a Template',
+                width: '100%',
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+
+            load_templates();
+
+            $("#bulk_status").select2({
+                placeholder: 'Select Status',
+                width: '100%'
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                if ("@emp_designation.ToString()" === "Doctor")
+                {
+                    $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                }
+                else
+                {
+                    $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    });
+                }
+                pageLoad = false;
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        // Load Departments
+        var load_departments = function () {
+            $('#select_dept').SumoSelect({
+                placeholder: 'Select Department(s)',
+                captionFormat: '{0} Department(s) Selected',
+                captionFormatAllSelected: 'All {0} Departments selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_dept').html('');
+                    $('#select_dept')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" === "Doctor")
+                    {
+                        $('#select_dept')[0].sumo.add(@emp_dept.ToString(), "@emp_department.ToString()");
+                        $('#select_dept')[0].sumo.selectItem(["@emp_dept.ToString()"]);
+                    }
+                    else
+                    {
+                        $.each(response, function (j) {
+                            $('#select_dept')[0].sumo.add(response[j].id, response[j].text);
+                        });
+                    }
+                    $('#select_dept')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Doctors
+        var load_doctors = function () {
+            $("#select_doctor").SumoSelect({
+                placeholder: 'Select Doctor(s)',
+                captionFormat: '{0} Doctor(s) Selected',
+                captionFormatAllSelected: 'All {0} Doctors selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_doctor').html('');
+            $('#select_doctor')[0].sumo.reload();
+        }
+        // On Departments select
+        $('#select_dept').on('change', function (e) {
+            if ($(this).val() != "" && $('#select_branch').val() != "") {
+
+                var _data = {
+                    "Departments": $('#select_dept').val(),
+                    "Branches": $('#select_branch').val(),
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetDoctorsByDepartment", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'JSON',
+                    data: _data,
+                    success: function (response) {
+
+                        $('#select_doctor').html('');
+                        $('#select_doctor')[0].sumo.reload();
+
+                        if ("@emp_designation.ToString()" === "Doctor") {
+                            $('#select_doctor')[0].sumo.add(@empId.ToString(), "@emp_name.ToString()");
+                            $('#select_doctor')[0].sumo.selectItem(["@empId.ToString()"]);
+                        }
+                        else {
+                            $.each(response, function (j) {
+                                $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                            });
+                        }
+                        $('#select_doctor')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_doctor').html('');
+                $('#select_doctor')[0].sumo.reload();
+            }
+        });
+        // On Branches select
+        $('#select_branch').on('change', function () {
+
+            if (!pageLoad) {
+
+                if ($(this).val() != "" && $('#select_dept').val() != "") {
+
+                    var _data = {
+                        "Departments": $('#select_dept').val(),
+                        "Branches": $('#select_branch').val(),
+                    }
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("GetDoctorsByDepartment", "AppointmentList", new { area = "Appointment" })',
+                        dataType: 'JSON',
+                        data: _data,
+                        success: function (response) {
+                            $('#select_doctor').html('');
+                            $('#select_doctor')[0].sumo.reload();
+
+                            if ("@emp_designation.ToString()" === "Doctor") {
+                                $('#select_doctor')[0].sumo.add(@empId.ToString(), "@emp_name.ToString()");
+                                $('#select_doctor')[0].sumo.selectItem(["@empId.ToString()"]);
+                            }
+                            else {
+                                $.each(response, function (j) {
+                                    $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                                    //$('#select_doctor')[0].sumo.selectItem([response[j].id]);
+                                });
+                            }
+
+                            $('#select_doctor')[0].sumo.reload();
+                        },
+                        error: function (xhr) {
+                            console.log("Failed! Error Message : " + xhr.statusText);
+                        }
+                    });
+                }
+                else {
+                    $('#select_doctor').html('');
+                    $('#select_doctor')[0].sumo.reload();
+                }
+            }
+
+        });
+        // Load Nationalities
+        var load_nationalities = function () {
+
+            $("#select_nationality").SumoSelect({
+                placeholder: 'Select Nationalit(y/es)',
+                captionFormat: '{0} item(s) Selected',
+                captionFormatAllSelected: 'All {0} item(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetNationalities", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+
+                    $('#select_nationality').html('');
+                    $('#select_nationality')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_nationality')[0].sumo.add(response[j].id, response[j].text);
+                    });
+
+                    $('#select_nationality')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                captionFormat: '{0} Status(es) Selected',
+                captionFormatAllSelected: 'All {0} Status selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetStatus", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+
+                    $('#select_status').html('');
+                    $('#select_status')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_status')[0].sumo.add(response[j].text, response[j].text);
+                    });
+
+                    $('#select_status')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Patients
+        var load_patients = function () {
+
+            $('#select_patient').select2({
+                placeholder: 'Search Patient',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("GetPatients", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 0
+                            //,from_date: $('#select_date_from_app').val(),
+                            //to_date: $('#select_date_to_app').val()
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+        // Load Employees
+        var load_employees = function () {
+
+            $('#select_madeby').SumoSelect({
+                placeholder: 'Select Handler(s)',
+                captionFormat: '{0} Handler(s) Selected',
+                captionFormatAllSelected: 'All {0} Handlers selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetEmployees", "Marketing", new { area = "Marketing" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_madeby').html('');
+                    $('#select_madeby')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_madeby')[0].sumo.add(response[j].id, response[j].text);
+                    });
+
+                    $('#select_madeby')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Sources
+        var load_sources = function () {
+
+            $('#select_source').SumoSelect({
+                placeholder: 'Select Source(s)',
+                captionFormat: '{0} Source(s) Selected',
+                captionFormatAllSelected: 'All {0} Sources selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetSources", "Marketing", new { area = "Marketing" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_source').html('');
+                    $('#select_source')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_source')[0].sumo.add(response[j].id, response[j].text);
+                    });
+
+                    $('#select_source')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Campaigns
+        var load_campaigns = function () {
+            $("#select_campaign").SumoSelect({
+                placeholder: 'Select Campaign(s)',
+                captionFormat: '{0} Campaign(s) Selected',
+                captionFormatAllSelected: 'All {0} Campaigns selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_campaign').html('');
+            $('#select_campaign')[0].sumo.reload();
+        }
+        // Load Campaigns on Sources Select
+        $('#select_source').on('change', function () {
+
+            if ($(this).val() != "" && $('#select_source').val() != "") {
+
+                var _data = {
+                    "Sources": $('#select_source').val()
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetCampaignsBySources", "Marketing", new { area = "Marketing" })',
+                    dataType: 'JSON',
+                    data: _data,
+                    success: function (response) {
+                        $('#select_campaign').html('');
+                        $('#select_campaign')[0].sumo.reload();
+
+                         $.each(response, function (j) {
+                                $('#select_campaign')[0].sumo.add(response[j].id, response[j].text);
+                         });
+
+                        $('#select_campaign')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_campaign').html('');
+                $('#select_campaign')[0].sumo.reload();
+            }
+        });
+        //#endregion
+
+        //#region Search Marketing Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") ||
+                    ($("#select_dept").val() != null && $("#select_dept").val() != 0 && $("#select_dept").val() != "") ||
+                    ($("#select_room").val() != null && $("#select_room").val() != 0 && $("#select_room").val() != "") ||
+                    ($("#select_referal").val() != null && $("#select_referal").val() != 0 && $("#select_referal").val() != "") ||
+                    ($("#select_nationality").val() != null && $("#select_nationality").val() != 0 && $("#select_nationality").val() != "") ||
+                    ($("#select_status").val() != null && $("#select_status").val() != 0 && $("#select_status").val() != "")) {
+
+                    let isValid = true;
+                    let app_frm = moment($("#select_date_from_app").val());
+                    let app_to = moment($("#select_date_to_app").val());
+
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) {
+                        if (!app_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined) {
+                        if (!app_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) && ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined)) {
+                        if (app_frm.isValid() && app_to.isValid()) {
+                            if (app_to.diff(app_frm, 'days') <= 0) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from_app");
+                                index.push("select_date_to_app");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "Apointment From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetMarketing(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Search by Either of the following filters : Department(s) / Rooms(s) / Referral(s) / Nationality / / Status(es) / Patient(s)",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Marketing Inquiries!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Marketing
+        var GetMarketing = function (search_type) {
+            var doc = "";
+
+            if ("@emp_designation.ToString()" === "Doctor") {
+                doc = @empId.ToString();
+            }
+            else {
+                doc = $('#select_doctor').val().toString();
+            }
+
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "dept_ids"      : $('#select_dept').val().toString(),
+                "doc_ids"       : doc,
+                "nats_ids"      : $('#select_nationality').val().toString(),
+                "handledby"     : $('#select_madeby').val().toString(),
+                "sources"       : $('#select_source').val().toString(),
+                "campaigns"     : $('#select_campaign').val().toString(),
+                "status"        : $('#select_status').val().toString(),
+                "patient"       : $('#select_patient').val(),
+                "date_from"     : $('#select_date_from_app').val(),
+                "date_to"       : $('#select_date_to_app').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetMarketingList", "Marketing", new { area = "Marketing" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    $('#etime').html(new Date().getTime() - this.start_time);
+
+                    if (response.isAuthorized != false) {
+
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_marketing')) {
+                            table = $('#tbl_marketing').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+
+                        // Total Records Filtered
+                        var count_total;
+
+                        if (response.length > 0) {
+                            count_total = response.length;
+                            $('#marketingToast').show();
+                            $('#marketing_count').html(count_total.toLocaleString());
+                        }
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                setTimeout(function () {
+                    $('#marketingToast').fadeOut('fast');
+                }, 5000);
+                $('#progress-loader').hide();
+            });
+        }
+        // Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_marketing").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 50,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "appId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "mData": "ar_fllowupdate",
+                        "render": function (ar_fllowupdate, type, full, meta) {
+                            if (full.app_status == "Enquiry" && ar_fllowupdate <= "@DateTime.Now") {
+                                    return '<i class="fe fe-alert-triangle text-danger fa-lg"></i>';
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "render": function (app_fdate, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(app_fdate).format("DD-MM-YYYY");
+                            }
+                            return moment(app_fdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "pat_name",
+                        "render": function (pat_name, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var pat_email = full.pat_email;
+
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + pat_name + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + pat_name + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + pat_name + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a><br/> ';
+                            }
+                            else {
+                                pat_det += '<a onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14">' + pat_name + '</span></a><br/> ';
+                            }
+
+                            pat_det += '<span class="badge bg-primary-light-1 font-weight-semibold mt-2" title="MRN #">' + full.app_pat_code + '</span>';
+
+                            pat_det += ' <span class="badge bg-info-light ms-2 font-weight-bold" style="font-size: 0.9em;">' + full.pat_mob + '</span> <a class="ms-2" href="https://wa.me/' + full.pat_mob + '" target="_blank"><i class="fa fa-whatsapp fa-lg text-success"></i></a><br/>';
+
+                            pat_det += '<div class="tag bg-white border-1 border-dark font-weight-semibold mt-2 text-dark" title="Nationality">' + full.nationality + '<span class="tag-addon tag-dark"><i class="fa fa-flag"></i></span></div>';
+
+                            if (pat_email != "") {
+                                pat_det += '<div class="tag bg-white border-1 border-teal font-weight-semibold mt-2 ms-2 text-teal" title="Customer E-Mail ID"><a class="text-teal" href="mailto:' + pat_email + '">' + pat_email + '<span class="tag-addon tag-teal"><i class="fe fe-mail"></i></span></a></div>'
+                            }
+
+                            return pat_det;
+                        }
+                    },
+                    {
+                        "mData": "emp_name",
+                        "render": function (emp_name, type, full, meta) {
+                            return '<a onclick="DoctorDetails(\'' + full.empId + '\',\'' + emp_name + '\')"><span class="font-weight-semibold text-capitalize fs-14"> <i class="fa fa-circle" style="color:' + full.emp_color +'"></i> ' + emp_name + '</span></a><br/>' +
+                                '<div class="tag tag-secondary font-weight-semibold mt-2" title="Department">' + full.emp_dept_name + '<span class="tag-addon"><i class="fe fe-activity"></i></span></div>';
+                        }
+                    },
+                    {
+                        "className": 'text-dark',
+                        "mData": "source_details",
+                        "render": function (source_details, type, full, meta) {
+                            if (source_details == "" || source_details == null) {
+                                return '<span>Others</span>';
+                            }
+                            else {
+                                return source_details;
+                            }
+                        }
+                    },
+                    {
+                        "mData": "campaign_details",
+                        "render": function (campaign_details, type, full, meta) {
+                            if (campaign_details == "" || campaign_details == null) {
+                                return '<span>Others</span>';
+                            }
+                            else {
+                                return campaign_details;
+                            }
+                        }
+                    },
+                    {
+                        "className": "text-center",
+                        "mData": "ar_fllowupdate",
+                        "render": function (ar_fllowupdate, type, full, meta) {
+                            var fdate = moment(ar_fllowupdate).format('DD-MM-YYYY');
+                            var ftime = full.ar_fllowtime;
+
+                            if (ftime != "") {
+                                ftime = ' </br> ' + ftime;
+                            }
+
+                            if (type === 'display' || type === 'filter') {
+                                if (fdate == "01-01-2000") {
+                                    return '<span class="text-muted">N/A</span>';
+                                }
+                                else {
+                                    return fdate + ftime
+                                }
+                            }
+                            return ar_fllowupdate;
+                        }
+                    },
+                    {
+                        "orderable": false,
+                        "className": "text-wrap",
+                        "mData": "app_comments",
+                        "render": function (app_comments) {
+                            if (app_comments == '' || app_comments == null) {
+                                return '<span class="text-muted">No Remarks</span>'
+                            }
+                            else {
+                                return app_comments
+                            }
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "app_status",
+                        "render": function (app_status, type, full, meta) {
+                            if (full.aps_color != undefined) {
+                                return '<span class="badge rounded-pill mt-2 text-capitalize" style="width: auto;background-color:' + full.aps_color + '">' + app_status + '</span>'
+                            }
+                            else {
+                                return '<span class="badge bg-dark rounded-pill mt-2 text-capitalize" style="width: auto;">' + app_status + '</span>'
+                            }
+                        }
+                    },
+                    {
+                        "className": 'text-center text-dark',
+                        "mData": "app_madeby_name",
+                        "render": function (app_madeby_name, type, full, meta) {
+                            return app_madeby_name + '</br><span class="badge bg-primary-light mb-1">D/T Created</span> </br>' + moment(full.app_date_created).format("DD-MM-YYYY HH:mm");
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "mData": "appId",
+                        "render": function (appId, type, full, meta) {
+                            var app_status = full.app_status;
+                            var more =  '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                        '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (app_status == "Arrived") {
+                                more += '<a class="dropdown-item text-dark fw-bold onclick="EditEnquiry(\'' + appId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="DeleteEnquiry(\'' + appId + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Remarks</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                            else if (app_status == "Invoiced") {
+                                more += '<a class="dropdown-item text-dark fw-bold" onclick="EditEnquiry(\'' + appId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Remarks</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                            else if (app_status === "Deleted") {
+                                more += '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem"></i>&nbsp;Remarks</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                            else {
+                                more += '<a class="dropdown-item text-dark fw-bold" onclick="EditEnquiry(\'' + appId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="DeleteEnquiry(\'' + appId + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem"></i>&nbsp;Remarks</a>' +
+                                    '</div>' +
+                                    '</div>';
+
+                            }
+                            return more;
+                        }
+                    },
+                    //#region Hidden Export Columns
+                    {
+                        "mData": "pat_name",
+                        "visible": false,
+                        'render': function (pat_name, type, full, meta) {
+                            return pat_name;
+                        }
+                    },
+                    {
+                        "mData": "pat_email",
+                        "visible": false,
+                        'render': function (pat_email, type, full, meta) {
+                            return pat_email;
+                        }
+                    },
+                    {
+                        "mData": "pat_mob",
+                        "visible": false,
+                        'render': function (pat_mob, type, full, meta) {
+                            return pat_mob;
+                        }
+                    },
+                    {
+                        "mData": "nationality",
+                        "visible": false,
+                        'render': function (nationality, type, full, meta) {
+                            return nationality;
+                        }
+                    },
+                    {
+                        "mData": "emp_name",
+                        "visible": false,
+                        'render': function (emp_name, type, full, meta) {
+                            return emp_name;
+                        }
+                    },
+                    {
+                        "mData": "emp_dept_name",
+                        "visible": false,
+                        'render': function (emp_dept_name, type, full, meta) {
+                            return emp_dept_name;
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "visible": false,
+                        'render': function (app_fdate, type, full, meta) {
+                            var fdate = moment(app_fdate).format("DD-MM-YYYY");
+                            return fdate;
+                        }
+                    }
+                    //#endregion Hidden Export Columns
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[2, 'desc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Marketing - Enquiries',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Marketing - Enquiries to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Marketing - Enquiries',
+                        footer: 'true',
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Marketing - Enquiries to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Marketing - Enquiries',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Marketing - Enquiries to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Marketing - Enquiries',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 23, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Marketing - Enquiries!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By MRN # / (Patient / Doctor) Details / Date / Status / Made By</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                "fnDrawCallback": function (settings) {
+                    //#region Enquiry Remarks
+                    $('.remrk','tr').on('click', function () {
+                        var row = $(this).closest('tr');
+                        var _data = table.row(row).data();
+
+                        $.ajax({
+                            type: "GET",
+                            url: "@Url.Action("EnquiryRemarks", "Marketing", new { area = "Marketing" })?app_branch=" + _data.app_branch + "&flag=Patient&patId=" + _data.app_patient,
+                            contentType: "application/json",
+                            dataType: "html",
+                            success: function (response) {
+                                $('#patient_remarks').attr("data-modal-from", "enquiry-list");
+                                $("#patient_remarks_body").html(response);
+                                $("#patient_remarks").modal("show");
+                            },
+                            error: function (xhr) {
+                                console.log("Error :" + xhr.statusText);
+                            }
+                        });
+                    });
+                    //#endregion
+                }
+            });
+            table.buttons().container().appendTo('#tbl_marketing_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Datatable Miscellaneous Function
+        // Edit Enquiry
+        var EditEnquiry = function (appId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditEnquiry", "Marketing", new { area = "Marketing" })?appId=" + appId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#update_enquiry_body").html(response);
+                    $("#update_enquiry").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        // Delete Enquiry
+        var DeleteEnquiry = function (appId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this enquiry ?",
+                text: "This action will delete this enquiry!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("DeleteAppointment", "AppointmentList", new { area= "Appointment" })?appId=" + appId,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Enquiry Deleted Successfully!!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    })
+                                    GetAppointments();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed To Delete Enquiry!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to perform this action!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Error while deleting Enquiry! Error : " + xhr.statusText,
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            })
+                        }
+                    });
+                }
+            });
+        }
+        // View Patient Details
+        var PatientDetails = function (patId, pat_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PatientDetail", "Patient", new { area = "Patient" })?patId=" + patId + "&pat_name=" + pat_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#patient_details_body").html(response);
+                    $("#patient_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        // View Doctor Details
+        var DoctorDetails = function (empId, emp_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("DoctorDetails", "Employees", new { area = "Masters" })?empId=" + empId + "&emp_name=" + emp_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#doctor_details_body").html(response);
+                    $("#doctor_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Add Enquiry
+        function AddEnquiry() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateEnquiry", "Marketing", new { area = "Marketing" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#create_enquiry_body").html(response);
+                    $("#create_enquiry").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Send SMS / E-Mail / WhatsApp
+        // Load Templates
+        var load_templates = function () {
+            $.ajax({
+                url: '@Url.Action("GetTemplates", "Patient", new { area = "Patient" })?tempFor=1',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var newOption = new Option("Select Any Template", 0, false, false);
+                    $('#sms_email_template').append(newOption).trigger('change');
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            let text = response[j].TempName;
+
+                            if (response[j].TempWhatsapp == 1) {
+                                text += "<i class='fa fa-whatsapp text-green ms-1 font-weight-semibold'></i>";
+                            }
+                            if (response[j].TempSMS == 1) {
+                                text += "<i class='fa fa fa-comment text-indigo ms-1 font-weight-semibold'></i>";
+                            }
+                            if (response[j].TempEmail == 1) {
+                                text += "<i class='fa fa-envelope-o text-info ms-1 font-weight-semibold'></i>";
+                            }
+
+                            var newOption = new Option(text, response[j].TemplateId, false, false);
+                            $('#sms_email_template').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                }
+            });
+        };
+        // Select Template
+        $('#sms_email_template').on('select2:select', function () {
+            if ($(this).val() != 0) {
+                $.ajax({
+                    url: '@Url.Action("GetTemplates", "Patient", new { area = "Patient" })?tempFor=1&templateId=' + $('#sms_email_template').val(),
+                    type: "GET",
+                    dataType: "json",
+                    async: false,
+                    success: function (response) {
+                        if (response.length > 0) {
+                            if (response[0].TempWhatsapp == 1) {
+                                $("#btnWhatsapp").show();
+                            }
+                            else {
+                                $("#btnWhatsapp").hide();
+                            }
+
+                            if (response[0].TempSMS == 1) {
+                                $("#btnSMS").show();
+                                $("#btnSMS_AR").show();
+                            }
+                            else {
+                                $("#btnSMS").hide();
+                                $("#btnSMS_AR").hide();
+                            }
+
+                            if (response[0].TempEmail == 1) {
+                                $("#btnEmail").show();
+                            }
+                            else {
+                                $("#btnEmail").hide();
+                            }
+
+                            $('#sms_email_template_msg').val(response[0].TempContent);
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $("#btnWhatsapp").hide();
+                $("#btnSMS").hide();
+                $("#btnSMS_AR").hide();
+                $("#btnEmail").hide();
+                $('#sms_email_template').val(0).trigger('change');
+                $("#sms_email_template_msg").val("");
+            }
+        });
+        // Send WhastApp Message
+        $("#btnWhatsapp").click(function (event) {
+            event.preventDefault();
+            $('#btnWhatsapp').removeClass("btn btn-outline-success");
+            $('#btnWhatsapp').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btnWhatsapp').html("Sending...");
+
+            var table = $("#tbl_marketing").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                if ($("#sms_email_template_msg").val() != "") {
+                    var _obj = {
+                        "branchId": _data.app_branch,
+                        "mobile": _data.pat_mob,
+                        "user": _data.patId,
+                        "content": $("#sms_email_template_msg").val()
+                    }
+
+                    $.ajax({
+                        url: '@Url.Action("WhatsappConfig", "Patient", new { area = "Patient" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            console.log(response)
+                            $('#btnWhatsapp').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnWhatsapp').addClass("btn btn-outline-success");
+                            $('#btnWhatsapp').html("<i class='fa fa-whatsapp'></i> Send WhatsApp");
+
+                            if (response.isSuccess == true) {
+                                if (response.data["status"] == "success") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.notice({
+                                        title: "Success",
+                                        message: response.message
+                                    });
+                                }
+                                else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.warning({
+                                        title: "Pending",
+                                        message: response.message
+                                    });
+                                }
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                }
+            });
+
+            //$('#sms_email_template').val(0).trigger('change');
+            //$("#sms_email_template_msg").val("");
+        });
+        // Send SMS English
+        $("#btnSMS").click(function (event) {
+            event.preventDefault();
+            $('#btnSMS').removeClass("btn btn-indigo");
+            $('#btnSMS').addClass("btn btn-indigo btn-loaders btn-icon");
+            $('#btnSMS').html("Sending...");
+
+            var table = $("#tbl_marketing").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _obj = {
+                    "branchId": _data.app_branch,
+                    "mobile": _data.pat_mob,
+                    "user": _data.patId,
+                    "content": $("#sms_email_template_msg").val()
+                }
+
+                $.ajax({
+                    url: '@Url.Action("SMSConfig", "Patient", new { area = "Patient" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _obj,
+                    async: false,
+                    success: function (response) {
+                        $('#btnSMS').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btnSMS').addClass("btn btn-indigo");
+                        $('#btnSMS').html("<i class='fa fa-comment'></i> Send SMS");
+                        if (response.isSuccess == true) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.notice({
+                                title: "Success",
+                                message: response.message
+                            });
+                        }
+                        else {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: response.message
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        console.log("Error : "+xhr.statusText);
+                    }
+                });
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        // Send SMS Arabic
+        $("#btnSMS_AR").click(function (event) {
+            var table = $("#tbl_marketing").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _obj = {
+                    "branchId": _data.app_branch,
+                    "mobile": _data.pat_mob,
+                    "user": _data.patId,
+                    "content": $("#sms_email_template_msg").val()
+                }
+
+                $.ajax({
+                    url: '@Url.Action("SMSConfig_AR", "Patient", new { area = "Patient" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _obj,
+                    async: false,
+                    success: function (response) {
+                        if (response.isSuccess == true) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.notice({
+                                title: "Success",
+                                message: response.message
+                            });
+                        }
+                        else {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: response.message
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error : " + xhr.statusText);
+                    }
+                });
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        // Send E-Mail
+        $("#btnEmail").click(function (event) {
+            var table = $("#tbl_marketing").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                if (!(_data.pat_email == undefined || _data.pat_email == null || _data.pat_email == "")) {
+                    var _obj = {
+                        "branchId": _data.app_branch,
+                        "email": _data.pat_email,
+                        "user": _data.patId,
+                        "content": $("#sms_email_template_msg").val(),
+                        "templateId": parseInt($("#sms_email_template").val())
+                    }
+
+                    $.ajax({
+                        url: '@Url.Action("EmailConfig", "Patient", new { area = "Patient" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            if (response.isSuccess == true) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.notice({
+                                    title: "Success",
+                                    message: response.message
+                                });
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                }
+                else {
+                    console.log("Invalid email address :" + _data.pat_email);
+                }
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region UI Functions
+        // Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        // Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        // Remove Error Class
+        function error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+        //#endregion
+    </script>
+}

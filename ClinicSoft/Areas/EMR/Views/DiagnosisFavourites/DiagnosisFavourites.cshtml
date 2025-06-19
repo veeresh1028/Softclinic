@@ -1,0 +1,539 @@
+﻿@model BusinessEntities.EMR.DiagnosisFavourites
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    var id = TempData["Layout"] as string;
+    var layoutPath = string.IsNullOrEmpty(id)
+    ? "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml"
+    : null;
+    Layout = layoutPath;
+
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="diagfavuorite_add" style="display:none;">
+                  
+                </div>
+                <div id="diagfavuorite_edit">
+                </div>
+                <br />
+                <div >
+                    <form id="form_add_todiag" class="needs-validation" autocomplete="off">
+                        @Html.AntiForgeryToken()
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2 col-lg-2">
+                                <div class="form-group mb-3">
+                                    @Html.DropDownListFor(m => m.pad_ftype, new List<SelectListItem>
+                                     {
+                                        new SelectListItem{ Text="Primary", Value = "Primary" },
+                                        new SelectListItem{ Text="Secondary", Value = "Secondary" },
+                                        new SelectListItem{ Text="ReasonForVisit", Value = "ReasonForVisit" },
+                                     }, "Select Type", new { @class = "form-select select2", @id = "upad_ftype" })
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-md-2 col-lg-2">
+                                <div class="form-group mb-3">
+                                    @Html.DropDownListFor(m => m.pad_fcategory, new List<SelectListItem>
+                                     {
+                                        new SelectListItem{ Text="New", Value = "New" },
+                                        new SelectListItem{ Text="Follow up", Value = "Follow up" },
+                                     }, "Select Category", new { @class = "form-select select2", @id = "upad_fcategory" })
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-6 col-lg-6">
+                                <div class="form-group mb-3">
+                                    <div class="btn-list btn-animation">
+                                        <button type="submit" class="btn btn-cyan ms-lg-2" id="btn_add_todiag">Add To Diagnosis</button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                        </form>
+                    </div>
+                        <div class="table-responsive">
+                            <table id="tbl_diagfavuorite" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                                <thead>
+                                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                        <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Diagnosis</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Diagnosis class</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                                        <th class="border-bottom-0 font-weight-semibold text-white">pdf_diagnosis</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+
+                </div>
+            </div>
+    </div>
+</div>
+
+    <script>
+    //#region Page Load
+        $(function () {
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            GetPatDiagnosis();
+            AddPatDiagnosis();
+            $("#diagfavuorite_add").show();
+            $("#upad_ftype").select2({
+                placeholder: 'Select Type',
+                width: '100%',
+                minimumResultsForSearch: '',
+
+            });
+            $("#upad_fcategory").select2({
+                placeholder: 'Select Type',
+                width: '100%',
+                minimumResultsForSearch: '',
+
+            });
+        });
+    //#endregion Page Load
+
+    //#region Load DiagnosisFavourites
+        var GetPatDiagnosis = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllDiagnosisFavourites", "DiagnosisFavourites", new { area = "EMR" })?empId=" + "@emr.app_doctor",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_diagfavuorite')) {
+                            table = $('#tbl_diagfavuorite').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load DiagnosisFavourites
+
+
+    //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_diagfavuorite").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "pdfId",
+                        "orderable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "pdfId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+
+
+                    {
+                        "mData": "diag_code",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "diag_name",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "diag_class",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pdf_notes",
+                        "className": 'text-left',
+
+                    },
+
+                    {
+                        "mData": "pdfId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (pdfId, type, full, meta) {
+                            var status = full.pdf_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="EditDiagnosisFavourite(' + pdfId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" != "NoLock") {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditDiagnosisFavourite(' + pdfId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                                return ''
+                                            }
+                                    }
+                                    else {
+                                        return '<button type="button"  onclick="EditDiagnosisFavourite(' + pdfId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                    }
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "pdfId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (pdfId, type, full, meta) {
+                            var status = full.pdf_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteDiagnosisFavourites(' + pdfId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" != "NoLock") {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteDiagnosisFavourites(' + pdfId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                        }
+                                    else {
+                                        return '<button type="button" onclick="DeleteDiagnosisFavourites(' + pdfId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    //Hidden Fields
+                    {
+                        "mData": "pdf_diagnosis",
+                        "visible": false,
+                        'render': function (pdf_diagnosis, type, full, meta) {
+                            return pdf_diagnosis;
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Diagnosis</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_diagfavuorite_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+
+    //#region Add DiagnosisFavourites
+        function AddPatDiagnosis() {
+            $('#diagfavuorite_edit').hide();
+            var x = $("#diagfavuorite_add");
+            x.load("@Url.Action("CreateDiagnosisFavourite", "DiagnosisFavourites", new { area = "EMR" })", function () {
+                $("#diagfavuorite_add").show();
+            });
+        }
+    //#endregion Add DiagnosisFavourites
+
+    //#region Edit DiagnosisFavourites
+        function EditDiagnosisFavourite(pdfId) {
+            $('#diagfavuorite_add').hide();
+            var x = $("#diagfavuorite_edit");
+            x.load("@Url.Action("EditDiagnosisFavourite", "DiagnosisFavourites", new { area = "EMR" })?pdfId=" + pdfId + "&empId=" + @emr.app_doctor, function () {
+                $("#diagfavuorite_edit").show();
+            });
+        }
+    //#endregion Edit DiagnosisFavourites
+
+
+     //#region Add To Diagnosis Click
+        $('#btn_add_todiag').on('click', function (e) {
+             e.preventDefault();
+            var table = $("#tbl_diagfavuorite").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+            if (rows.length > 0) {
+
+                $('#btn_add_todiag').removeClass("btn btn-success");
+                $('#btn_add_todiag').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_add_todiag').html("Updating the Record....");
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    var _dataInsert = {
+                        "padId": 0,
+                        "pad_appId": @emr.appId,
+                        "pad_diagnosis": _data.pdf_diagnosis,
+                        "pad_notes": _data.pdf_notes,
+                        "pad_type": $("#upad_ftype").val(),
+                        "pad_year": 0,
+                        "chkyes": 0,
+
+                        "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    }
+                    console.log(_dataInsert)
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("InsertPatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })",
+                        dataType: 'JSON',
+                        data: _dataInsert,
+                        success: function (data) {
+                            $('#vital_edit').hide();
+                            $('#btn_add_todiag').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_add_todiag').addClass("btn btn-success");
+                            $('#btn_add_todiag').html("Save Changes");
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> Patient Diagnosis Added Successfully!", "success");
+                                    GetPatDiagnosis();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. Patient Diagnosis Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#error").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+                                html += "</ul></div></div>";
+                                $("#error").html(html);
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btn_add_todiag').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_add_todiag').addClass("btn btn-success");
+                            $('#btn_add_todiag').html("Save Changes");
+                            Timeout();
+                        }
+                    });
+                });
+            }
+            else {
+                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                    "<div class='alert alert-danger' role='alert'>" +
+                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                    "<strong>Warning.. Select One Diagnosis..</strong><br/>" +
+                    "</div></div>";
+                $("#error").html(html);
+            }
+            });
+    //#endregion Add To Diagnosis Click
+
+    //#region Delete DiagnosisFavourites
+        var DeleteDiagnosisFavourites = function (pdfId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Diagnosis Favourite ?",
+                text: "The selected Diagnosis Favourite will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteDiagnosisFavourites", "DiagnosisFavourites", new { area = "EMR" })?pdfId=' + pdfId,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Diagnosis Favourite Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetPatDiagnosis();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Diagnosis",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Diagnosis!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Diagnosis! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetPatDiagnosis();
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion Delete DiagnosisFavourites
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    </script>

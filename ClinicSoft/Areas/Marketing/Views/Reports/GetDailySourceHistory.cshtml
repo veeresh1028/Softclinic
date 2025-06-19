@@ -1,0 +1,146 @@
+﻿@model IEnumerable<BusinessEntities.Marketing.Reports.DailySourceHistory>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Daily Source Enquiries History</h5>
+    <button type="button" class="btn-close btnCloseEnquiry" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    @if (Model.Any())
+    {
+        <div class="col-md-12 col-lg-12">
+            <div class="table-responsive" style="min-height:unset;">
+                <table id="tbl_daily_source_history" class="table table-bordered table-hover text-nowrap resize-table" style="width:100%;">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                            <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Managed By</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Patient</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Mobile #</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">E-Mail</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Source</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Campaign</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Remark</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Made By</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">D/T Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var dr in Model)
+                        {
+                            <tr>
+                                <td class="fs-13">@dr.app_fdate.ToString("DD-MMMM-YYYY")</td>
+                                <td class="fs-13">@dr.emp_name</td>
+                                <td class="fs-13">@dr.pat_name</td>
+                                <td class="fs-13">@dr.pat_mob</td>
+                                @if (!string.IsNullOrEmpty(dr.pat_email))
+                                {
+                                    <td class="fs-13">@dr.pat_email</td>
+                                }
+                                else
+                                {
+                                    <td class="fs-13 text-muted">N/A</td>
+                                }
+                                <td class="fs-13">@dr.source_details</td>
+                                <td class="fs-13">@dr.campaign_details</td>
+                                @if (!string.IsNullOrEmpty(dr.app_comments))
+                                {
+                                    <td class="fs-13 text-wrap">@dr.app_comments</td>
+                                }
+                                else
+                                {
+                                    <td class="fs-13 text-muted">N/A</td>
+                                }
+                                <td class="fs-13">@dr.app_status</td>
+                                <td class="fs-13">@dr.app_madeby_name</td>
+                                <td class="fs-13">@dr.app_date_created.ToString("dd-MMMM-yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-light-info alert-dismissiblefade show" role="alert">
+                <strong><i class="fa fa-exclamation-circle pt-2"></i> Info!&nbsp;</strong> No Record(s) currently exist!
+            </div>
+        </div>
+    }
+</div>
+<script type="text/javascript">
+
+    //#region Document Load
+    $(function () {
+        var table = $('#tbl_daily_source_history').DataTable({
+            lengthChange: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    className: 'btn-secondary',
+                    title: 'Daily Source Enquiries History',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Daily Source Enquiries History to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn-secondary',
+                    title: 'Daily Source Enquiries History',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Daily Source Enquiries History to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn-secondary',
+                    title: 'Daily Source Enquiries History',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Daily Source Enquiries History to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    className: 'btn-secondary',
+                    title: 'Daily Source Enquiries History',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Daily Source Enquiries History!");
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search Date / Patient Details / Source / Campaign / Made By</span>',
+                lengthMenu: '_MENU_ ',
+            },
+            "aoColumnDefs": [
+                {
+                    "aTargets": [2],
+                    "className": "text-wrap"
+                },
+            ]
+        });
+        table.buttons().container().appendTo('#tbl_daily_source_history_wrapper .col-md-6:eq(0)');
+    });
+    //#endregion
+
+    //#region Export General Logs
+    var exportLogs = function (desc) {
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+            contentType: "application/json",
+            dataType: "json"
+        });
+    }
+    //#endregion
+
+</script>

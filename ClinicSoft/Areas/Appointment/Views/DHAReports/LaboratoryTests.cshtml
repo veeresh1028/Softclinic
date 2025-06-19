@@ -1,0 +1,838 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report";
+    ViewBag.dha_23 = "background: none !important; color: #664dc9 !important;";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <spna data-lang-key="laboratory-tests">Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report</spna></h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+            <button class="btn btn-secondary mb-2" type="button" id="printReport">
+                <i class="fa fa-print"></i> 
+                <span data-lang-key="print">Print</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-6 col-lg-4">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branch">Branch</span></label>
+                                <select class="form-control select2" id="select_branch">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="month">Month</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <span class="fe fe-clock "></span>
+                                    </div>
+                                </div>
+                                <input class="form-control" id="select_month" placeholder="Month Range" type="text">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="year">Year</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <span class="fe fe-clock"></span>
+                                    </div>
+                                </div>
+                                <input class="form-control" id="select_year" placeholder="Year Range" type="text">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="nationality">Nationality</span></label>
+                                <select class="form-control select2" id="select_nat">
+                                    <option value="Emirati">
+                                        <span data-lang-key="emirati">Emirati</span></option>
+                                    <option value="Non-Emirati">
+                                        <span data-lang-key="non-emirati">Non-Emirati</span></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress_loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive d-none" style="min-height:220px;" id="summ_report">
+                    <table class="table table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <tr>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="source-name">Source Name :</span>
+                            </td>
+                            <td id="source_name" class="text-capitalize"></td>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="report-name">Report Name :</span></td>
+                            <td class="text-capitalize">
+                                <span data-lang-key="laboratory-tests">Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test</span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="data-write">Data Write :</span></td>
+                            <td class="text-capitalize"> 
+                                <span data-lang-key="append-previous-data">Append to Previous Data</span></td>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="download-date">Download Date :</span></td>
+                            <td class="text-capitalize">@DateTime.Now.ToString("dd-MM-yyyy HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="Sr-id">SR ID :</span></td>
+                            <td class="text-capitalize">197566</td>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="data-period">Data Period :</span></td>
+                            <td class="text-capitalize"><span id="ydata_period"></span> / <span id="mdata_period"></span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="report-period">Report Period :</span></td>
+                            <td class="text-capitalize">
+                                <span data-lang-key="month">Month</span></td>
+                            <td class="font-weight-semibold">
+                                <span data-lang-key="uae-expat">UAE-Expat :</span></td>
+                            <td class="text-capitalize" id="nat"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_report" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center" style="vertical-align:middle" rowspan="2">
+                                    <span data-lang-key="types-of-treatment">Type of Treatment</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center" style="vertical-align:middle" rowspan="2">
+                                    <span DATA-LANG-KEY="no-of-treatment">No. of Treatments</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">
+                                    <span data-lang-key="less-one-year">Less than 1 year</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">1 - 4</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">5 - 9</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">10 - 14</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">15 - 19</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">20 - 24</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">25 - 44</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">45 - 64</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center border-top" colspan="2">65 +</th>
+                            </tr>
+                            <tr class="bg-primary border-top text-center">
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="male">Male</span>
+                                </th>
+                                <th class="text-white border-top">
+                                    <span data-lang-key="female">Female</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th class="font-weight-semibold text-primary">
+                                    <span data-lang-key="total">Total</span></th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                                <th class="font-weight-semibold text-dark text-right">0</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="text-wrap d-none" id="toastReport">
+    <div class="toast-main p-5">
+        <div class="demo-static-toast">
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="reportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header text-dark">
+                        <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                        <strong class="me-auto">
+                            <span data-lang-key="DHA-report 23">DHA Report 23</span></strong>
+                        <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="toast-body" id="toastBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <style>
+        .datepicker-months .prev,
+        .datepicker-months .datepicker-switch,
+        .datepicker-months .next {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            // Load Advanced Filters
+            load_filters();
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Empty Table
+            BindDataTable(null);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_nationality();
+
+            $('#select_year').bootstrapdatepicker({
+                format: "yyyy",
+                viewMode: "year",
+                minViewMode: "years",
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate: "+1y"
+            });
+            $("#select_year").bootstrapdatepicker("setDate", "today");
+            $('#select_year').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 4)
+                        return false;
+                }
+            });
+
+            $('#select_month').bootstrapdatepicker({
+                format: "MM",
+                viewMode: "months",
+                minViewMode: "months",
+                multidate: false,
+                autoclose: true,
+                multidateSeparator: "-"
+            });
+            $("#select_month").bootstrapdatepicker("setDate", "today");
+            $('#select_month').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 4)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $("#select_branch").select2({
+                placeholder: 'Select a Branch',
+                maximumInputLength: 6,
+                width: '100%'
+            });
+
+            var _url = "";
+
+            if ("@emp_designation.ToString().Contains("Administrator")" == "True") {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?empId=" + @empId.ToString();
+            }
+            else {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?setid=" + @emp_branch.ToString();
+            }
+
+            $.ajax({
+                url: _url,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+
+                    var newOption;
+
+                    if ("@emp_designation.ToString().Contains("Administrator")" == "True") {
+                        $.each(response, function (j) {
+                            newOption = new Option(response[j].text, response[j].id, false, false);
+                            $('#select_branch').append(newOption).trigger('change');
+                        });
+                    }
+                    else {
+                        var _data = {
+                            "id": "@emp_branch.ToString()",
+                            "text": "@company.ToString()",
+                        };
+
+                        $('#select_branch').trigger({
+                            type: 'select2:select',
+                            params: {
+                                data: _data
+                            }
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                var _data = {
+                    "id": "@emp_branch.ToString()",
+                    "text": "@company.ToString()",
+                };
+
+                $('#select_branch').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: _data
+                    }
+                });
+
+                $("#select_year").on('changeDate', function (e) {
+                    var selectedDate = e.date;
+                    var selectedYear = selectedDate.getFullYear();
+
+                    $("#ydata_period").html(selectedYear);
+                });
+
+                $("#select_month").on('changeDate', function (e) {
+                    var selectedDate = e.date;
+                    var selectedMonthId = selectedDate.getMonth() + 1;
+
+                    $("#mdata_period").html(selectedMonthId.toString().padStart(2, '0'));
+                });
+            });
+        }
+        // On Branches Select
+        $('#select_branch').on('select2:select', function (e) {
+            if (e.params.data.text != "") {
+                $("#source_name").html('');
+                $("#source_name").html(e.params.data.text)
+            }
+            else {
+                $("#source_name").html('');
+            }
+        });
+        // Load Nationality
+        var load_nationality = function () {
+            $("#select_nat").select2({
+                placeholder: 'Select Nationality',
+                minimumResultsForSearch: -1,
+                width: '100%'
+            });
+        }
+        //#endregion
+
+        //#region Search Button Click
+        // Search Button Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                let isValid = true;
+
+                if ($("#select_month").val() == "") {
+                    isValid = false;
+                    e.stopPropagation();
+                    handleValidation($("#select_month"), "Select Month to Filter Record(s)!");
+                }
+
+                if ($("#select_year").val() == "") {
+                    isValid = false;
+                    e.stopPropagation();
+                    handleValidation($("#select_year"), "Select Year to Filter Record(s)!");
+                }
+
+                if ($("#select_nat").val() == "") {
+                    isValid = false;
+                    e.stopPropagation();
+                    handleValidation($("#select_nat"), "Select Nationality!");
+                }
+
+                if (isValid) {
+                    GetReport(1);
+                    $("#summ_report").removeClass("d-none");
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Report!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+
+        });
+        // Function for Validation Message
+        function handleValidation(elem, errorMessage) {
+
+            if (elem.hasClass("select2-hidden-accessible")) {
+                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+            } else {
+                elem.addClass("is-invalid");
+            }
+
+            setTimeout(function () {
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass("is-invalid");
+                }
+            }, 5000);
+
+            return $.growl.error({
+                title: "Error!",
+                message: errorMessage
+            });
+        }
+        //#endregion
+
+        //#region Get Report Details
+        var GetReport = function (search_type) {
+
+            if ($('#select_nat :selected').val() == "Emirati") {
+                $("#nat").html('571 : ' + $('#select_nat :selected').val());
+            }
+            else {
+                $("#nat").html('572 : ' + $('#select_nat :selected').val());
+            }
+
+            var monthName = $('#select_month').val();
+            var date = new Date(monthName + ' 1,' + $('#select_year').val() + '');
+            var monthId = date.getMonth() + 1;
+
+            var _data = {
+                "search_type": search_type,
+                "select_branch": $('#select_branch').val().toString(),
+                "select_month": monthId.toString().padStart(2, '0'),
+                "select_year": $('#select_year').val(),
+                "select_nat": $('#select_nat :selected').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetLaboratoryTestsReport", "DHAReports", new { area = "Appointment" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress_loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#toastReport').removeClass("d-none");
+                    $('#reportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        $('#progress_loader').hide();
+
+                        //#region Load Report Details
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_report')) {
+                            table = $('#tbl_report').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                        $('#reportToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress_loader').hide();
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#reportToast').fadeOut('fast');
+                    $('#toastReport').addClass("d-none");
+                }, 5000);
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable Report
+        var BindDataTable = function (response) {
+            var table = $("#tbl_report").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "className": "text-justify text-wrap",
+                        "mData": "tr_code_name"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "total_count"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_0_1"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_0_1"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_1_4"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_1_4"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_5_9"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_5_9"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_10_14"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_10_14"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_15_19"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_15_19"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_20_24"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_20_24"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_25_44"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_25_44"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_45_64"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "F_45_64"
+                    },
+                    {
+                        "className": "text-right",
+                        "mData": "M_65_100"
+                    },
+                    {
+                        "className":"text-right",
+                        "mData": "F_65_100"
+                    }
+                ],
+                "searching": false,
+                "ordering": false,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report',
+                        footer: 'true',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report',
+                        footer: 'true',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report',
+                        footer: 'true',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report',
+                        footer: 'true',
+                        action(e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Laboratory Tests By Nationality, Sex, Age Groups & Type Of Test Report!");
+                        },
+                        customize: function (win) {
+                            $(win.document.body).append('' + $("#summ_report").html() + '');
+                        }
+                    }
+                ],
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    total = api.column(1).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(1).footer()).html(total);
+
+                    total = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(2).footer()).html(total);
+
+                    total = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(total);
+
+                    total = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(4).footer()).html(total);
+
+                    total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(total);
+
+                    total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(total);
+
+                    total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(total);
+
+                    total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(total);
+
+                    total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(9).footer()).html(total);
+
+                    total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(10).footer()).html(total);
+
+                    total = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(11).footer()).html(total);
+
+                    total = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(12).footer()).html(total);
+
+                    total = api.column(13).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(13).footer()).html(total);
+
+                    total = api.column(14).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(14).footer()).html(total);
+
+                    total = api.column(15).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(15).footer()).html(total);
+
+                    total = api.column(16).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(16).footer()).html(total);
+
+                    total = api.column(17).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(17).footer()).html(total);
+
+                    total = api.column(18).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(18).footer()).html(total);
+
+                    total = api.column(19).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(19).footer()).html(total);
+                }
+            });
+            table.buttons().container().appendTo('#tbl_report_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Print Report
+        document.getElementById('printReport').addEventListener('click', handlePrintButtonClick);
+
+        function handlePrintButtonClick() {
+            var printWindow = window.open('', '_blank');
+
+            var tableData = $('#tbl_report').clone();
+
+            $(printWindow.document.body).html(tableData);
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PrintDHAReport23", "DHAReports", new { area = "Appointment" })",
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        printWindow.print();
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Access Denied!",
+                            text: "You do not have enough privileges to Print this Report!",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+    </script>
+}

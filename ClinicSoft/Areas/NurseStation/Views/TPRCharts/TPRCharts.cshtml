@@ -1,0 +1,137 @@
+﻿@using BusinessEntities;
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<link href="~/assets/plugins/charts-c3/c3-chart.css" rel="stylesheet" />
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">TPR Charts (Last Vitals)</div>
+                <span class="ms-2 badge bg-primary mt-2">Temprature</span>
+                <span class="ms-2 badge bg-success mt-2">Respiratory</span>
+                <span class="ms-2 badge bg-azure mt-2">Pulse</span>
+                <span class="ms-2 badge bg-danger mt-2">Weight</span>
+                <span class="ms-2 badge bg-warning mt-2">BMI</span>
+            </div>
+            <div class="card-body">
+                <div id="chart-yearly-stats" class="chartsh h-500"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/chart.flot.sampledata.js"></script>
+
+<!-- INTERNAL Chart js -->
+<script src="~/assets/plugins/chart/chart.bundle.js"></script>
+<script src="~/assets/plugins/chart/utils.js"></script>
+
+<!-- INTERNAL c3.js Charts js-->
+<script src="~/assets/plugins/charts-c3/d3.v5.min.js"></script>
+<script src="~/assets/plugins/charts-c3/c3-chart.js"></script>
+<!-- Simplebar JS -->
+<script src="~/assets/plugins/simplebar/js/simplebar.min.js"></script>
+
+<!-- Rounded bar chart js-->
+<script src="~/assets/js/rounded-barchart.js"></script>
+<!-- INTERNAL Chart js -->
+<script src="~/assets/plugins/chart/chart.bundle.js"></script>
+<script src="~/assets/plugins/chart/utils.js"></script>
+
+<script src="~/assets/js/apexcharts.js"></script>
+
+<!--Othercharts js-->
+<script src="~/assets/plugins/othercharts/jquery.sparkline.min.js"></script>
+
+<script type="text/javascript">
+
+    //#region Page Load
+        $(function () {
+            draw_TPR_stat_chart();
+        });
+
+    //#endregion Page Load
+
+    //#region Chart Load
+        var draw_TPR_stat_chart = function () {
+             var _data = {
+                 "patId": "@emr.patId",
+                 "app_fdate": "@emr.app_fdate_time"
+            }
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("DrawTPRStatChart")',
+                dataType: 'json',
+                data : _data,
+                success: function (response) {
+
+                    console.log(response)
+                    var chart = c3.generate({
+                        bindto: '#chart-yearly-stats', // id of chart wrapper
+                        data: {
+                            columns: [
+                                // each columns data
+                                response.tempratures,
+                                response.respiratorys,
+                                response.pulses,
+                                response.weights,
+                                response.bmi,
+                            ],
+                            labels: true,
+                            type: 'line', // default type of chart
+                            colors: {
+                                data1: '#fcb441',
+                                data2: '#e0400a',
+                                data3: '#056492',
+                                data4: '#bfbfbf',
+                                data5: '#1a3b69',
+                            },
+                            names: {
+                                // name of each serie
+                                'data1': 'Temprature',
+                                'data2': 'Respiratory',
+                                'data3': 'Pulse',
+                                'data4': 'Weight',
+                                'data5': 'BMI',
+                            }
+                        },
+                        axis: {
+                            x: {
+                                type: 'category',
+                                // name of each category
+                                categories: response.labels
+                            },
+                        },
+                        legend: {
+                            show: false, //hide legend
+                        },
+                        padding: {
+                            bottom: 0,
+                            top: 0
+                        },
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.log(error);
+                    console.log(xhr);
+                    console.log(status);
+                }
+            });
+        }
+    //#endregion Chart Load
+</script>

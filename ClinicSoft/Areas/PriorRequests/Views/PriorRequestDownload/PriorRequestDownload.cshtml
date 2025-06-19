@@ -1,0 +1,988 @@
+﻿@model IEnumerable<BusinessEntities.PriorRequests.PriorReqDownloadList>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Prior Requests";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<style type="text/css">
+    #tbl_priorDownloads_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="prior-requests">Prior Requests Downloads</span>
+
+            <span class="badge mt-2">
+                <span id="count_PriorRequest"></span>
+                <span id="count_InReview"></span>
+                <span id="count_ReadytoSubmit"></span>
+                <span id="count_SubforApp"></span>
+                <span id="count_Approved"></span>
+                <span id="count_PartlyApproved"></span>
+                <span id="count_Rejected"></span>
+                <span id="count_Cancelled"></span>
+                <span id="count_Resubmitted"></span>
+                <span id="count_Total"></span>
+            </span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i>
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-12 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from_app" class="form-control" placeholder="Select Appointment Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to_app" class="form-control" placeholder="Select Appointment Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="type">Type<small>(s)</small></span></label>
+                                <select class="form-control select2 custom-select" id="s_status">
+                                    <option value="1">New
+                                    </option>
+                                    <option value="2">Download</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-warning mb-2" type="button" id="btn_online">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="get-from-online-DHA">GET FROM ONLINE(DHA)</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-secondary mb-2" type="button" id="btn_online_moh">
+                                    <i class="fa fa-search-plus"></i>
+                                    <span data-lang-key="get-from-online-MOH">GET FROM ONLINE(MOH)</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-success mb-2" type="button" id="btn_offline">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="get-from-downloaded">GET FROM DOWNLOADED</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="demo-static-toast">
+        <div class="position-fixed top-0 end-0 p-3" style="z-index:100000000">
+            <div id="appointmentToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+        <div id="AppointmentAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_priorDownloads" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="id">ID</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="sender-name">Sender Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="xml-file">XML File</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="xml-type">XML Type</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="transaction-date">Transaction Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="result">Result</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="authorization-code">Authorization Code</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="appr-date">Appr Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="expiry-date">Exp Date</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="denial-info">Denial Info</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="comments">Comments</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Appointment Toast -->
+    <div class="text-wrap">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="appToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto">
+                                <span data-lang-key="prior-requests">Prior Requests</span></strong>
+                            <span data-lang-key="just-now">
+                                <small>Just Now</small></span>
+                                <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                    <span aria-hidden="true">×</span>
+                                </button>
+</div>
+                        <div class="toast-body">
+                            <i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark"><span data-lang-key="filtered">Filtered</span> </b> <b class="text-primary" id="app_count"> </b> <span data-lang-key="records-in-about">record(s) in about</span> <b id="etime"></b> ms
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            load_filters();
+
+            $("#s_status").select2({
+                placeholder: 'Select Type',
+                width: '100%',
+                minimumResultsForSearch: '',
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var pageLoad = false;
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+
+            $('#select_date_from_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from_app").bootstrapdatepicker("setDate", "today");
+            $('#select_date_to_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to_app").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#select_date_from_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                showCheckBox: false
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetPriorReqBranches", "PriorRequestDownload", new { area = "PriorRequests" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    pageLoad = true;
+                    $('#select_branch').html('');
+                    $('#select_branch')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" === "Doctor") {
+                        $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    }
+                    else {
+                        $.each(response, function (j) {
+                            $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                            $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        });
+                    }
+                    pageLoad = false;
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search offline
+        $("#btn_offline").click(function (e) {
+            e.preventDefault();
+
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") ||
+                    ($("#s_status").val() != null && $("#s_status").val() != 0 && $("#s_status").val() != "")) {
+                    let isValid = true;
+                    let app_frm = moment($("#select_date_from_app").val());
+                    let app_to = moment($("#select_date_to_app").val());
+
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) {
+                        if (!app_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined) {
+                        if (!app_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) && ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined)) {
+                        if (app_frm.isValid() && app_to.isValid()) {
+                            if (app_to.diff(app_frm, 'days') <= -1) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from_app");
+                                index.push("select_date_to_app");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetPriorAppointments(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Search by Either of the following filters : Branch(es) /  Type(s)",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Search offline
+            var GetPriorAppointments = function (search_type) {
+
+                var _data = {
+                    "search_type"   : search_type,
+                    "branch_ids"    : $('#select_branch').val().toString(),
+                    "s_status"      : $('#s_status').val().toString(),
+                    "date_from"     : $('#select_date_from_app').val(),
+                    "date_to"       : $('#select_date_to_app').val()
+                }
+
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetPriorReqDownloadList", "PriorRequestDownload", new { area = "PriorRequests" })",
+                    data: _data,
+                    start_time: new Date().getTime(),
+                    success: function (response) {
+                        $('#etime').html(new Date().getTime() - this.start_time);
+
+                        if (response.isAuthorized != false) {
+
+                            //#region Load Datatable
+                            var table;
+                            if ($.fn.dataTable.isDataTable('#tbl_priorDownloads'))
+                            {
+                                table = $('#tbl_priorDownloads').DataTable();
+                                table.clear();
+                                table.rows.add(response).draw();
+                            }
+                            else {
+                                BindDataTable(response);
+                            }
+                            //#endregion
+                        }
+                        else
+                        {
+                            console.log("You are not Authorized To View This Page!");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                        $('#progress-loader').hide();
+                    }
+                }).done(function () {
+                    resizedt();
+
+                    setTimeout(function () {
+                        $('#appToast').fadeOut('fast');
+                    }, 5000);
+
+                    $('#progress-loader').hide();
+                });
+            }
+
+            var BindDataTable = function (response) {
+                var table = $("#tbl_priorDownloads").DataTable({
+                    fixedHeader: {
+                        header: true,
+                        footer: true
+                    },
+                    processing: true,
+                    "deferRender": true,
+                    "pageLength": 50,
+                    "retrieve": true,
+                    lengthChange: true,
+                    "aaData": response,
+                    "aoColumns": [
+                        {
+                            "mData": "ID",
+                            "orderable": false,
+                            "searchable": false,
+                            "className": "select-checkbox text-center inbox-small-cells",
+                            'checkboxes': {
+                                'selectRow': true
+                            }
+                        },
+                        {
+                            "orderable": false,
+                            "mData": "pxd_senderId_name",
+                            "render": function (pxd_senderId_name) {
+                                return pxd_senderId_name
+                            }
+                        },
+                        {
+                            "className": 'text-left',
+                            "orderable": false,
+                            "searchable": false,
+                            "mData": "XMLFile",
+                            "render": function (XMLFile) {
+                                var downloadLink = '/PriorRequests/PriorRequestDownload/extracted/' + encodeURIComponent(XMLFile);
+                                return '<a href="' + downloadLink + '" download>' + XMLFile + '</a>';
+                            }
+                        },
+                        {
+                            "orderable": false,
+                            "mData": "XML_type",
+                            "render": function (XML_type) {
+                                return XML_type
+                            }
+                        },
+                        {
+                            "mData": "pxd_TransactionDate",
+                            "className": "text-left",
+                            "render": function (data) {
+                                return data
+                            }
+                        },
+                        {
+                            "orderable": false,
+                            "mData": "pxd_Result",
+                            "render": function (pxd_Result) {
+                                return pxd_Result
+                            }
+                        },
+                        {
+                            "orderable": false,
+                            "mData": "pxd_IDPayer",
+                            "render": function (pxd_IDPayer) {
+                                return pxd_IDPayer
+                            }
+                        },
+                        {
+                            "mData": "pxd_Start",
+                            "className": "text-left",
+                            "render": function (data) {
+                                return data
+                            }
+                        },
+                        {
+                            "mData": "pxd_End",
+                            "className": "text-left",
+                            "render": function (data) {
+                                return data
+                            }
+                        },
+                        {
+                            "orderable": false,
+                            "mData": "pxd_DenialCode_desc",
+                            "render": function (data) {
+                                return data
+                            }
+                        },
+                        {
+                            "orderable": false,
+                            "mData": "pxd_Comments",
+                            "render": function (data) {
+                                return data
+                            }
+                        },
+                        {
+                            "className": 'text-center',
+                            "orderable": false,
+                            "searchable": false,
+                            "mData": "ID",
+                            "render": function (ID, type, full, meta) {
+                                var more =  '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                                '<div class="dropdown-menu" style="min-width:auto;">' +
+                                                    '<a class="dropdown-item text-dark fw-bold" onclick="DeletePriorRequest(\'' + ID + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                                    //'<a class="dropdown-item text-dark fw-bold" onclick="Print(\'' + ID + '\')"><i class="fe fe-printer text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Print</a>' +
+                                                '</div>' +
+                                            '</div>';
+                                return more;
+                            }
+                        },
+
+                    ],
+                    select: {
+                        style: 'multi',
+                        selector: 'td:first-child'
+                    },
+                    order: [[0, 'desc']],
+                    buttons: [
+                        {
+                            extend: 'excel',
+                            title: 'Prior Requests',
+                            footer: 'true',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3]
+                            }
+                        },
+                        {
+                            extend: 'pdf',
+                            title: 'Prior Requests',
+                            footer: 'true',
+                            orientation: 'landscape',
+                            pageSize: 'LEGAL',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3]
+                            }
+                        },
+                        {
+                            extend: 'csv',
+                            title: 'Prior Requests',
+                            footer: 'true',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3]
+                            }
+                        },
+                        {
+                            extend: 'print',
+                            title: 'Prior Requests',
+                            footer: 'true',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3]
+                            }
+                        }
+                    ],
+                    language: {
+                        searchPlaceholder: 'Search...',
+                        sSearch: '<span class="text-primary font-weight-semi-bold">Search By MRN # / (Patient / Doctor) Details / Date / Type / Room</span>',
+                        lengthMenu: '_MENU_',
+                    },
+                    scrollX: true,
+                    scrollY: 500,
+                    scrollCollapse: true,
+                    fixedColumns: true,
+                });
+                table.buttons().container().appendTo('#tbl_priorDownloads_wrapper .col-md-6:eq(0)');
+            }
+        //#endregion
+
+        //#region PriorRequest
+            var DeletePriorRequest = function (ID) {
+                Swal.fire({
+                    title: "Are you sure you want to delete this Autorization ?",
+                    text: "This action will delete this Autorizations!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        $.ajax({
+                            url: "@Url.Action("DeletePriorRequest", "PriorRequests", new { area= "PriorRequests" })?ID=" + ID,
+                            type: "POST",
+                            dataType: "JSON",
+                            success: function (data) {
+                                if (data.isAuthorized) {
+                                    if (data.success) {
+                                        Swal.fire({
+                                            title: "Success!",
+                                            text: "PriorRequest Deleted Successfully!!",
+                                            icon: "success",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                        })
+                                        GetPriorAppointments();
+                                    }
+                                    else {
+                                        Swal.fire({
+                                            title: "Error!",
+                                            text: "Failed To Delete PriorRequest!",
+                                            icon: "error",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                        });
+                                    }
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Access Denied!",
+                                        text: "You do not have enough privileges to perform this action!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            },
+                            error: function (xhr) {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to Delete PriorRequest! Message : " + xhr.statusText,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                })
+                            }
+                        });
+                    }
+                });
+            }
+        //#endregion
+
+        //#region UI Functions
+            // Resize Datatable
+            function resizedt() {
+                setTimeout(function () {
+                    $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+                }, 450);
+            }
+            // Alert Timeout
+            function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+
+        //#region get online
+            $('#btn_online').on('click', function (e) {
+                if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                    let isValid = true;
+                    let app_frm = moment($("#select_date_from_app").val());
+                    let app_to = moment($("#select_date_to_app").val());
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) {
+                        if (!app_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined) {
+                        if (!app_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment To Date!"
+                            });
+                        }
+                    }
+                    if (($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) && ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined)) {
+                        if (app_frm.isValid() && app_to.isValid()) {
+                            if (app_to.diff(app_frm, 'days') <= -1) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from_app");
+                                index.push("select_date_to_app");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+                                e.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "Apointment From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        getFromOnline(1);
+                    }
+
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "You need to select atleast 1 Branch to Filter!",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            });
+        //#endregion
+
+        //#region  Get online
+            var getFromOnline = function (search_type) {
+
+                var _data = {
+                    "search_type"   : search_type,
+                    "app_branch"    : $('#select_branch').val().toString(),
+                    "s_status"      : $('#s_status').val(),
+                    "date_from"     : $('#select_date_from_app').val(),
+                    "date_to"       : $('#select_date_to_app').val()
+                }
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetFromOnline", "PriorRequestDownload", new { area = "PriorRequests" })",
+                    data: _data,
+                    beforeSend: function () {
+                        $('#progress-loader').show();
+                    },
+                    start_time: new Date().getTime(),
+                    success: function (response) {
+                        $('#progress-loader').hide();
+
+                        if (response.isAuthorized != false) {
+                            GetPriorAppointments(1);
+                        }
+                        else
+                        {
+                            console.log("You are not Authorized To View This Page!");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                        $('#progress-loader').hide();
+                    }
+                }).done(function () {
+                    resizedt();
+                    setTimeout(function () {
+                        $('#appToast').fadeOut('fast');
+                    }, 5000);
+                    $('#progress-loader').hide();
+                });
+            }
+        //#endregion
+
+        //#region get online
+            $('#btn_online_moh').on('click', function (e) {
+                if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                    let isValid = true;
+                    let app_frm = moment($("#select_date_from_app").val());
+                    let app_to = moment($("#select_date_to_app").val());
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) {
+                        if (!app_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined) {
+                        if (!app_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid Appointment To Date!"
+                            });
+                        }
+                    }
+                    if (($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) && ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined)) {
+                        if (app_frm.isValid() && app_to.isValid()) {
+                            if (app_to.diff(app_frm, 'days') <= -1) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from_app");
+                                index.push("select_date_to_app");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+                                e.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "Apointment From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        getFromOnlineMoh(1);
+                    }
+
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "You need to select atleast 1 Branch to Filter!",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            });
+        //#endregion
+
+        //#region  Get online
+            var getFromOnlineMoh = function (search_type) {
+
+                var _data = {
+                    "search_type"   : search_type,
+                    "app_branch"    : $('#select_branch').val().toString(),
+                    "s_status"      : $('#s_status').val(),
+                    "date_from"     : $('#select_date_from_app').val(),
+                    "date_to"       : $('#select_date_to_app').val()
+                }
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetFromOnlineMOH", "PriorRequestDownload", new { area = "PriorRequests" })",
+                    data: _data,
+                    beforeSend: function () {
+                        $('#progress-loader').show();
+                    },
+                    start_time: new Date().getTime(),
+                    success: function (response) {
+
+                        if (response.isAuthorized != false) {
+                            GetPriorAppointments(1);
+
+                            $('#progress-loader').hide();
+                        }
+                        else
+                        {
+                            console.log("You are not Authorized To View This Page!");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                        $('#progress-loader').hide();
+                    }
+                }).done(function () {
+                    resizedt();
+                    setTimeout(function () {
+                        $('#appToast').fadeOut('fast');
+                    }, 5000);
+                    $('#progress-loader').hide();
+                });
+            }
+        //#endregion
+    </script>
+}

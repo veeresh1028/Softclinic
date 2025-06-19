@@ -1,0 +1,733 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div id="patdignosis_add" style="display:none;">
+        </div>
+
+        <div id="patdignosis_edit">
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center mt-2">
+        <div id="Alert"></div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="table-responsive">
+            <table id="tbl_patdiagnosis" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                        <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Diagnosis</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">year</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Change To Primary</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div>
+            <h4 class="page-title mb-0 text-primary ">
+                Previous History
+            </h4>
+        </div>
+
+        <div class="table-responsive">
+            <table id="tbl_Prepatdiagnosis" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                        <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Diagnosis</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Year</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        getPatDiagnosis();
+
+        GetPreviousPatDiagnosis();
+
+        AddPatDiagnosis();
+
+        $("#patdignosis_add").show();
+    });
+    //#endregion
+
+    //#region Load PatientDiagnosis
+    var getPatDiagnosis = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetAllPatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_patdiagnosis')) {
+                        table = $('#tbl_patdiagnosis').DataTable();
+                        table.clear();
+                        table.rows.add(response.message).draw();
+                    }
+                    else {
+                        BindDiagnosisDataTable(response.message);
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        }).done(function () {
+            resizedt();
+        });
+    }
+    //#endregion
+
+    //#region Load PreviousPatientDiagnosis
+        var GetPreviousPatDiagnosis = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPrePatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_Prepatdiagnosis')) {
+                            table = $('#tbl_Prepatdiagnosis').DataTable();
+                            table.clear();
+                            table.rows.add(response.message).draw();
+                        }
+                        else {
+                            BindDataTableDiagP(response.message);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt();
+            });
+        }
+    //#endregion Load PreviousPatientDiagnosis
+
+    //#region Bind Datatable
+    var BindDiagnosisDataTable = function (response) {
+            var table = $("#tbl_patdiagnosis").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "padId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "pad_type",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "diag_code"
+                    },
+                    {
+                        "mData": "diag_name",
+                        "className": 'text-justify text-wrap',
+                    },
+                    {
+                        "mData": "pad_notes",
+                        "className": 'text-justify text-wrap',
+                        "render": function (pad_notes, type, row, meta) {
+                            if (pad_notes != "") {
+                                return pad_notes;
+                            }
+                            else {
+                                return '<span class="text-muted">N/A</span>';
+                            }
+                        }
+                    },
+                    {
+                        "mData": "pad_year",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "padId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                         "render": function (padId, type, full, meta) {
+                             var pad_status = full.pad_status;
+                             var pad_type = full.pad_type;
+
+                             var _more = '';
+
+                             if (pad_status === "Active" && pad_type == "Secondary") {
+                                 if ("@emp_designation.ToString()" === "Super Administrator") {
+                                     _more += '<a id=btn_Type_Diagnosis onclick="changeDiagnosisType(' + padId + ',' + "'" + pad_type + "'" + ')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/></svg></a>';
+                                 }
+                                 else {
+                                     if ("@emr.set_emr_lock" == "NoLock") {
+                                         _more += '<a id=btn_Type_Diagnosis onclick="changeDiagnosisType(' + padId + ',' + "'" + pad_type + "'" + ')"><i class="bi bi-back"></i></a>';
+                                     }
+                                     else {
+                                         if ("@emr.app_ae_date" >= "@emr.today") {
+                                             _more += '<a id=btn_Type_Diagnosis onclick="changeDiagnosisType(' + padId + ',' + "'" + pad_type + "'" + ')"><i class="bi bi-lg bi-back"></i></a>';
+                                         }
+                                         else {
+                                             _more += '';
+                                         }
+                                     }
+                                 }
+                             }
+
+                             return _more;
+                         }
+                    },
+                    {
+                        "mData": "padId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (padId, type, full, meta) {
+                            var status = full.pad_status;
+                            var pad_type = full.pad_type;
+
+                            if (status === "Active" && pad_type == "Secondary") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="editPatientDiagnosis(' + padId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="editPatientDiagnosis(' + padId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="editPatientDiagnosis(' + padId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                            return '';
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    },
+                    {
+                        "mData": "padId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (padId, type, full, meta) {
+                            var status = full.pad_status;
+
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="deletePatientDiagnosis(' + padId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="deletePatientDiagnosis(' + padId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="deletePatientDiagnosis(' + padId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return '';
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Diagnosis</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Patient Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    }
+                ]
+            });
+
+            table.buttons().container().appendTo('#tbl_patdiagnosis_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Previous Bind Datatable
+        var BindDataTableDiagP = function (response) {
+            var table = $("#tbl_Prepatdiagnosis").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "padId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (app_fdate, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(app_fdate).format('DD-MM-YYYY')
+                            }
+
+                            return moment(app_fdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "pad_type",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "diag_code",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "diag_name",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "pad_notes",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "pad_year",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "padId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (padId, type, full, meta) {
+                            var Action = '';
+                            //Copy Data
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_Paddiagnosis  onclick="CopyPrevious(' + padId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                                else {
+                                if ("@emr.set_emr_lock" == "NoLock") {
+                                    Action += '<a id=btn_Copy_Paddiagnosis  onclick="CopyPrevious(' + padId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+
+
+                                    }
+                                else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            Action += '<a id=btn_Copy_Paddiagnosis  onclick="CopyPrevious(' + padId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                        }
+                                        else {
+                                            Action += ''
+                                            }
+                                    }
+                                }
+
+                                return Action;
+                            }
+                    },
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Diagnosis</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous Patient Diagnosis',
+                        footer: 'true',
+                        className:'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous Patient Diagnosis',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous Patient Diagnosis',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous Patient Diagnosis',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_Prepatdiagnosis_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add PatientDiagnosis
+    function AddPatDiagnosis() {
+        $('#patdignosis_edit').hide();
+        var x = $("#patdignosis_add");
+        x.load("@Url.Action("CreatePatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })", function () {
+            $("#patdignosis_add").show();
+        });
+    }
+    //#endregion
+
+    //#region Edit PatientDiagnosis
+        function editPatientDiagnosis(padId) {
+            $('#patdignosis_add').hide();
+            var x = $("#patdignosis_edit");
+            x.load("@Url.Action("editPatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })?padId=" + padId + "&appId=" + @emr.appId, function () {
+                $("#patdignosis_edit").show();
+            });
+            //hide the Copy Data
+            var dt = $('#tbl_Prepatdiagnosis').DataTable();
+            dt.columns([8]).visible(false);
+
+        }
+    //#endregion Edit PatientDiagnosis
+
+
+    //#region Copy PatientDiagnosis
+        function CopyPrevious(padId) {
+            var x = $("#btn_Copy_Paddiagnosis");
+                $.ajax({
+                type: "GET",
+                    url: "@Url.Action("CopyPatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })?padId=" + padId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var _data = response;
+                        console.log(response);
+                        if (_data.length > 0) {
+                            load_Paddiagnosis(response[0].pad_diagnosis);
+                            $('#pad_notes').val(response[0].pad_notes);
+                            $('#pad_year').val(response[0].pad_year);
+                            $("#patdignosis_edit").hide();
+                            $("#patdignosis_add").show(_data);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+
+    //#endregion Copy PatientDiagnosis
+
+    //#region load PatientDiagnosis
+        var load_Paddiagnosis = function (pad_diagnosis) {
+            $.ajax({
+                url: '@Url.Action("GetDiagnosis", "PatientDiagnosis", new { area = "EMR" })?query=' + pad_diagnosis,
+                type: "GET",
+                dataType: "json",
+                async: false,
+
+                success: function (response) {
+                    var data = {
+                        "id": response[0].id,
+                        "text": response[0].text,
+                    };
+                    $('#pad_diagnosis').val(response[0].text);
+                    var newOption = new Option(response[0].text, response[0].id, true, true);
+                    $('#pad_diagnosis').append(newOption).trigger('change');
+                    $('#pad_diagnosis').trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    });
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+
+            });
+        };
+    //#endregion load PatientDiagnosis
+
+    //#region Delete PatientDiagnosis
+        var deletePatientDiagnosis = function (padId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Diagnosis ?",
+                text: "The selected Diagnosis will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("deletePatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })?padId=' + padId,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    getPatDiagnosis();
+                                    GetPreviousPatDiagnosis();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Diagnosis",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Diagnosis!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Diagnosis! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            getPatDiagnosis();
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion Delete PatientDiagnosis
+
+    //#region Change To Primary
+        var ChangeDiagnosisType = function (padId, pad_type) {
+            pad_type = (pad_type == "Secondary") ? "Primary" : "Secondary";
+
+            Swal.fire({
+                title: "Are you sure you want to change this Type ?",
+                text: "The selected Patient Diagnosis Type will be changed!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value)
+                {
+                    $.ajax({
+                        type: 'POST',
+                        url: "@Url.Action("ChangeDiagnosisType", "PatientDiagnosis", new { area = "EMR" })?padId=" + padId + "&pad_type=" + pad_type ,
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    getPatDiagnosis();
+                                    GetPreviousPatDiagnosis();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to change Patient Diagnosis Type!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Change Status! Please Refresh the Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                       }
+                    });
+                }
+            });
+        }
+    //#endregion Change To Primary
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 450);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+</script>

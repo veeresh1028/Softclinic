@@ -1,0 +1,911 @@
+﻿@model IEnumerable<BusinessEntities.Appointment.AppointmentList>
+@using System.Security.Claims;
+
+@{
+    ViewBag.Title = "Feedback";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span daa-lang-key="feedback">Feedback</span></h4>
+    </div>
+
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+            <button class="btn btn-info" type="button" id="btnFeedback">
+                <i class="fe fe-navigation"></i> <span data-lang-key="send-feedback-link">Send Feedback Link</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                <span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <spant data-lang-key="patient-search">Patient <small class="ms-2 text-info">(Search By MRN/EID/Mobile/Name)</small></spant>
+                                </label>
+                                <select class="form-control select2-show-search" id="select_patient"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from_app" class="form-control" placeholder="Select Appointment Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to_app" class="form-control" placeholder="Select Appointment Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+        <div id="AppointmentAlert"></div>
+    </div>
+
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_feedback" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="photo">Photo</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="visit-id">Visit ID</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="date and time">Date &amp; Time</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="patient-details">Patient Detail</span>
+                                </th>
+
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="doctor-details">Doctor Details</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="room">Room</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="type">Type</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="insurance">Insurance</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="remarks">Remarks</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="status">Status</span></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-wrap d-none" id="toastApp">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="appToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto">
+                                <span daa-lang-key="feedback">Feedback</span></strong>
+                            <small>
+                                <span data-lang-key="just-now">Just Now</span></small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body">
+                            <i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark"><span data-lang-key=filtered>Filtered </span></b> <b class="text-primary" id="app_count"> </b> <span data-lang-key="records-in-about">record(s) in about</span><b id="etime"></b> ms
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Patient Details -->
+<div class="modal fade overflow-auto" id="patient_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Patient Details -->
+<!-- Modal Doctor Details -->
+<div class="modal fade overflow-auto" id="doctor_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="doctor_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Doctor Details -->
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Toggle Sidebar
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            // Load Advanced Filters
+            load_filters();
+
+            // Load Appointments
+            getAppointments(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var pageLoad = false;
+        var isDetailViewClicked = false;
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_patients();
+
+            $('#select_date_from_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from_app").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_to_app').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to_app").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_from_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to_app').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                forceCustomRendering: true,
+                triggerChangeCombined: false
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetBranches", "Feedback", new { area = "Marketing" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    pageLoad = true;
+
+                    $('#select_branch').html('');
+                    $('#select_branch')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" === "Doctor") {
+                        $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    }
+                    else {
+                        $.each(response, function (j) {
+                            $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                            $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        });
+                    }
+
+                    pageLoad = false;
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        // Load Patients
+        var load_patients = function () {
+            $('#select_patient').select2({
+                placeholder: 'Search Patient',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("GetPatients", "Feedback", new { area = "Marketing" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 0
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+        //#endregion
+
+        //#region Search Feedback Appointments Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                let isValid = true;
+                let app_frm = moment($("#select_date_from_app").val(), "DD-MMMM-YYYY");
+                let app_to = moment($("#select_date_to_app").val(), "DD-MMMM-YYYY");
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) {
+                    if (!app_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid From Date!"
+                        });
+                    }
+                }
+                // Check if Date To is a valid Date
+                if ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined) {
+                    if (!app_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid To Date!"
+                        });
+                    }
+                }
+                // Check if Date Range is valid
+                if (($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) && ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined)) {
+                    if (app_frm.isValid() && app_to.isValid()) {
+                        if (app_to.diff(app_frm, 'days') < -1) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from_app");
+                            index.push("select_date_to_app");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error!",
+                                message: "From Date Filter should be less than To Date Filter!"
+                            });
+                        }
+                    }
+                }
+                // Check If Valid
+                if (isValid) {
+                    getAppointments(1);
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Appointments to send Feedback!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Appointments
+        var getAppointments = function (search_type) {
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "status"        : "Invoiced",
+                "patient"       : $('#select_patient').val(),
+                "date_from"     : $('#select_date_from_app').val(),
+                "date_to"       : $('#select_date_to_app').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAppointmentList", "Feedback", new { area = "Marketing" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    $('#etime').html(new Date().getTime() - this.start_time);
+
+                    if (!response.isAuthorized) {
+                        //#region Load Datatable
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_feedback')) {
+                            table = $('#tbl_feedback').DataTable();
+                            var currentPage = table.page();
+                            table.clear();
+                            table.rows.add(response.AppointmentList).draw();
+                            table.page(currentPage).draw(false);
+                        }
+                        else {
+                            BindDataTable(response.AppointmentList);
+                        }
+                        //#endregion
+
+                        //#region Appointment Summary
+                        // Total Records Filtered
+                        var count_total;
+
+                        if (response.AppointmentList.length > 0) {
+                            count_total = response.AppointmentList.length;
+                            $('#toastApp').removeClass("d-none");
+                            $('#appToast').show();
+                            $('#app_count').html(count_total.toLocaleString());
+                        }
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+
+                setTimeout(function () {
+                    $('#appToast').fadeOut('fast');
+                    $('#toastApp').addClass("d-none");
+                }, 5000);
+
+                $('#progress-loader').hide();
+            });
+        }
+        // Bind Datatable
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_feedback").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 50,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "appId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "mData": "pat_photo",
+                        "render": function (pat_photo) {
+                            return '<img class="avatar avatar-lg brround" src="' + pat_photo + '">	</img>'
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "appId",
+                        "render": function (appId) {
+                            return '<a onclick="AppointmentJourney(\'' + appId + '\')"><span class="bg-primary text-white btn-sm">' + appId + '</span></a>';
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "app_fdate",
+                        "render": function (app_fdate, type, full, meta) {
+                            var date_arr = moment(full.date_arrived).format("DD-MM-YYYY");
+                            var date_inv = moment(full.date_invoiced).format("DD-MM-YYYY");
+                            var dt = '';
+
+                            if (type === 'display' || type === 'filter') {
+
+                                dt += '<span class="badge bg-primary-light mb-1">D/T Registered</span><br/>' +
+                                    '<i class="fe fe-calendar text-dark"></i> <b class="text-info">' + moment(app_fdate).format("DD-MM-YYYY") + '</b><br/>' +
+                                    '<i class="fe fe-clock text-dark"></i> <b class="text-danger">' + full.app_doc_ftime + ' - ' + full.app_doc_ttime + '<b><br/>';
+
+                                if (date_arr == "31-12-1899") {
+                                    dt += '';
+                                }
+                                else {
+                                    dt += '<span class="badge bg-info-light mb-1">D/T Arrived</span><br/>' +
+                                        '<i class="fe fe-calendar text-dark"></i> <b class="text-dark">' + date_arr + '</b><br/>' +
+                                        '<i class="fe fe-clock text-dark"></i> <b class="text-dark">' + moment(full.date_arrived).format("hh:mm A") + '<b><br/>';
+                                }
+
+                                if (date_inv == "31-12-1899") {
+                                    dt += '';
+                                }
+                                else {
+                                    dt += '<span class="badge bg-success-light mb-1">D/T Invoiced</span><br/>' +
+                                        '<i class="fe fe-calendar text-dark"></i> <b class="text-dark">' + date_inv + '</b><br/>' +
+                                        '<i class="fe fe-clock text-dark"></i> <b class="text-dark">' + moment(full.date_invoiced).format("hh:mm A") + '<b>';
+                                }
+                                return dt;
+                            }
+                            return moment(app_fdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "pat_name",
+                        "render": function (pat_name, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var gender = full.pat_gender;
+                            var emid = full.pat_emirateid;
+
+                            if (emid == "") {
+                                emid = "999-9999-9999999-9";
+                            }
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a><br/> ';
+                            }
+                            else {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span></a><br/> ';
+                            }
+
+                            pat_det += '<span class="badge bg-primary-light-1 font-weight-semibold mt-2" title="MRN #">' + full.app_pat_code + '</span>';
+
+                            // Check EMID Expiry
+                            if (emid != null && emid != "" && emid != undefined) {
+
+                                let id_card_edate = moment(full.id_card_edate);
+                                if (id_card_edate.isValid()) {
+                                    let today = moment();
+                                    if (id_card_edate.diff(today, 'days') <= 0) {
+                                        pat_det += ' <div class="badge bg-danger-transparent font-weight-semibold mt-2" style="margin-left:5px;font-size: 0.9em">' + emid + '<span class="tag-addon"><i class="fa fa-exclamation-circle" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;"></i></span></div>';
+                                        //pat_det += '<span class="badge bg-danger-transparent ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span> <i class="fa fa-exclamation-circle fa-lg" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;margin-left: 5px;"></i> ';
+                                    }
+                                    else {
+                                        pat_det += '<span class="badge bg-primary-transparent text-dark ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span>';
+                                    }
+                                }
+                            }
+
+                            pat_det += ' <span class="badge bg-info-light ms-2 font-weight-bold" style="font-size: 0.9em;">' + full.pat_mob + '</span> <a class="ms-2" href="https://wa.me/' + full.pat_mob + '" target="_blank"><i class="fa fa-whatsapp fa-lg text-success"></i></a><br/>';
+
+                            // Check Patient Gender
+                            if (gender === "Male") {
+                                pat_det += ' <div class="tag bg-white border-1 border-info font-weight-semibold mt-2 text-info" title="Gender">Male<span class="tag-addon tag-info"><i class="fa fa-male"></i></span></div>';
+                            }
+                            else if (gender === "Female") {
+                                pat_det += '<div class="tag bg-white border-1 border-pink font-weight-semibold mt-2 text-pink" style="border: 1px solid;" title="Gender">Female<span class="tag-addon tag-pink"><i class="fa fa-female"></i></span></div>';
+                            }
+                            else {
+                                pat_det += '<div class="tag bg-white border-1 border-dark-transparent font-weight-semibold mt-2 text-gray" title="Gender">Unknown<span class="tag-addon tag-gray"><i class="fa fa-question-circle"></i></span></div>';
+                            }
+
+                            pat_det += '<div class="tag bg-white border-1 border-teal font-weight-semibold mt-2 ms-2 text-teal" title="Date of Birth">' + moment(full.pat_dob).format("DD-MM-YYYY") + '<span class="tag-addon tag-teal"><i class="fe fe-calendar"></i></span></div><div class="tag bg-white border-1 border-dark font-weight-semibold mt-2 ms-2 text-dark" title="Nationality">' + full.nationality + '<span class="tag-addon tag-dark"><i class="fa fa-flag"></i></span></div><br/><div class="tag bg-white border-1 border-dark font-weight-semibold mt-2 text-dark" title="Patient Balance">' + numberRenderer(full.balance) + '<span class="tag-addon tag-orange"><i class="fa fa-money"></i></span></div>';
+
+                            return pat_det;
+                        }
+                    },
+                    {
+                        "mData": "emp_name",
+                        "render": function (emp_name, type, full, meta) {
+                            return '<a class="font-weight-semibold text-capitalize fs-14" onclick="DoctorDetails(\'' + full.empId + '\',\'' + emp_name + '\')"><span> <i class="fa fa-circle" style="color:' + full.emp_color + '"></i> ' + emp_name + '</span></a><br/>' +
+                                '<div class="tag tag-secondary font-weight-semibold mt-2" title="Department">' + full.emp_dept_name + '<span class="tag-addon"><i class="fe fe-activity"></i></span></div><div class="tag tag-default border-dark text-dark font-weight-semibold mt-2 ms-2" title="License">' + full.emp_license + '</div>';
+                        }
+                    },
+                    {
+                        "mData": "room",
+                        "render": function (room) {
+                            return room
+                        }
+                    },
+                    {
+                        "mData": "app_type",
+                        "render": function (app_type) {
+                            return app_type
+                        }
+                    },
+                    {
+                        "className": 'text-center text-wrap',
+                        "mData": "ins_exp",
+                        "render": function (ins_exp, type, full, meta) {
+                            return ins_exp + '<span class="text-info font-weight-semibold ms-1">[' + full.app_category + ']</span>';
+                        }
+                    },
+                    {
+                        "orderable": false,
+                        "className": "text-wrap",
+                        "mData": "app_comments",
+                        "render": function (app_comments) {
+                            if (app_comments == '') {
+                                return '<span class="text-muted">No Remarks</span>';
+                            }
+                            else {
+                                return app_comments;
+                            }
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "app_status",
+                        "render": function (app_status, type, full, meta) {
+                            if (full.aps_color != undefined && full.aps_color != "") {
+                                return '<span class="badge rounded-pill mt-2" style="width: auto;background-color:' + full.aps_color + '">' + app_status + '</span>';
+                            }
+                            else {
+                                return '<span class="badge bg-dark rounded-pill mt-2" style="width: auto;">' + app_status + '</span>';
+                            }
+                        }
+                    },
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[3, 'desc']],
+                buttons: [
+                    {
+                        className: 'd-none',
+                        extend: 'excel',
+                        title: 'Appointment List'
+                    },
+                    {
+                        className: 'd-none',
+                        extend: 'pdf',
+                        title: 'Appointment List'
+                    },
+                    {
+                        className: 'd-none',
+                        extend: 'csv',
+                        title: 'Appointment List'
+                    },
+                    {
+                        className: 'd-none',
+                        extend: 'print',
+                        title: 'Appointment List'
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By MRN # / (Patient / Doctor) Details / Date / Type / Room</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                "createdRow": function (row, data, dataIndex) {
+                    var emp_status = data.emp_status;
+
+                    // Check emp_status and set row color
+                    if (emp_status === 'Inactive') {
+                        $(row).addClass("bg-gray-light");
+                    }
+                }
+            });
+
+            table.buttons().container().appendTo('#tbl_feedback_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Datatable Miscellaneous Function
+        // Appointment Journey
+        var AppointmentJourney = function (appId) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("JourneyView", "AppJourney", new { area = "Timeline" })?appId=" + appId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#search_modal_body").html(data);
+                    $("#search_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error : "+xhr.statusText);
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        }
+        // View Patient Details
+        var PatientDetails = function (patId, pat_name) {
+            if (!isDetailViewClicked) {
+                isDetailViewClicked = true;
+
+                $("#spinner2").show();
+
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("PatientDetail", "Patient", new { area = "Patient" })?patId=" + patId + "&pat_name=" + pat_name,
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (response) {
+                        $("#patient_details_body").html(response);
+                        $("#patient_details").modal("show");
+                        isDetailViewClicked = false;
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                        isDetailViewClicked = false;
+                    },
+                    complete: function () {
+                        $("#spinner2").hide();
+                    }
+                });
+            }
+        }
+        // View Doctor Details
+        var DoctorDetails = function (empId, emp_name) {
+            if (!isDetailViewClicked) {
+                isDetailViewClicked = true;
+
+                $("#spinner2").show();
+
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("DoctorDetails", "Employees", new { area = "Masters" })?empId=" + empId + "&emp_name=" + emp_name,
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (response) {
+                        $("#doctor_details_body").html(response);
+                        $("#doctor_details").modal("show");
+                        isDetailViewClicked = false;
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                        isDetailViewClicked = false;
+                    },
+                    complete: function () {
+                        $("#spinner2").hide();
+                    }
+                });
+            }
+        }
+        //#endregion
+
+        //#region Send Feedback Link
+        $("#btnFeedback").click(function (event) {
+            event.preventDefault();
+
+            var table = $("#tbl_feedback").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                $('#btnFeedback').removeClass("btn btn-info");
+                $('#btnFeedback').addClass("btn btn-info btn-loaders btn-icon");
+                $('#btnFeedback').html("Sending...");
+
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    $.ajax({
+                        url: '@Url.Action("SendFeedbackSMS", "Feedback", new { area = "Marketing" })?appId=' + _data.appId + '&pat_mob=' + _data.pat_mob + '&branchId=' + _data.app_branch,
+                        type: "POST",
+                        dataType: "json",
+                        async: false,
+                        success: function (response) {
+                            $('#btnFeedback').removeClass("btn btn-info btn-loaders btn-icon");
+                            $('#btnFeedback').addClass("btn btn-info");
+                            $('#btnFeedback').html('<i class="fe fe-navigation"></i> Send Feedback Link');
+
+                            if (response.isSuccess == true) {
+                                event.preventDefault();
+                                event.stopPropagation();
+
+                                return $.growl.notice({
+                                    title: "Success",
+                                    message: response.message
+                                });
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btnFeedback').removeClass("btn btn-info btn-loaders btn-icon");
+                            $('#btnFeedback').addClass("btn btn-info");
+                            $('#btnFeedback').html('<i class="fe fe-navigation"></i> Send Feedback Link');
+
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Appointment in the list to send Feedback Link!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region UI Functions
+        // Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 450);
+        }
+        // Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Ccl English";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"> Informed Consent For Corneal Collagen Cross Link</h3>
+            </div>
+            <div class="card-body">
+                <div id="CclEnglish_add" style="display:none">
+                </div>
+                <div id="CclEnglish_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="CclEnglish_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetCclEnglishInfo();
+        CclEnglishPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetCclEnglishInfo
+    var GetCclEnglishInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetCclEnglishData", "CclEnglish", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditCclEnglish();
+                        $("#CclEnglish_add").hide();
+                        $("#CclEnglish_edit").show();
+
+                    }
+                    else {
+                        $("#CclEnglish_add").show();
+                        $("#CclEnglish_edit").hide();
+                        AddCclEnglish();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load CclEnglish
+
+    //#region Add CclEnglish
+    function AddCclEnglish() {
+        var x = $("#CclEnglish_add");
+        x.load("@Url.Action("CreateCclEnglish", "CclEnglish", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add CclEnglish
+
+    //#region Update CclEnglish
+    function EditCclEnglish() {
+        var x = $("#CclEnglish_edit");
+        x.load("@Url.Action("UpdateCclEnglish", "CclEnglish", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update CclEnglish
+
+        //#region Histroy of CclEnglish
+    function CclEnglishPreviousHistory() {
+        var x = $("#CclEnglish_history");
+        x.load("@Url.Action("CclEnglishPreviousHistory", "CclEnglish", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Media Consent Arb";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header" dir="rtl">
+                <h3 class="card-title">نموذج موافقة وسائل الإعلام باللغة العربية</h3>
+            </div>
+            <div class="card-body">
+                <div id="MediaConsentArbDerma_add" style="display:none">
+                </div>
+                <div id="MediaConsentArbDerma_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="MediaConsentArbDerma_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetMediaConsentArbDermaInfo();
+        MediaConsentArbDermaPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetMediaConsentArbDermaInfo
+        var GetMediaConsentArbDermaInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetMediaConsentArbDermaData", "MediaConsentArbDerma", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditMediaConsentArbDerma();
+                        $("#MediaConsentArbDerma_add").hide();
+                        $("#MediaConsentArbDerma_edit").show();
+
+                    }
+                    else {
+                        $("#MediaConsentArbDerma_add").show();
+                        $("#MediaConsentArbDerma_edit").hide();
+                        AddMediaConsentArbDerma();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load MediaConsentArbDerma
+
+    //#region Add MediaConsentArbDerma
+        function AddMediaConsentArbDerma() {
+            var x = $("#MediaConsentArbDerma_add");
+        x.load("@Url.Action("CreateMediaConsentArbDerma", "MediaConsentArbDerma", new { area = "ConsentForms" })", function () {
+      });
+    }
+    //#endregion Add MediaConsentArbDerma
+
+    //#region Update MediaConsentArbDerma
+        function EditMediaConsentArbDerma() {
+            var x = $("#MediaConsentArbDerma_edit");
+        x.load("@Url.Action("UpdateMediaConsentArbDerma", "MediaConsentArbDerma", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+      //#endregion Update MediaConsentArbDerma
+
+      //#region Histroy of MediaConsentArbDerma
+        function MediaConsentArbDermaPreviousHistory() {
+            var x = $("#MediaConsentArbDerma_history");
+        x.load("@Url.Action("MediaConsentArbDermaPreviousHistory", "MediaConsentArbDerma", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion
+</script>

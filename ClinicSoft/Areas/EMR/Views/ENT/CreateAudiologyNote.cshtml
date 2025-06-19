@@ -1,0 +1,216 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.EMR.AudiologyNote
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_Audiology" autocomplete="off" name="AudiologyNote" ondrop="return false;" onpaste="return false;" oncut="return false;">
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Clinical History</label>
+                @Html.TextAreaFor(m => m.aud_clinic, new { @class = "form-control field-to-check", @placeholder = "Ex : Clinical History will go here...", @maxlenth = "1500" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Amplification History	</label>
+                @Html.TextAreaFor(m => m.aud_ampli, new { @class = "form-control field-to-check", @placeholder = "Ex : Amplification History will go here...", @maxlenth = "1500" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Current Hearing Aid Brand and Style	</label>
+                @Html.TextAreaFor(m => m.aud_style, new { @class = "form-control field-to-check", @placeholder = "Ex : Current Hearing Aid Brand and Style will go here...", @maxlenth = "1500" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Listening Needs</label>
+                @Html.TextAreaFor(m => m.aud_needs, new { @class = "form-control field-to-check", @placeholder = "Ex : Listening Needs will go here...", @maxlenth = "1500" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Tests Performed</label>
+                @Html.TextAreaFor(m => m.aud_tests, new { @class = "form-control field-to-check", @placeholder = "Ex : Tests Performed will go here...", @maxlenth = "1500" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Results</label>
+                @Html.TextAreaFor(m => m.aud_results, new { @class = "form-control field-to-check", @placeholder = "Ex : Results will go here...", @maxlenth = "1500" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Results</label>
+                @Html.TextAreaFor(m => m.aud_manage, new { @class = "form-control field-to-check", @placeholder = "Ex : Results will go here...", @maxlenth = "1500" })
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-sm btn-success" id="btn_Insert_Audio">Add Note</button>
+                <button type="button" class="btn btn-sm btn-outline-dark" id="btn_Reset_Audio">Reset</button>
+
+            </div>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+
+    //#region Partial View Onload
+        $(function () {
+            toggleButtonVisibility();
+
+        });
+    //#endregion
+
+    //#region Button Visibility
+    function toggleButtonVisibility() {
+        if (areFieldsFilled()) {
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                    $("#btn_Insert_Audio").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Insert_Audio").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Insert_Audio").show();
+                    }
+                    else {
+                        $("#btn_Insert_Audio").hide();
+                    }
+                }
+            }
+        } else {
+            $("#btn_Insert_Audio").hide();
+        }
+    }
+    //#endregion
+
+    //#region Validating
+    function areFieldsFilled() {
+        return $(".field-to-check").filter(function () {
+            return  this.value.trim() !== "";
+        }).length > 0;
+    }
+    //#endregion
+
+    $(".field-to-check").on("change input", toggleButtonVisibility);
+
+    //#region Add  Click
+        $('#btn_Insert_Audio').on('click', function (e) {
+            e.preventDefault();
+            
+                $('#btn_Insert_Audio').removeClass("btn btn-sm btn-success");
+                $('#btn_Insert_Audio').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Audio').html("Saving the Record....");
+                var _dateInsert = {
+                    "audId": 0,
+                    "aud_appId": @emr.appId,
+                    "aud_clinic": $("#aud_clinic").val(),
+                    "aud_ampli": $("#aud_ampli").val(),
+                    "aud_style": $("#aud_style").val(),
+                    "aud_needs": $("#aud_needs").val(),
+                    "aud_tests": $("#aud_tests").val(),
+                    "aud_results": $("#aud_results").val(),
+                    "aud_manage": $("#aud_manage").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                console.log(_dateInsert);
+                $.ajax({
+                        type: "Post",
+                        url: "@Url.Action("InsertAudiologyNote", "ENT", new {area = "EMR" })",
+                        dataType: 'JSON',
+                        data: _dateInsert,
+                        success: function (data) {
+                            $('#btn_Insert_Audio').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_Audio').addClass("btn btn-sm btn-success");
+                            $('#btn_Insert_Audio').html("Add Note");
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i>  Audiology Note Saved Successfully!", "success");
+                                    GetAudiologyNote();
+                                    Timeout();
+                                }
+                                else {
+
+                                    let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. Audiology Note Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#Alert").html(html);
+                                }
+                            }
+                            else {
+                            let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 100);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                        },
+                            error: function (xhr) {
+                                $('#btn_Insert_Audio').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                                $('#btn_Insert_Audio').addClass("btn btn-sm btn-warning");
+                                $('#btn_Insert_Audio').html("Add Evaluation");
+                            Timeout();
+                        }
+                });
+
+        });
+    //#endregion Add Click
+
+    //#region Reset
+    $('#btn_Reset_Audio').on('click', function (e) {
+        e.preventDefault();
+        clearControls();
+    });
+    //#endregion Reset
+
+    //#region Clear Controls
+    var clearControls = function () {
+        $(".form-control").val("");
+    }
+    //#endregion Clear Controls
+
+</script>

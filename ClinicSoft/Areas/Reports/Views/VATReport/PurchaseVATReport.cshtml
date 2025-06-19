@@ -1,0 +1,554 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Purchase VAT Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<style type="text/css">
+    #tbl_purch_vat_report_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: auto;
+    }
+</style>
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Purchase VAT Report</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-transparent"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch</label>
+                                <select class="form-control" id="select_branch" multiple>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">VAT Type</label>
+                                <select class="form-control" id="select_type" multiple>
+                                    <option value="0">0 %</option>
+                                    <option value="5">5 %</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date From</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select From Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date To</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select To Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class=" col-md-12 col-xl-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_purch_vat_report" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Supplier</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Item Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Item Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET + VAT</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-16 font-weight-bold text-right">Total (AED) :</th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-16 font-weight-semibold"></th>
+                                <th class="text-end fs-16 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="supplier_history_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeH">
+        <div class="modal-content" id="supplier_history_modal_body">
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            load_filters();
+
+            getPurchaseVATReport();
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_type').SumoSelect({
+                placeholder: 'Select Type',
+                captionFormat: '{0} Type Selected',
+                captionFormatAllSelected: 'All {0} Types selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch',
+                captionFormat: '{0} Branch Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                if ("@emp_designation.ToString()" === "Super Administrator")
+                {
+                    $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    });
+                }
+                else
+                {
+                    $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                let isValid = true;
+                let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!date_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date!"
+                        });
+                    }
+                }
+                // Check if Date From is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!date_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date!"
+                        });
+                    }
+                }
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (date_frm.isValid() && date_to.isValid()) {
+                        if (date_to.diff(date_frm, 'days') <= 0) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error!",
+                                message: "Report From Date Filter should be less than To Date Filter!"
+                            });
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    getPurchaseVATReport();
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Purchase VAT Report!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Purchase VAT Report
+        var getPurchaseVATReport = function () {
+            var _data = {
+                "select_branch": $('#select_branch').val().toString(),
+                "select_type": $('#select_type').val().toString(),
+                "date_from": $('#select_date_from').val(),
+                "date_to": $('#select_date_to').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetPurchaseVATReport", "VATReport", new { area = "Reports" })",
+                data: _data,
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_purch_vat_report')) {
+                        table = $('#tbl_purch_vat_report').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        BindDataTable(response);
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_purch_vat_report").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "className" : "td_max_width",
+                        "mData": "set_company"
+                    },
+                    {
+                        "mData": "pinv_idate",
+                        "render": function (pinv_idate, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                moment(pinv_idate).format("DD-MM-YYYY")
+                            }
+
+                            return moment(pinv_idate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "sup_name",
+                        "className": "font-weight-semibold text-dark",
+                        "render": function (sup_name, type, full, meta) {
+                            return '<a data-bs-toggle="modal" data-bs-target="#supplier_history_modal" onclick="SupplierHistory(\'' + full.supId + '\',\'' + full.setid + '\')">' + sup_name + '</a>';
+                        }
+                    },
+                    {
+                        "mData": "item_code"
+                    },
+                    {
+                        "className": "text-justify text-wrap",
+                        "mData": "item_name"
+                    },
+                    {
+                        "mData": "pir_net",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pir_vat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pir_netvat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[1, 'desc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search VAT Report</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                },
+                scrollX: true,
+                scrollY: 600,
+                scrollCollapse: true,
+                fixedColumns: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Purchase VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Purchase VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Purchase VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Purchase VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Employees & Security!");
+                        }
+                    }
+                ],
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    var total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(numberRenderer(total.toFixed(2)));
+
+                    total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(numberRenderer(total.toFixed(2)));
+
+                    total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer(total.toFixed(2)));
+                }
+            });
+
+            table.buttons().container().appendTo('#tbl_purch_vat_report_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Supplier History
+        var SupplierHistory = function (supId, sup_branch) {
+            $("#spinner2").show();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("SupplierHistory", "Supplier", new { area = "MaterialManagement" })?supId=" + supId + "&sup_branch=" + sup_branch,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#supplier_history_modal_body").html(data);
+                    $("#supplier_history_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        //#endregion
+    </script>
+}

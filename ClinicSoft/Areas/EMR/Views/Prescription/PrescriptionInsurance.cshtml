@@ -1,0 +1,1487 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Insurance Prescription";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<style type="text/css">
+    .erx {
+        color: white !important;
+        background-color: #FF3503 !important;
+        border: 1px solid #FF3503 !important;
+    }
+</style>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between">
+                <h3 class="card-title text-primary fs-16">Insurance Prescription(s)</h3>
+                <span class="text-danger font-weight-semibold" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+            <div class="card-body">
+                <div id="inspresc_add" style="display:none;"></div>
+
+                <div id="inspresc_edit"></div>
+
+                <div class="row p-2">
+                    <div class="col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div id="errorIns"></div>
+                    </div>
+                </div>
+
+                <div class="table-responsive mt-2">
+                    <table id="tbl_inspresc" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Generic</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Brand</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Dosage</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Strength</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Use <br />(Units)</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Frequency<br /> Value</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Frequency</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Duration</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Quantity</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Route of Admin</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Instructions</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">eRX Ref. #</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-end text-dark font-weight-semibold fs-17">Total :</th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h3 class="card-title fs-16 text-primary">Previous Appointment(s) History</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_Preinspresc" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Generic</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Brand</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Dosage</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Strength</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Use <br />(Units)</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Frequency<br /> Value</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Frequency</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Duration</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Quantity</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Route of Admin</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Instructions</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+
+            addInsurancePrescription(0);
+
+            GetInsurancePrescription();
+
+            GetPreviousInsurancePrescription();
+        });
+        //#endregion
+
+        //#region Load Insurance Prescription(s)
+        var GetInsurancePrescription = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPrescription", "Prescription", new { area = "EMR" })?appId=" + "@emr.appId" + "&pre_med_type=Insurance",
+                success: function (response) {
+                    if (!response.isAuthorized) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_inspresc')) {
+                            table = $('#tbl_inspresc').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt("tbl_inspresc");
+            });
+        }
+        //#endregion
+
+        //#region Load Previous Insurance Prescription(s)
+        var GetPreviousInsurancePrescription = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetPrePrescription", "Prescription", new { area = "EMR" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId + "&pre_med_type=Insurance",
+                success: function (response) {
+                    if (!response.isAuthorized) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_Preinspresc')) {
+                            table = $('#tbl_Preinspresc').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTableP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt("tbl_Preinspresc");
+            });
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_inspresc").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "preId",
+                        "orderable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "preId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "preId",
+                        "visible": false
+                    },
+                    {
+                        "mData": "item_code",
+                        "className": 'text-left text-wrap'
+                    },
+                    {
+                        "mData": "item_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "item_brand",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "item_dosage",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "item_strength",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "pre_temp3",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "pre_temp4",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "pre_temp5",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "pre_duration",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "pre_qty_type",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "ra_code_desc",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "pre_instr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "pre_eRxRefNo",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "preId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (preId, type, full, meta) {
+                            var status = full.pre_status;
+
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="editInsurancePrescription(' + preId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="editInsurancePrescription(' + preId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="editInsurancePrescription(' + preId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                            return '';
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    },
+                    {
+                        "mData": "preId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (preId, type, full, meta) {
+                            var status = full.pre_status;
+
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="deleteInsurancePrescription(' + preId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="deleteInsurancePrescription(' + preId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="deleteInsurancePrescription(' + preId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return '';
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    }
+                ],
+                order: [[1, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Prescription(s)</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Insurance Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Insurance Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Insurance Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Insurance Prescription',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        text: '<i class="fa fa-print"></i> Print Prescription',
+                        className: 'btn btn-outline-success ms-2',
+                        action: function (e, dt, node, config) {
+                            Print_Prescription()
+                        }
+                    },
+                    {
+                        text: '<i class="fe fe-edge"></i> Generate ePrescription',
+                        className: 'erx ms-2',
+                        action: function (e, dt, node, config) {
+                            if ("@emr.app_category" == "DHA") {
+                                Generate_DHAePrescription();
+                            }
+                            else if ("@emr.app_category" == "MOH") {
+                                Generate_MOHePrescription();
+                            }
+                            else {
+                                Generate_DHAePrescription();
+                            }
+                        }
+                    },
+                    {
+                        text: '<i class="fe fe-edge"></i> Cancel ePrescription',
+                        className: 'erx ms-2',
+                        action: function (e, dt, node, config) {
+                            if ("@emr.app_category" == "DHA") {
+                                Cancel_DHAePrescription();
+                            }
+                            else if ("@emr.app_category" == "MOH") {
+                                Cancel_MOHePrescription();
+                            }
+                            else {
+                                Cancel_DHAePrescription();
+                            }
+                        }
+                    },
+
+                ],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    var total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(total);
+
+                    total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(9).footer()).html(total);
+
+                    total = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(11).footer()).html(total);
+
+                    total = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(12).footer()).html(total);
+                }
+            });
+
+            table.buttons().container().appendTo('#tbl_inspresc_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Previous Bind Datatable
+        var BindDataTableP = function (response) {
+            var table = $("#tbl_Preinspresc").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "preId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (app_fdate, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(app_fdate).format('DD-MM-YYYY')
+                            }
+
+                            return moment(app_fdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "item_code",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "item_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "item_brand",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "item_dosage",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "item_strength",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "pre_temp3",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "pre_temp4",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "pre_temp5",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "pre_duration",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "pre_qty_type",
+                        "className": 'text-end'
+                    },
+                    {
+                        "mData": "ra_code_desc",
+                        "className": 'text-left'
+                    },
+                    {
+                        "mData": "pre_instr",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "preId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (preId, type, full, meta) {
+                            var Action = '';
+
+                            // Copy Data
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_Prescription  onclick="addInsurancePrescription(' + preId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                            }
+                            else {
+                                if ("@emr.set_emr_lock" == "NoLock") {
+                                    Action += '<a id=btn_Copy_Prescription  onclick="addInsurancePrescription(' + preId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                                else {
+                                    if ("@emr.app_ae_date" >= "@emr.today") {
+                                        Action += '<a id=btn_Copy_Prescription  onclick="addInsurancePrescription(' + preId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                    }
+                                    else {
+                                        Action += '';
+                                    }
+                                }
+                            }
+
+                            return Action;
+                        }
+                    },
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Previous Prescription(s)</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous Insurance Prescription',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous Insurance Prescription',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous Insurance Prescription',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous Insurance Prescription',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    }
+                ]
+            });
+
+            table.buttons().container().appendTo('#tbl_Preinspresc_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Add Insurance Prescription
+        function addInsurancePrescription(preId) {
+            $('#inspresc_edit').hide();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateInsurancePrescription", "Prescription", new { area = "EMR" })?preId=" + preId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#inspresc_add").html(data);
+                    $("#inspresc_add").show();
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Insurance Prescription : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Insurance Prescription
+        function editInsurancePrescription(preId) {
+            $('#inspresc_add').hide();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditInsurancePrescription", "Prescription", new { area = "EMR" })?preId=" + preId + "&appId=" + @emr.appId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#inspresc_edit").html(data);
+                    $("#inspresc_edit").show();
+                },
+                error: function (xhr) {
+                    console.log("Error while Editing Insurance Prescription : " + xhr.statusText);
+                }
+            }).done(function () {
+                var dt = $('#tbl_Preinspresc').DataTable();
+
+                dt.columns([15]).visible(false);
+            });
+        }
+        //#endregion
+
+        //#region Generate ePrescription
+        function fetchData(callback) {
+            $.ajax({
+                url: "@Url.Action("GetAllPatientDiagnosis", "PatientDiagnosis", new { area = "EMR" })?appId=" + "@emr.appId",
+                type: 'GET',
+                success: function (response) {
+                    if (response.message.length > 0) {
+                        var obj = "true";
+                    }
+                    else {
+                        var obj = "false";
+                    }
+
+                    callback(obj);
+                },
+                error: function (xhr, status, error) {
+                    console.log(error);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Generate DHAePrescription
+        function Generate_DHAePrescription() {
+            var selectedpreIds = [];
+            const dobDate = new Date("@emr.pat_dob");
+            const vitalSignComponents = "@emr.vital_sign".split(', ');
+            let weightHasValue = false;
+            let isSelected = false;
+
+            for (const component of vitalSignComponents) {
+                if (component.startsWith('Weight:') && component !== 'Weight:') {
+                    weightHasValue = true;
+                    break;
+                }
+            }
+
+            var table = $("#tbl_inspresc").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                if (dobDate.getFullYear() > 1900) {
+                    fetchData(function (data) {
+                        if (data === "true") {
+                            if (weightHasValue) {
+                                var _data;
+
+                                $.each(rows, function (index, rowId) {
+                                    _data = table.row(rowId).data();
+
+                                    selectedpreIds.push(_data.preId);
+                                });
+
+                                var selectedpreIdsCSV = selectedpreIds.join(', ');
+
+                                if (_data.pre_eRxRefNo == "") {
+                                    isSelected = true;
+                                }
+
+                                if (!isSelected) {
+                                    Swal.fire({
+                                        title: "ePrescription Already Generated!",
+                                        text: "ePrescription already exists for the selected item!",
+                                        icon: "info",
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Yes! Proceed',
+                                        cancelButtonText: 'No! Cancel Please',
+                                        confirmButtonClass: "btn btn-success mt-2",
+                                        cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                        buttonsStyling: false,
+                                    }).then(function (t) {
+                                        if (t.value) {
+                                            isSelected = true;
+                                        }
+                                    });
+                                }
+
+                                if (isSelected) {
+                                    $.ajax({
+                                        url: '@Url.Action("Generate_DHAerx", "Prescription", new { area = "EMR" })?preIds=' + selectedpreIdsCSV + "&appId=" + @emr.appId,
+                                        type: "POST",
+                                        dataType: "json",
+                                        async: false,
+                                        success: function (response) {
+                                            if (response.isSuccess) {
+                                                Swal.fire({
+                                                    title: "Success!",
+                                                    text: "e-RX Generated Successfully!",
+                                                    icon: "success",
+                                                    showCancelButton: 0,
+                                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                                });
+                                            }
+                                            else {
+                                                Swal.fire({
+                                                    title: "Error!",
+                                                    text: response.message,
+                                                    icon: "error",
+                                                    showCancelButton: 0,
+                                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                                });
+                                            }
+                                        },
+                                        error: function (xhr) {
+                                            console.log(xhr);
+                                        }
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Required!",
+                                    text: "Please fill Patient Vital Signs - Weight parameter!",
+                                    icon: "info",
+                                    showCancelButton: false,
+                                    confirmButtonColor: "#0bb197",
+                                    cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Required!",
+                                text: "Please fill Patient Diagnosis!",
+                                icon: "info",
+                                showCancelButton: false,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+                else {
+                    Swal.fire({
+                        title: "Required!",
+                        text: "Please fill Patient Date Of Birth!",
+                        icon: "info",
+                        showCancelButton: false,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60",
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Info!",
+                    text: "Please select at least One Prescription To Perform This Action!",
+                    icon: "info",
+                    showCancelButton: false,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+        //#endregion
+
+        //#region Generate MOHePrescription
+        function Generate_MOHePrescription() {
+            var selectedpreIds = [];
+            const dobDate = new Date("@emr.pat_dob");
+            const vitalSignComponents = "@emr.vital_sign".split(', ');
+            let weightHasValue = false;
+            let isSelected = false;
+
+            for (const component of vitalSignComponents) {
+                if (component.startsWith('Weight:') && component !== 'Weight:') {
+                    weightHasValue = true;
+                    break;
+                }
+            }
+
+            var table = $("#tbl_inspresc").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                if (dobDate.getFullYear() > 1900) {
+                    fetchData(function (data) {
+                        if (data === "true") {
+                            if (weightHasValue) {
+                                var _data;
+
+                                $.each(rows, function (index, rowId) {
+                                    _data = table.row(rowId).data();
+                                    selectedpreIds.push(_data.preId);
+                                });
+
+                                var selectedpreIdsCSV = selectedpreIds.join(', ');
+
+                                if (_data.pre_eRxRefNo == "") {
+                                    isSelected = true;
+                                }
+
+                                if (!isSelected) {
+                                    Swal.fire({
+                                        title: "Regenerate ePrescription ?",
+                                        text: "ePrescription already exists for the selected item!",
+                                        icon: "info",
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Yes! Proceed',
+                                        cancelButtonText: 'No! Cancel Please',
+                                        confirmButtonClass: "btn btn-success mt-2",
+                                        cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                        buttonsStyling: false,
+                                    }).then(function (t) {
+                                        if (t.value) {
+                                            generate_moh_erx(selectedpreIdsCSV);
+                                        }
+                                    });
+                                }
+
+                                if (isSelected) {
+                                    generate_moh_erx(selectedpreIdsCSV);
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Required!",
+                                    text: "Please fill Patient Vital Signs - Weight parameter!",
+                                    icon: "info",
+                                    showCancelButton: false,
+                                    confirmButtonColor: "#0bb197",
+                                    cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Required!",
+                                text: "Please fill Patient Diagnosis!",
+                                icon: "info",
+                                showCancelButton: false,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+                else {
+                    Swal.fire({
+                        title: "Required!",
+                        text: "Please fill Patient Date Of Birth!",
+                        icon: "info",
+                        showCancelButton: false,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60",
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Info!",
+                    text: "Please select at least 1 Prescription To Generate ePrescription!",
+                    icon: "info",
+                    showCancelButton: false,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+
+        var generate_moh_erx = function (selectedpreIdsCSV) {
+            $.ajax({
+                url: '@Url.Action("Generate_MOHerx", "Prescription", new { area = "EMR" })?preIds=' + selectedpreIdsCSV + "&appId=" + @emr.appId,
+                type: "POST",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    if (response.isSuccess) {
+                        GetInsurancePrescription();
+
+                        Swal.fire({
+                            title: "Success!",
+                            text: "e-RX Generated Successfully!",
+                            icon: "success",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                        });
+                    }
+                    else {
+                        if (response.api == -1) {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Error while generating ePrescription!</strong><br/><ul>";
+
+                            $.each(response.message, function (id, val) {
+                                html += "<li><small>" + val.ErrorText + "</small><li>";
+                                var elem = $("#" + val.PropertyName);
+
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+
+                            html += "</ul></div></div>";
+
+                            $("#errorIns").html(html);
+
+                            Timeout();
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Error!",
+                                text: response.message,
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Print Insurance Prescription
+        function Print_Prescription() {
+            var table = $("#tbl_inspresc").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            var preIdArray = [];
+
+            if (rows.length > 0) {
+                var _data;
+                $.each(rows, function (index, rowId) {
+                    _data = table.row(rowId).data();
+                    preIdArray.push(_data.preId);
+                });
+
+                var preIds = preIdArray.join(", ");
+
+                var _obj = {
+                    "id": preIds,
+                    "pre_appId": "@emr.appId",
+                }
+
+                $.ajax({
+                    url: '@Url.Action("Print_Insurance_Prescription", "Prescription", new { area = "EMR" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _obj,
+                    async: false,
+                    success: function (response) {
+                        if (response.isSuccess) {
+                            window.open(response.message)
+                        }
+                        else {
+                            return $.growl.error({
+                                title: "Error",
+                                message: response.message
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast one Treatment in the list to Print Prescription!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+        //#endregion
+
+        //#region Delete Insurance Prescription
+        var deleteInsurancePrescription = function (preId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Prescription ?",
+                text: "The selected Prescription will be deleted permanently!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeletePrescription", "Prescription", new { area = "EMR" })?preId=' + preId,
+                        type: "POST",
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetInsurancePrescription();
+
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Insurance Prescription Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Insurance Prescription",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Insurance Prescription!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Prescription! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+
+                            console.log(xhr);
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Resize Datatable
+        function resizedt(tbl_name) {
+            setTimeout(function () {
+                var tables = $.fn.dataTable.tables({ visible: true, api: true });
+                if (tables) {
+                    $('#' + tbl_name).DataTable().columns.adjust();
+                }
+            }, 450);
+        }
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+
+        //#region Cancel DHAePrescription
+        function Cancel_DHAePrescription() {
+            var selectedpreIds = [];
+            const dobDate = new Date("@emr.pat_dob");
+            const vitalSignComponents = "@emr.vital_sign".split(', ');
+            let weightHasValue = false;
+            let isSelected = false;
+
+            for (const component of vitalSignComponents) {
+                if (component.startsWith('Weight:') && component !== 'Weight:') {
+                    weightHasValue = true;
+                    break;
+                }
+            }
+
+            var table = $("#tbl_inspresc").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                if (dobDate.getFullYear() > 1900) {
+                    fetchData(function (data) {
+                        if (data === "true") {
+                            if (weightHasValue) {
+                                var _data;
+
+                                $.each(rows, function (index, rowId) {
+                                    _data = table.row(rowId).data();
+
+                                    selectedpreIds.push(_data.preId);
+                                });
+
+                                var selectedpreIdsCSV = selectedpreIds.join(', ');
+
+                                if (_data.pre_eRxRefNo == "") {
+                                    isSelected = true;
+                                }
+
+                                if (!isSelected) {
+                                    Swal.fire({
+                                        title: "ePrescription Already Cancelled!",
+                                        text: "ePrescription already exists for the selected item!",
+                                        icon: "info",
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Yes! Proceed',
+                                        cancelButtonText: 'No! Cancel Please',
+                                        confirmButtonClass: "btn btn-success mt-2",
+                                        cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                        buttonsStyling: false,
+                                    }).then(function (t) {
+                                        if (t.value) {
+                                            isSelected = true;
+                                        }
+                                    });
+                                }
+
+                                if (isSelected) {
+                                    $.ajax({
+                                        url: '@Url.Action("Cancel_DHAerx", "Prescription", new { area = "EMR" })?preIds=' + selectedpreIdsCSV + "&appId=" + @emr.appId,
+                                        type: "POST",
+                                        dataType: "json",
+                                        async: false,
+                                        success: function (response) {
+                                            if (response.isSuccess) {
+                                                Swal.fire({
+                                                    title: "Success!",
+                                                    text: "e-RX Canceled Successfully!",
+                                                    icon: "success",
+                                                    showCancelButton: 0,
+                                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                                });
+                                            }
+                                            else {
+                                                Swal.fire({
+                                                    title: "Error!",
+                                                    text: response.message,
+                                                    icon: "error",
+                                                    showCancelButton: 0,
+                                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                                });
+                                            }
+                                        },
+                                        error: function (xhr) {
+                                            console.log(xhr);
+                                        }
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Required!",
+                                    text: "Please fill Patient Vital Signs - Weight parameter!",
+                                    icon: "info",
+                                    showCancelButton: false,
+                                    confirmButtonColor: "#0bb197",
+                                    cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Required!",
+                                text: "Please fill Patient Diagnosis!",
+                                icon: "info",
+                                showCancelButton: false,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+                else {
+                    Swal.fire({
+                        title: "Required!",
+                        text: "Please fill Patient Date Of Birth!",
+                        icon: "info",
+                        showCancelButton: false,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60",
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Info!",
+                    text: "Please select at least One Prescription To Perform This Action!",
+                    icon: "info",
+                    showCancelButton: false,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+        //#endregion
+
+        //#region Cancel MOHePrescription
+        function Cancel_MOHePrescription() {
+            var selectedpreIds = [];
+            const dobDate = new Date("@emr.pat_dob");
+            const vitalSignComponents = "@emr.vital_sign".split(', ');
+            let weightHasValue = false;
+            let isSelected = false;
+
+            for (const component of vitalSignComponents) {
+                if (component.startsWith('Weight:') && component !== 'Weight:') {
+                    weightHasValue = true;
+                    break;
+                }
+            }
+
+            var table = $("#tbl_inspresc").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                if (dobDate.getFullYear() > 1900) {
+                    fetchData(function (data) {
+                        if (data === "true") {
+                            if (weightHasValue) {
+                                var _data;
+
+                                $.each(rows, function (index, rowId) {
+                                    _data = table.row(rowId).data();
+                                    selectedpreIds.push(_data.preId);
+                                });
+
+                                var selectedpreIdsCSV = selectedpreIds.join(', ');
+
+                                if (_data.pre_eRxRefNo != "") {
+                                    isSelected = true;
+                                }
+
+                                if (!isSelected) {
+                                    Swal.fire({
+                                        title: "ePrescription doesn't exist!",
+                                        text: "ePrescription needs to be generated to be cancelled!",
+                                        icon: "info",
+                                        showCancelButton: 0,
+                                        confirmButtonText: 'Yes! Proceed',
+                                        cancelButtonText: 'No! Cancel Please',
+                                        confirmButtonClass: "btn btn-success mt-2",
+                                        cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                        buttonsStyling: false,
+                                    });
+                                }
+
+                                if (isSelected) {
+                                    cancel_moh_erx(selectedpreIdsCSV);
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Required!",
+                                    text: "Please fill Patient Vital Signs - Weight parameter!",
+                                    icon: "info",
+                                    showCancelButton: false,
+                                    confirmButtonColor: "#0bb197",
+                                    cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Required!",
+                                text: "Please fill Patient Diagnosis!",
+                                icon: "info",
+                                showCancelButton: false,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+                else {
+                    Swal.fire({
+                        title: "Required!",
+                        text: "Please fill Patient Date Of Birth!",
+                        icon: "info",
+                        showCancelButton: false,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60",
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Info!",
+                    text: "Please select at least 1 Prescription To Cancel ePrescription!",
+                    icon: "info",
+                    showCancelButton: false,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+
+        var cancel_moh_erx = function (selectedpreIdsCSV) {
+            $.ajax({
+                url: '@Url.Action("Cancel_MOHerx", "Prescription", new { area = "EMR" })?preIds=' + selectedpreIdsCSV + "&appId=" + @emr.appId,
+                type: "POST",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    if (response.isSuccess) {
+                        GetInsurancePrescription();
+
+                        Swal.fire({
+                            title: "Success!",
+                            text: "e-RX Cancelled Successfully!",
+                            icon: "success",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                        });
+                    }
+                    else {
+                        if (response.api == -1) {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Error while Cancelling ePrescription!</strong><br/><ul>";
+
+                            $.each(response.message, function (id, val) {
+                                html += "<li><small>" + val.ErrorText + "</small><li>";
+                                var elem = $("#" + val.PropertyName);
+
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+
+                            html += "</ul></div></div>";
+
+                            $("#errorIns").html(html);
+
+                            Timeout();
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Error!",
+                                text: response.message,
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+    </script>
+}

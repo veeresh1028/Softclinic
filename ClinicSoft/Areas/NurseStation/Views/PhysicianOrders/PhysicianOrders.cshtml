@@ -1,0 +1,695 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="phyorder_add">
+                    <div class="row">
+
+
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            <form id="form_EditTime" class="needs-validation" >
+                                @Html.AntiForgeryToken()
+                                <div class="row">
+                                    <div class="col-sm-12 col-md-12 col-lg-12">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label text-black font-weight-semibold">Start Time:&nbsp;<span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <div class="input-group-text">
+                                                        <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 24 24" width="18"><path d="M0 0h24v24H0V0z" fill="none" /><path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm4.25 12.15L11 13V7h1.5v5.25l4.5 2.67-.75 1.23z" opacity=".3" /><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                                                    </div>
+                                                </div>
+                                                <input class="form-control" id="smc_2" placeholder="Set time" type="text">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-12 col-md-12 col-lg-12">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label text-black font-weight-semibold">End Time:&nbsp;<span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <div class="input-group-text">
+                                                        <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 24 24" width="18"><path d="M0 0h24v24H0V0z" fill="none" /><path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm4.25 12.15L11 13V7h1.5v5.25l4.5 2.67-.75 1.23z" opacity=".3" /><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                                                    </div>
+                                                </div>
+                                                <input class="form-control" id="smc_3" placeholder="Set time" type="text">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="col-sm-6 col-md-6 col-lg-6">
+                            <form id="form_EditNote" class="needs-validation" >
+                                @Html.AntiForgeryToken()
+                                <div class="row">
+                                    <div class="col-sm-12 col-md-12 col-lg-12">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label text-black font-weight-semibold">Notes:&nbsp;<span class="text-danger">*</span></label>
+                                            <textarea id="pt_notes" class="form-control mb-4" placeholder="Enter Notes" rows="4"></textarea>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-12">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-black font-weight-semibold">
+                                    &nbsp;
+                                </label>
+                                <div class="btn-list btn-animation text-center">
+                                    <button type="submit" class="btn btn-warning" id="btn_update_Order">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-12">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-black font-weight-semibold">
+                                    &nbsp;
+                                </label>
+                                <div class="btn-list btn-animation text-center" style="display:none" id="btn_note">
+                                    <button type="submit" class="btn btn-warning" id="btn_update_Note">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+                <div id="phyorder_edit">
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_phyorder" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Start Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">End Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date of Order</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date Executed</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Executed By</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- INTERNAL Time picker css -->
+<link href="../../assets/plugins/time-picker/jquery.timepicker.css" rel="stylesheet" />
+<!-- INTERNAL Timepicker js -->
+<script src="../../assets/plugins/time-picker/jquery.timepicker.js"></script>
+<script src="../../assets/plugins/time-picker/toggles.min.js"></script>
+<script>
+    //#region Page Load
+        $(function () {
+            BindDataTable(null);
+            GetPhysicianOrders();
+            $('#smc_2').timepicker();
+            $('#smc_3').timepicker();
+            clearControls();
+
+            $('#pt_notes').on('click', function () {
+                if ("@emp_designation.ToString()" === "Super Administrator") {
+                    $("#btn_note").show();
+                    $("#btn_update_Order").hide();
+                }
+                else {
+                    if ("@emr.set_emr_lock" != "NoLock") {
+                        if ("@emr.app_ae_date" >= "@emr.today") {
+                            $("#btn_note").show();
+                            $("#btn_update_Order").hide();
+                        }
+                        else {
+                            $("#btn_note").hide();
+                            $("#btn_update_Order").hide();
+                        }
+                    }
+                    else {
+                        $("#btn_note").show();
+                        $("#btn_update_Order").hide();
+                    }
+                }
+            });
+        });
+    //#endregion Page Load
+    //#region Load PhysicianOrders
+        var GetPhysicianOrders = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPhysicianOrders", "PhysicianOrders", new { area = "NurseStation" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_phyorder')) {
+                            table = $('#tbl_phyorder').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTable(response);
+                        }
+                        if (response.length > 0) {
+
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                $("#btn_update_Note").show();
+                                $("#btn_update_Order").show();
+                            }
+                            else {
+                                if ("@emr.set_emr_lock" != "NoLock") {
+                                    if ("@emr.app_ae_date" >= "@emr.today") {
+                                        $("#btn_update_Note").show();
+                                        $("#btn_update_Order").show();
+                                    }
+                                    else {
+                                        $("#btn_update_Note").hide();
+                                        $("#btn_update_Order").hide();
+                                    }
+                                }
+                                else {
+                                    $("#btn_update_Note").show();
+                                    $("#btn_update_Order").show();
+                                }
+                            }
+                        }
+                        else {
+                            $("#btn_update_Note").hide();
+                            $("#btn_update_Order").hide();
+
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+            .done(function () {
+                resizedt();
+            });
+        }
+    //#endregion Load PhysicianOrders
+
+    //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_phyorder").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "ptId",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "pt_date_collected",
+                        "render": function (data) {
+                            return moment(data).format('HH:mm:ss')
+                        }
+                    },
+                    {
+                        "mData": "pt_date_received",
+                        "render": function (data) {
+                            return moment(data).format('HH:mm:ss')
+                        }
+                    },
+                    {
+                        "mData": "pt_tr_code",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "pt_tr_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "pt_qty",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "pt_notes",
+                        "className": "text-justify text-wrap",
+                    },
+                    {
+                        "mData": "pt_date_created",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+
+                    {
+                        "mData": "pt_date_modified",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+
+                    {
+                        "mData": "emp_name",
+                        "className": "text-left"
+                    }
+
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Physician Orders',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Physician Orders',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Physician Orders',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Physician Orders',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_phyorder_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+     //#region Update Note  Button Click
+        $('#btn_update_Note').on('click', function (e) {
+             e.preventDefault();
+            if ($("#form_EditNote").valid()) {
+                var table = $("#tbl_phyorder").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+                if (rows.length > 0) {
+                    $('#btn_update_Note').removeClass("btn btn-success");
+                    $('#btn_update_Note').addClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_update_Note').html("Updating the Record....");
+                    $.each(rows, function (index, rowId) {
+                        var _data = table.row(rowId).data();
+                        var _dataInsert = {
+                            "ptId": _data.ptId,
+                            "pt_notes": $("#pt_notes").val(),
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("UpdatePhysicianNotes", "PhysicianOrders", new { area = "NurseStation" })",
+                            dataType: 'JSON',
+                            data: _dataInsert,
+                            success: function (data) {
+                                $('#vital_edit').hide();
+                                $('#btn_update_Note').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_update_Note').addClass("btn btn-success");
+                                $('#btn_update_Note').html("Save Changes");
+                                if (data.isSuccess) {
+                                    if (data.isInserted) {
+                                        var alertPlaceholder = document.getElementById("Alert");
+                                        function alert(e, t) {
+                                            var l = document.createElement("div");
+                                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                        }
+                                        alert("<i class='fe fe-check-circle text-white'></i> Notes Updated Successfully!", "success");
+                                        clearControls();
+                                        Timeout();
+                                        GetPhysicianOrders();
+                                        $("#btn_note").hide();
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-warning' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong>Warning.. Notes Alredy Exists..</strong><br/>" +
+                                            "</div></div>";
+                                        $("#error").html(html);
+                                    }
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-danger' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                    $.each(data.message, function (index, value) {
+                                        html += "<li><small>" + value + "</small><li>";
+                                        var elem = $("#" + index);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    });
+                                    html += "</ul></div></div>";
+                                    $("#error").html(html);
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_update_Note').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_update_Note').addClass("btn btn-success");
+                                $('#btn_update_Note').html("Save Changes");
+                                Timeout();
+                            }
+                        });
+                    });
+                }
+                else {
+                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                        "<div class='alert alert-danger' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                        "<strong>Warning.. Select One Treatment To update Notes..</strong><br/>" +
+                        "</div></div>";
+                    $("#error").html(html);
+                }
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Update  Note Button Click
+
+    //#region Note Validation Initialization
+        var validate = function () {
+            $("#form_EditNote").validate({
+                rules: {
+                    pt_notes: {
+                        required: true
+                    },
+
+                },
+                messages: {
+                    pt_notes: {
+                        required: "Enter Notes!"
+                    },
+
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+        }
+    //#endregion Note Validation Initialization
+
+    //#region Update Time  Button Click
+        $('#btn_update_Order').on('click', function (e) {
+             e.preventDefault();
+            if ($("#form_EditTime").valid()) {
+                
+                var table = $("#tbl_phyorder").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+                if (rows.length > 0) {
+                $('#btn_update_Order').removeClass("btn btn-success");
+                $('#btn_update_Order').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_update_Order').html("Updating the Record....");
+
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    var _dataInsert = {
+                        "ptId": _data.ptId,
+                        "pt_date_collected": $("#smc_2").val(),
+                        "pt_date_received": $("#smc_3").val(),
+                        "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    }
+                    console.log(_dataInsert)
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("UpdatePhysicianOrderTime", "PhysicianOrders", new { area = "NurseStation" })",
+                        dataType: 'JSON',
+                        data: _dataInsert,
+                        success: function (data) {
+                            $('#vital_edit').hide();
+                            $('#btn_update_Order').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_update_Order').addClass("btn btn-success");
+                            $('#btn_update_Order').html("Save Changes");
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> Time Updated Successfully!", "success");
+                                    clearControls();
+                                    Timeout();
+                                    GetPhysicianOrders();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. Time Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#error").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+                                html += "</ul></div></div>";
+                                $("#error").html(html);
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btn_update_Order').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_update_Order').addClass("btn btn-success");
+                            $('#btn_update_Order').html("Save Changes");
+                            Timeout();
+                        }
+                    });
+                });
+                
+                }
+                else {
+                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                        "<div class='alert alert-danger' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                        "<strong>Warning.. Select One Treatment To update Time..</strong><br/>" +
+                        "</div></div>";
+                    $("#error").html(html);
+                }
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Update  Time Button Click
+
+    //#region Time Validation Initialization
+        var validate = function () {
+            $("#form_EditTime").validate({
+                rules: {
+                    smc_2: {
+                        required: true
+                    },
+                    smc_3: {
+                        required: true
+                    },
+
+                },
+                messages: {
+                    smc_2: {
+                        required: "Select Start Time!"
+                    },
+                    smc_3: {
+                        required: "Select End Time!"
+                    },
+
+
+
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+        }
+    //#endregion Time Validation Initialization
+
+    //#region Clear Controls
+        var clearControls = function () {
+            $("#pt_notes").val("");
+        }
+    //#endregion Clear Controls
+
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+</script>

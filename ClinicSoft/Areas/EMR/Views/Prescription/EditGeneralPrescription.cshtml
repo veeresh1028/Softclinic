@@ -1,0 +1,192 @@
+﻿@model BusinessEntities.EMR.GeneralPrescription
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_EditPrescription" class="needs-validation" >
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.gpreId)
+    @Html.HiddenFor(m => m.gpre_appId)
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <div class="ql-wrapper ql-wrapper-demo">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="ugpre_desc"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">        
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-warning" id="btn_Update_Prescription">Save Changes</button>
+                <button type="button" class="btn btn-outline-dark me-1" id="btn_Reset_EditPrescription">Clear</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close">Close</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    var uquillp;
+
+    'use strict';
+
+    //#region Partial View Onload
+    $(function () {
+        uquillp = new Quill('#ugpre_desc', {
+            modules: {
+                toolbar:
+                    [[{
+                        'header': [1, 2, 3, 4, 5, 6, false]
+                    }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{
+                        'list': 'ordered'
+                    }, {
+                        'list': 'bullet'
+                    }]]
+            },
+            theme: 'snow',
+            placeholder: 'Write your Notes here.....',
+        });
+
+        var realHTML = $('<textarea />').html("@Model.gpre_desc").text();
+
+        uquillp.root.innerHTML = realHTML;
+    });
+    //#endregion
+
+    //#region Update  Button Click
+    $('#btn_Update_Prescription').on('click', function (e) {
+        e.preventDefault();
+
+        var isvalid = true;
+
+        if (uquillp.getText().trim().length == 0) {
+            $("#ugpre_desc").attr("style", "border:1px solid red;");
+            error_timeout_quil($("#ugpre_desc"));
+            isvalid = false;
+        }
+
+        if ($("#form_EditPrescription").valid()) {
+            if (isvalid) {
+                $('#btn_Update_Prescription').removeClass("btn btn-success");
+                $('#btn_Update_Prescription').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Update_Prescription').html("Updating...");
+
+                var _dataUpdate = {
+                    "gpreId": $("#gpreId").val(),
+                    "gpre_appId": $("#gpre_appId").val(),
+                    "gpre_desc": uquillp.root.innerHTML,
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdateGeneralPrescription", "Prescription", new { area = "EMR" })",
+                    dataType: 'json',
+                    data: _dataUpdate,
+                    success: function (data) {
+                        $('#btn_Update_Prescription').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Update_Prescription').addClass("btn btn-success");
+                        $('#btn_Update_Prescription').html("Save Changes");
+
+                        if (data.isUpdated) {
+                            var alertPlaceholder = document.getElementById("GPAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> General Prescription Updated Successfully!", "success");
+
+                            clearControls();
+
+                            Timeout();
+
+                            getPrescriptions();
+
+                            $("#prescription_edit").hide();
+
+                            $('#prescription_add').show();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error! Please validate before you submit the form!&nbsp;</strong><br/><ul>";
+
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+
+                            html += "</ul></div></div>";
+
+                            $("#GPAlert").html(html);
+
+                            Timeout();
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Update_Prescription').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Update_Prescription').addClass("btn btn-success");
+                        $('#btn_Update_Prescription').html("Save Changes");
+                        console.log(xhr);
+                    }
+                });
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Close Prescription
+    $('#btn_Close').click(function () {
+        addPrescription();
+    });
+    //#endregion
+
+    //#region Reset Click
+    $('#btn_Reset_EditPrescription').on('click', function (e) {
+        e.preventDefault();
+
+        clearControlsEdit();
+    });
+    //#endregion
+
+    //#region Clear Controls
+    var clearControlsEdit = function () {
+        uquillp.root.innerHTML = "";
+    }
+    //#endregion
+</script>

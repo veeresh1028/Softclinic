@@ -1,0 +1,115 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "DischargeSummaryEyleaIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Discharge Summary Eylea Injection</h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargeSummaryEylea_add" style="display:none">
+                </div>
+                <div id="DischargeSummaryEylea_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargeSummaryEylea_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetDischargeSummaryEyleaInfo();
+            DischargeSummaryEyleaPreviousHistory();
+
+        });
+        //#endregion Page Load
+
+        //#region Load GetDischargeSummaryEyleaInfo
+        var GetDischargeSummaryEyleaInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDischargeSummaryEyleaData", "DischargeSummaryEylea", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditDischargeSummaryEylea();
+                            $("#DischargeSummaryEylea_add").hide();
+                            $("#DischargeSummaryEylea_edit").show();
+
+                        }
+                        else {
+                            $("#DischargeSummaryEylea_add").show();
+                            $("#DischargeSummaryEylea_edit").hide();
+                            AddDischargeSummaryEylea();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load DischargeSummaryEylea
+
+        //#region Add DischargeSummaryEylea
+        function AddDischargeSummaryEylea() {
+            var x = $("#DischargeSummaryEylea_add");
+            x.load("@Url.Action("CreateDischargeSummaryEylea", "DischargeSummaryEylea", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add DischargeSummaryEylea
+
+        //#region Update DischargeSummaryEylea
+        function EditDischargeSummaryEylea() {
+            var x = $("#DischargeSummaryEylea_edit");
+            x.load("@Url.Action("UpdateDischargeSummaryEylea", "DischargeSummaryEylea", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update DischargeSummaryEylea
+
+          //#region Histroy of DischargeSummaryEylea
+        function DischargeSummaryEyleaPreviousHistory() {
+            var x = $("#DischargeSummaryEylea_history");
+            x.load("@Url.Action("DischargeSummaryEyleaPreviousHistory", "DischargeSummaryEylea", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of DischargeSummaryEylea
+
+
+    </script>
+
+@*}*@

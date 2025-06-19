@@ -1,0 +1,1737 @@
+﻿@model IEnumerable<BusinessEntities.Masters.Employees>
+@using System.Security.Claims;
+@using System.Configuration;
+@using BusinessEntities;
+@{
+    Dictionary<int, bool> dict = (Dictionary<int, bool>)TempData["MenuAccess"];
+    TempData.Keep("MenuAccess");
+    ViewBag.Title = "Employees & Security";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+    var emp_desig = claims.Where(c => c.Type == ClaimTypes.Version).Select(c => c.Value).SingleOrDefault();
+    bool isEmployees = (dict == null) ? false : ((dict.ContainsKey((int)Pages.Employees)) ? dict[(int)Pages.Employees] : false);
+}
+
+<style type="text/css">
+    #tbl_employees_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary" data-lang-key="emp-sec">Employees & Security</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample" data-lang-key="advance-filter">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+            <a href="@Url.Action("Rosters", "Employees", new { area="Masters"})" class="btn btn-warning"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="font-size: 15px;margin-right: 0.4rem;" fill="white" class="bi bi-calendar3" viewBox="0 0 16 16"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857V3.857z"></path><path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path></svg>&nbsp;Rosters</a>
+                        
+            <a data-bs-toggle="modal" data-bs-target="#employee_modal_create" class="btn btn-secondary" onclick="addEmployee()" data-lang-key="add-employee"><i class="mdi mdi-plus"></i>&nbsp;Add Employee</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="EmployeeAlert"></div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold" >
+                                    <span data-lang-key="branch">Branch<small>(es)</small></span></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold" >
+                                    <span data-lang-key="departments">Department<small>(s)</small></span></label>
+                                <select class="form-control" id="select_dept" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold" data-lang-key="designations">Designation<small>(s)</small></label>
+                                <select class="form-control" id="select_desig" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold" data-lang-key="nationality">Nationality</label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_nationality"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold" data-lang-key="gender">Gender</label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_gender">
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold" data-lang-key="status">Status</label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="select_status">
+                                    <option value="Active" data-lang-key="active">Active</option>
+                                    <option value="Inactive" data-lang-key="inactive">Inactive</option>
+                                    <option value="Deleted" data-lang-key="delete">Deleted</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch" data-lang-key="search">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="col-sm-12 col-md-2 col-lg-2">
+                    <div class="form-group">
+                        <select id="sms_email_template" class="form-select select2 mb-4">
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-2 col-lg-2">
+                    <div class="form-group">
+                        <textarea id="sms_email_template_msg" class="form-control mb-4" placeholder="Enter custom message" rows="1"></textarea>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-4 col-lg-4">
+                    <div class="btn-list btn-animation">
+                        <button class="btn btn-green" type="button" id="btnWhatsapp" style="display:none;" data-lang-key="send-whatsup">
+                            <i class="fa fa-whatsapp"></i> Send Whatsapp
+                        </button>
+                        <button class="btn btn-indigo" type="button" id="btnSMS" style="display:none;" data-lang-key="send-sms">
+                            <i class="fa fa-comment"></i> Send SMS
+                        </button>
+                        <button class="btn btn-primary" type="button" id="btnSMS_AR" style="display:none;">
+                            <i class="fa fa-comment-o"></i> رسالة قصيرة
+                        </button>
+                        <button class="btn btn-info" type="button" id="btnEmail" style="display:none;" data-lang-key="send-email">
+                            <i class="fa fa-envelope"></i> Send Email
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_employees" class="table table-hover table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                <span data-lang-key="photo">Photo</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="branch">Branch</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="emp-info">Employee Information</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="departments">Department</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="designations">Designation</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="sale-account">Sales Account</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="status">Status</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" ><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                                <!-- Hidden Export Columns -->
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="first-name">First Name</span>
+                                </th><!--9-->
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="last-name">Last Name</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >EMID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="mobile">Mobile No.</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="license">License</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" >
+                                    <span data-lang-key="nationality">Nationality</span></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12 col-lg-12">
+        <div class="demo-static-toast">
+            <div class="position-fixed top-0 end-0 p-3" style="z-index: 100000000">
+                <div id="rosterToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 col-lg-12">
+        <div class="demo-static-toast">
+            <div class="position-fixed top-0 end-0 p-3" style="z-index: 100000000">
+                <div id="rightsToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Employee Add Modal -->
+<div class="modal fade overflow-auto" id="employee_modal_create" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="employee_create_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Add Modal -->
+<!-- Employee Edit Modal -->
+<div class="modal fade overflow-auto" id="employee_modal_update" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="employee_update_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Edit Modal -->
+<!-- Employee Log Modal -->
+<div class="modal fade overflow-auto" id="employee_modal_log" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="employee_log_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Log Modal -->
+<!-- Employee Detail Modal -->
+<div class="modal fade" id="employee_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="employee_details_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Detail Modal -->
+<!-- Employee View Modal -->
+<div class="modal fade" id="employee_view" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeEV">
+        <div class="modal-content" id="employee_view_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee View Modal -->
+<!-- Employee Rights Modal -->
+<div class="modal fade" id="employee_rights" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeR">
+        <div class="modal-content" id="employee_rights_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Rights Modal -->
+<!-- Employee Rosters Modal -->
+<div class="modal fade overflow-auto" id="employee_rosters" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeER">
+        <div class="modal-content" id="employee_rosters_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Rosters Modal -->
+<!-- Employee Login Modal -->
+<div class="modal fade overflow-auto" id="employee_login" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="employee_login_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Login Modal -->
+<!-- Employee Chart of Account Modal -->
+<div class="modal fade overflow-auto" id="employee_coa_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="employee_coa_body">
+        </div>
+    </div>
+</div>
+<!-- End Employee Login Modal -->
+
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            load_filters();
+            load_templates();
+
+            GetEmployees(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_departments();
+            load_designations();
+            load_nationalities();
+            load_genders();
+            load_status();
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            var _url = "";
+
+            if ("@emp_designation.ToString().Contains("Administrator")" == "True") {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?empId=" + @empId.ToString();
+            }
+            else {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?setid=" + @emp_branch.ToString();
+            }
+
+            $.ajax({
+                url: _url,
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_branch').html('');
+                    $('#select_branch')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString().Contains("Administrator")" == "True") {
+                        $.each(response, function (j) {
+                            $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                            $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        });
+                    }
+                    else {
+                        $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Branch(es)! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        // Load Departments
+        var load_departments = function () {
+            $('#select_dept').SumoSelect({
+                placeholder: 'Select Department(s)',
+                captionFormat: '{0} Department(s) Selected',
+                captionFormatAllSelected: 'All {0} Department(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            var deptId = 0;
+
+            if ("@emp_designation.ToString()" == "Doctor") {
+                deptId = @emp_dept.ToString();
+            }
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "Employees", new { area = "Masters" })?deptId=' + deptId,
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_dept').html('');
+                    $('#select_dept')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" == "Doctor")
+                    {
+                        $('#select_dept')[0].sumo.add(@emp_dept.ToString(), "@emp_department.ToString()");
+                        $('#select_dept')[0].sumo.selectItem(["@emp_dept.ToString()"]);
+                    }
+                    else
+                    {
+                        $.each(response, function (j) {
+                            $('#select_dept')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#select_dept')[0].sumo.selectItem([response[j].id]);
+                        });
+                    }
+                    $('#select_dept')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Department(s)! Error : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Designations
+        var load_designations = function () {
+            $('#select_desig').SumoSelect({
+                placeholder: 'Select Designation(s)',
+                captionFormat: '{0} Designation(s) Selected',
+                captionFormatAllSelected: 'All {0} Designation(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            var desigId = 0;
+
+            if ("@emp_designation.ToString()" == "Doctor") {
+                desigId = @emp_desig.ToString();
+            }
+
+            $.ajax({
+                url: '@Url.Action("GetDesignations", "Employees", new { area = "Masters" })?desigId=' + desigId,
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_desig').html('');
+                    $('#select_desig')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" == "Doctor")
+                    {
+                        $('#select_desig')[0].sumo.add(@emp_desig.ToString(), "@emp_designation.ToString()");
+                        $('#select_desig')[0].sumo.selectItem(["@emp_desig.ToString()"]);
+                    }
+                    else
+                    {
+                        $.each(response, function (j) {
+                            $('#select_desig')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#select_dept')[0].sumo.selectItem([response[j].id]);
+                        });
+                    }
+                    $('#select_desig')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Designation(s)! Error : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Nationalities
+        var load_nationalities = function () {
+
+            $("#select_nationality").SumoSelect({
+                placeholder: 'Select Nationality',
+                captionFormat: '{0} item(s) Selected',
+                captionFormatAllSelected: 'All {0} item(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetNationalities", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_nationality').html('');
+                    $('#select_nationality')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_nationality')[0].sumo.add(response[j].id, response[j].text);
+                    });
+
+                    $('#select_nationality')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                captionFormat: '{0} Status Selected',
+                captionFormatAllSelected: 'All {0} Status selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+        }
+        // Load Genders
+        var load_genders = function () {
+            $('#select_gender').SumoSelect({
+                placeholder: 'Select Gender(s)',
+                captionFormat: '{0} item(s) Selected',
+                captionFormatAllSelected: 'All {0} items selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+        }
+        //#endregion
+
+        //#region Search Employees Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if (($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") ||
+                ($("#select_dept").val() != null && $("#select_dept").val() != 0 && $("#select_dept").val() != "") ||
+                ($("#select_desig").val() != null && $("#select_desig").val() != 0 && $("#select_desig").val() != "") ||
+                ($("#select_nationality").val() != null && $("#select_nationality").val() != 0 && $("#select_nationality").val() != "") ||
+                ($("#select_gender").val() != null && $("#select_gender").val() != 0 && $("#select_gender").val() != "") ||
+                ($("#select_status").val() != null && $("#select_status").val() != 0 && $("#select_status").val() != "")) {
+                GetEmployees(0);
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Advanced Filter to Search Employee(s)!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+
+        });
+        //#endregion
+
+        //#region Get Employees
+        var GetEmployees = function (search_type) {
+
+            var empId = 0;
+
+            if (("@emp_designation.ToString()" != "Super Administrator") && ("@emp_designation.ToString()" != "Clinic Manager")) {
+                empId = @empId.ToString();
+            }
+
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "dept_ids"      : $('#select_dept').val().toString(),
+                "desig_ids"     : $('#select_desig').val().toString(),
+                "empId"         : empId,
+                "nats_ids"    : $('#select_nationality').val().toString(),
+                "select_gender" : $('#select_gender').val().toString(),
+                "select_status" : $('#select_status').val().toString()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetEmployees", "Employees", new { area = "Masters" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_employees')) {
+                            table = $('#tbl_employees').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_employees").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "empId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "emp_photo",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (emp_photo) {
+                            return '<div class="d-flex justify-content-center">' +
+                                '<img class="avatar avatar-md brround text-center" src="' + emp_photo + '">	</img>' +
+                                '</div>';
+                        }
+                    },
+                    {
+                        "mData": "set_company"
+                    },
+                    {
+                        "className": "text-capitalize",
+                        "mData": "emp_name",
+                        "render": function (emp_name, type, full, meta) {
+                            var emp_name = emp_name + ' ' + full.emp_lname;
+                            var emp_license = full.emp_license;
+                            var emp_color = full.emp_color;
+                            var emp_address = full.emp_address;
+                            var emp_mob = full.emp_mob;
+
+                            if (emp_color == "") {
+                                emp_color = "#a1a1a1";
+                            }
+                            if (emp_license != "") {
+                                emp_license = "<div class='tag tag-dark mt-2 mb-2'>License <span class='tag-addon badge-gradient-secondary'>" + emp_license + "</span></div><br/>";
+                            }
+                            if (emp_address != "" && emp_mob != "") {
+                                emp_address = "<small><i class='fa fa-address-card-o'></i> " + full.emp_address + "</small> | ";
+                            }
+                            else if (emp_address != "") {
+                                emp_address = "<small><i class='fa fa-address-card-o'></i> " + full.emp_address + "</small>";
+                            }
+
+                            if (emp_mob != "") {
+                                emp_mob = "<small><i class='fa fa-mobile'></i> " + full.emp_mob + "</small>";
+                            }
+                            return '<i class="fa fa-circle" style="color:' + emp_color + '"></i><a data-bs-toggle="modal" data-bs-target="#employee_details" onclick="detailEmployee(' + full.empId + ')"><span class="text-primary font-weight-bold"> ' + emp_name + ' </span></a><br/>' +
+                                emp_license + emp_address + emp_mob;
+                        }
+                    },
+                    {
+                        "className": "text-capitalize",
+                        "mData": "department"
+                    },
+                    {
+                        "className": "text-capitalize",
+                        "mData": "designation"
+                    },
+                    {
+                        "mData": "sales_acc_namecode",
+                        "render": function (sales_acc_namecode) {
+                            if (sales_acc_namecode == "") {
+                                sales_acc_namecode = '<span class="text-muted">N/A</span>'
+                            }
+                            return '<span class="text-secondary font-weight-semibold">' + sales_acc_namecode + '</span>';
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "empId",
+                        "render": function (empId, type, full, meta) {
+                            var visible = full.actionvisible;
+                            var emp_status = full.emp_status;
+
+                            if (visible === "True") {
+                                if ("@emp_designation" == "Super Administrator") {
+                                    if (emp_status === "Active") {
+                                        return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateStatus(\'' + empId + '\',\' Active \')">' + emp_status + '</button>'
+                                    }
+                                    else if (emp_status === "Inactive") {
+                                        return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateStatus(\'' + empId + '\',\'Inactive\')">' + emp_status + '</button>'
+                                    }
+                                    else if (emp_status === "Deleted") {
+                                        return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateStatus(\'' + empId + '\',\'Deleted\')">' + emp_status + '</button>'
+                                    }
+                                    else {
+                                        return ''
+                                    }
+                                }
+                                else {
+                                    if (emp_status === "Active") {
+                                        return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;">' + emp_status + '</button>'
+                                    }
+                                    else if (emp_status === "Inactive") {
+                                        return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;">' + emp_status + '</button>'
+                                    }
+                                    else if (emp_status === "Deleted") {
+                                        return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;">' + emp_status + '</button>'
+                                    }
+                                    else {
+                                        return ''
+                                    }
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    },
+                    {
+                        "orderable": false,
+                        "searchable": false,
+                        "mData": "empId",
+                        "render": function (empId, type, full, meta) {
+                            var emp_status = full.emp_status;
+                            var visible = full.actionvisible;
+                            var name = full.emp_name + ' ' + full.emp_lname;
+
+                            var more =
+                                '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size:20px;"></i></a><div class="dropdown-menu" style="min-width:auto">' +
+                                '<a class="dropdown-item text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#employee_view" onclick="viewEmployee(' + empId + ')"><i class="fa fa-info-circle text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Details</a>';
+
+                            if (emp_status == "Active") {
+                                more += '<a class="dropdown-item text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#employee_modal_update" onclick="editEmployee(' + empId + ')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#employee_login" onclick="updateLogin(' + empId + ',\'' + @empId + '\')"><i class="fa fa-user-circle-o text-primary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Login</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#employee_coa_modal" onclick="employeeAccount(' + empId + ',\'' + @empId + '\',\'' + full.emp_branch + '\',\'' + full.emp_name + ' ' + full.emp_lname + '\')"><i class="fa fa-line-chart text-secondary" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Accounts</a>';
+                            }
+
+                            if ("@emp_designation" == "Super Administrator") {
+                                more += '<a class="dropdown-item text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#employee_rights" onclick="viewEmployeeRights(' + empId + ')"><i class="fe fe-lock text-warning" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Rights</a>';
+
+                                if (emp_status === "Active" && visible === "True") {
+                                    more +=
+                                        '<a class="dropdown-item text-dark fw-bold" onclick="deleteEmployee(\'' + empId + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>';
+                                }
+
+                                if (full.designation == "Doctor" || full.designation == "Therapist") {
+                                    more += '<a class="dropdown-item text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#employee_rosters" onclick="viewEmployeeRosters(' + empId + ',\'' + name + '\')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="font-size: 15px;margin-right: 0.4rem;" fill="#664dc9" class="bi bi-calendar3" viewBox="0 0 16 16"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857V3.857z"/><path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>&nbsp;Rosters</a>';
+                                }
+
+                                more +=
+                                    '<a class="dropdown-item text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#employee_modal_log" onclick="viewEmpLog(' + empId + ')"><i class="fa fa-eye" style="font-size: 15px;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a></div></div>';
+                            }
+
+                            return more;
+                        }
+                    },
+                    //#region Hidden Export Columns
+                    {
+                        "mData": "emp_name",
+                        "visible": false
+                    },
+                    {
+                        "mData": "emp_lname",
+                        "visible": false
+                    },
+                    {
+                        "mData": "emp_address",
+                        "visible": false
+                    },
+                    {
+                        "mData": "emp_mob",
+                        "visible": false
+                    },
+                    {
+                        "mData": "emp_license",
+                        "visible": false
+                    },
+                    {
+                        "mData": "nationality",
+                        "visible": false
+                    },
+                    //#endregion
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[3, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Employee Name / Phone / License / Department / Designation</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                },
+                scrollX: true,
+                scrollY: 600,
+                scrollCollapse: true,
+                fixedColumns: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Employees & Security',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 9, 10, 11, 12, 13, 14, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Employees & Security',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 9, 10, 11, 12, 13, 14, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Employees & Security',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 9, 10, 11, 12, 13, 14, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Employees & Security',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [2, 3, 9, 10, 11, 12, 13, 14, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Employees & Security!");
+                        }
+                    }
+                ],
+                rowCallback: function (row, data, index) {
+                    if (data.emp_status === "Deleted") {
+                        $('td:eq(0)', row).find("input[type=checkbox]").remove();
+                    }
+                }
+            });
+            table.buttons().container().appendTo('#tbl_employees_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Add Employee
+        function addEmployee() {
+             $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateEmployee", "Employees", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_create_body").html(data);
+                    $("#employee_modal_create").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Employee : " + xhr.statusText);
+                }
+             });
+        }
+        //#endregion
+
+        //#region Edit Employee
+        function editEmployee(empId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditEmployee", "Employees", new { area = "Masters" })?empId=" + empId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_update_body").html(data);
+                    $("#employee_modal_update").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Editing Employee : " + xhr.statusText);
+                }
+             });
+        }
+        //#endregion
+
+        //#region Update Login
+        function updateLogin(empId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditLogin", "Employees", new { area = "Masters" })?empId=" + empId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_login_body").html(data);
+                    $("#employee_modal_login").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Editing Employee : " + xhr.statusText);
+                }
+             });
+        }
+        //#endregion Update Login
+
+        //#region Update Employee Status
+        var updateStatus = function (empId, emp_status) {
+            emp_status = (emp_status == "Deleted" || emp_status == "Inactive") ? "Active" : "Inactive"
+            Swal.fire({
+                title: "Are you sure you want to change the status ?",
+                text: "This action will change the status of the selected Employee!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("UpdateEmployeeStatus", "Employees", new { area = "Masters" })?empId=" + empId + "&emp_status=" + emp_status,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetEmployees();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to change Employee Status!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Update Employees Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            })
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Employee
+        var deleteEmployee = function (empId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this employee ?",
+                text: "This action will delete this Employee!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteEmployee", "Employees", new { area = "Masters" })?empId=' + empId +'&emp_status=Deleted',
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetEmployees();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete Employee!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Employee! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Employee
+        var InactiveEmployee = function (empId) {
+            Swal.fire({
+                title: "Are you sure you want to Inactive this employee ?",
+                text: "This action will Inactivate this Employee!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("InactivateEmployee", "Employees", new { area = "Masters" })?empId=' + empId +'&emp_status=Inactive',
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetEmployees(0);
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to Inactive Employee!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Inactive Employee! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region View Employee Log
+        function viewEmpLog(empId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetEmployeeLogs", "Employees", new { area = "Masters" })?empaId=" + empId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_log_body").html(data);
+                    $("#employee_modal_log").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Viewing Employee Logs : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region View Detailed Employee
+        function detailEmployee(empId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EmployeeDetail", "Employees", new { area = "Masters" })?empId=" + empId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_details_body").html(data);
+                    $("#employee_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Viewing Employee Details : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region View Employee
+        function viewEmployee(empId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EmployeeView", "Employees", new { area = "Masters" })?empId=" + empId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_view_body").html(data);
+                    $("#employee_view").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Viewing Employee : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region View Employee Rights
+        function viewEmployeeRights(empId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EmployeeRights", "Employees", new { area = "Masters" })?empId=" + empId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_rights_body").html(data);
+                    $("#employee_rights").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Viewing Employee Rights : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region View Employee Rosters
+        function viewEmployeeRosters(empId, emp_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EmployeeRosters", "Employees", new { area = "Masters" })?empId=" + empId + '&emp_name=' + emp_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_rosters_body").html(data);
+                    $("#employee_rosters").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Viewing Employee Rosters : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Generate Sales Account
+        $('#btn_Generate_Sales_Acc').click(function (e) {
+
+            var table = $("#tbl_employees").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                $('#btn_Generate_Sales_Acc').removeClass("btn btn-azure text-white");
+                $('#btn_Generate_Sales_Acc').addClass("btn btn-info btn-loaders btn-icon text-white");
+                $('#btn_Generate_Sales_Acc').parent().addClass("curdrop");
+                $('#btn_Generate_Sales_Acc').html("Generating...");
+
+                $.each(rows, function (index, rowId) {
+
+                    var _data = table.row(rowId).data();
+
+                    $.ajax({
+                        url: '@Url.Action("GenerateSalesAccount", "Employees", new { area = "Masters" })?empId='+ _data.empId,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (response) {
+                            $('#btn_Generate_Sales_Acc').parent().removeClass("curdrop");
+                            $('#btn_Generate_Sales_Acc').removeClass("btn btn-info btn-loaders btn-icon text-white");
+                            $('#btn_Generate_Sales_Acc').addClass("btn btn-azure text-white");
+                            $('#btn_Generate_Sales_Acc').html("<i class='mdi mdi-account-key'></i> Generate Sales Account");
+
+                            if (response.success) {
+                                //GetEmployees(1);
+                                GetEmployees(0);
+                                return $.growl.notice({
+                                title: "Success!",
+                                message: response.message
+                                });
+                            }
+                            else {
+                                return $.growl.warning({
+                                    title: "Failure!",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            return $.growl.error({
+                                title: "Error while Generating Sales Account!",
+                                message: xhr.statusText
+                            });
+                        }
+                    });
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select atleast One Employee to Generate Sales Account!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+        //#endregion
+
+        //#region Generate Commision Account
+        $('#btn_Generate_Comm_Acc').click(function (e) {
+
+            var table = $("#tbl_employees").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                $('#btn_Generate_Comm_Acc').removeClass("btn btn-indigo text-white");
+                $('#btn_Generate_Comm_Acc').addClass("btn btn-info btn-loaders btn-icon text-white");
+                $('#btn_Generate_Comm_Acc').parent().addClass("curdrop");
+                $('#btn_Generate_Comm_Acc').html("Generating...");
+
+                $.each(rows, function (index, rowId) {
+
+                    var _data = table.row(rowId).data();
+
+                    $.ajax({
+                        url: '@Url.Action("GenerateCommissionAccount", "Employees", new { area = "Masters" })?empId='+ _data.empId,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (response) {
+
+                            $('#btn_Generate_Comm_Acc').parent().removeClass("curdrop");
+                            $('#btn_Generate_Comm_Acc').removeClass("btn btn-info btn-loaders btn-icon text-white");
+                            $('#btn_Generate_Comm_Acc').addClass("btn btn-indigo text-white");
+                            $('#btn_Generate_Comm_Acc').html("<i class='mdi mdi-account-box'></i> Generate Commission Account");
+
+                            if (response.success) {
+                               /* GetEmployees(1);*/
+                                GetEmployees(0);
+
+                                return $.growl.notice({
+                                title: "Success!",
+                                message: response.message
+                                });
+                            }
+                            else {
+                                return $.growl.warning({
+                                    title: "Failure!",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            return $.growl.error({
+                                title: "Error while Generating Commission Account!",
+                                message: xhr.statusText
+                            });
+                        }
+                    });
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select atleast One Employee to Generate Commission Account!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region Send SMS / E-Mail / WhatsApp
+        // Load Templates
+        var load_templates = function () {
+            $("#sms_email_template").select2({
+                placeholder: 'Select a Template',
+                width: '100%',
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+
+            $("#bulk_status").select2({
+                placeholder: 'Select Status',
+                width: '100%'
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetTemplates", "Employees", new { area = "Masters" })?tempFor=3',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var newOption = new Option("Select Any Template", 0, false, false);
+                    $('#sms_email_template').append(newOption).trigger('change');
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            let text = response[j].TempName;
+
+                            if (response[j].TempWhatsapp == 1) {
+                                text += "<i class='fa fa-whatsapp text-green ms-1 font-weight-semibold'></i>";
+                            }
+                            if (response[j].TempSMS == 1) {
+                                text += "<i class='fa fa fa-comment text-indigo ms-1 font-weight-semibold'></i>";
+                            }
+                            if (response[j].TempEmail == 1) {
+                                text += "<i class='fa fa-envelope-o text-info ms-1 font-weight-semibold'></i>";
+                            }
+
+                            var newOption = new Option(text, response[j].TemplateId, false, false);
+                            $('#sms_email_template').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Error : " + xhr.statusText);
+                }
+            });
+        };
+        // Select Template
+        $('#sms_email_template').on('select2:select', function () {
+            if ($(this).val() != 0) {
+                $.ajax({
+                    url: '@Url.Action("GetTemplates", "Employees", new { area = "Masters" })?tempFor=3&templateId=' + $('#sms_email_template').val(),
+                    type: "GET",
+                    dataType: "json",
+                    async: false,
+                    success: function (response) {
+                        if (response.length > 0) {
+                            if (response[0].TempWhatsapp == 1) {
+                                $("#btnWhatsapp").show();
+                            }
+                            else {
+                                $("#btnWhatsapp").hide();
+                            }
+
+                            if (response[0].TempSMS == 1) {
+                                $("#btnSMS").show();
+                                $("#btnSMS_AR").show();
+                            }
+                            else {
+                                $("#btnSMS").hide();
+                                $("#btnSMS_AR").hide();
+                            }
+
+                            if (response[0].TempEmail == 1) {
+                                $("#btnEmail").show();
+                            }
+                            else {
+                                $("#btnEmail").hide();
+                            }
+
+                            $('#sms_email_template_msg').val(response[0].TempContent);
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $("#btnWhatsapp").hide();
+                $("#btnSMS").hide();
+                $("#btnSMS_AR").hide();
+                $("#btnEmail").hide();
+                $('#sms_email_template').val(0).trigger('change');
+                $("#sms_email_template_msg").val("");
+            }
+        });
+        // Send WhastApp Message
+        $("#btnWhatsapp").click(function (event) {
+            event.preventDefault();
+            $('#btnWhatsapp').removeClass("btn btn-outline-success");
+            $('#btnWhatsapp').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btnWhatsapp').html("Sending...");
+
+            var table = $("#tbl_employees").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                if ($("#sms_email_template_msg").val() != "") {
+                    var _obj = {
+                        "branchId": _data.emp_branch,
+                        "mobile": _data.emp_mob,
+                        "user": _data.empId,
+                        "content": $("#sms_email_template_msg").val()
+                    }
+
+                    $.ajax({
+                        url: '@Url.Action("WhatsappConfig", "Employees", new { area = "Masters" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            $('#btnWhatsapp').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnWhatsapp').addClass("btn btn-outline-success");
+                            $('#btnWhatsapp').html("<i class='fa fa-whatsapp'></i> Send WhatsApp");
+
+                            if (response.isSuccess == true) {
+                                if (response.data["status"] == "success") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.notice({
+                                        title: "Success",
+                                        message: response.message
+                                    });
+                                }
+                                else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.warning({
+                                        title: "Pending",
+                                        message: response.message
+                                    });
+                                }
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                            $('#btnWhatsapp').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btnWhatsapp').addClass("btn btn-outline-success");
+                            $('#btnWhatsapp').html("<i class='fa fa-whatsapp'></i> Send WhatsApp");
+                        }
+                    });
+                }
+            });
+
+            //$('#sms_email_template').val(0).trigger('change');
+            //$("#sms_email_template_msg").val("");
+        });
+        // Send SMS English
+        $("#btnSMS").click(function (event) {
+            event.preventDefault();
+            $('#btnSMS').removeClass("btn btn-indigo");
+            $('#btnSMS').addClass("btn btn-indigo btn-loaders btn-icon");
+            $('#btnSMS').html("Sending...");
+
+            var table = $("#tbl_employees").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _obj = {
+                    "branchId": _data.emp_branch,
+                    "mobile": _data.emp_mob,
+                    "user": _data.empId,
+                    "content": $("#sms_email_template_msg").val()
+                }
+
+                $.ajax({
+                    url: '@Url.Action("SMSConfig", "Employees", new { area = "Masters" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _obj,
+                    async: false,
+                    success: function (response) {
+                        $('#btnSMS').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btnSMS').addClass("btn btn-indigo");
+                        $('#btnSMS').html("<i class='fa fa-comment'></i> Send SMS");
+                        if (response.isSuccess == true) {
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            return $.growl.notice({
+                                title: "Success",
+                                message: response.message
+                            });
+                        }
+                        else {
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error",
+                                message: response.message
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        console.log("Error : "+xhr.statusText);
+                    }
+                });
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        // Send SMS Arabic
+        $("#btnSMS_AR").click(function (event) {
+            var table = $("#tbl_employees").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                var _obj = {
+                    "branchId": _data.app_branch,
+                    "mobile": _data.emp_mob,
+                    "user": _data.empId,
+                    "content": $("#sms_email_template_msg").val()
+                }
+
+                $.ajax({
+                    url: '@Url.Action("SMSConfig_AR", "Employees", new { area = "Masters" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _obj,
+                    async: false,
+                    success: function (response) {
+                        if (response.isSuccess == true) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.notice({
+                                title: "Success",
+                                message: response.message
+                            });
+                        }
+                        else {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: response.message
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error : " + xhr.statusText);
+                    }
+                });
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        // Send E-Mail
+        $("#btnEmail").click(function (event) {
+            var table = $("#tbl_employees").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+
+                if (!(_data.emp_email == undefined || _data.emp_email == null || _data.emp_email == "")) {
+                    var _obj = {
+                        "branchId": _data.emp_branch,
+                        "email": _data.emp_email,
+                        "user": _data.empId,
+                        "content": $("#sms_email_template_msg").val(),
+                        "templateId": parseInt($("#sms_email_template").val())
+                    }
+
+                    $.ajax({
+                        url: '@Url.Action("EmailConfig", "Employees", new { area = "Masters" })',
+                        type: "POST",
+                        dataType: "json",
+                        data: _obj,
+                        async: false,
+                        success: function (response) {
+                            if (response.isSuccess == true) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.notice({
+                                    title: "Success",
+                                    message: response.message
+                                });
+                            }
+                            else {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return $.growl.error({
+                                    title: "Error",
+                                    message: response.message
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            console.log("Error : " + xhr.statusText);
+                        }
+                    });
+                }
+                else {
+                    console.log("Invalid email address :" + _data.pat_email);
+                }
+            });
+
+            $('#sms_email_template').val(0);
+            $("#sms_email_template_msg").val("");
+        });
+        //#endregion
+
+        //#region Employee Chart of Account
+        function employeeAccount(empId, loggedId, emp_branch, emp_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EmployeeCOA", "Employees", new { area = "Masters" })?empId=" + empId + "&emp_lId=" + loggedId + "&branch=" + emp_branch + "&emp_name=" + emp_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#employee_coa_body").html(data);
+                    $("#employee_coa_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Employee Chart ofAccount : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        function error_timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+        //#endregion
+    </script>
+}

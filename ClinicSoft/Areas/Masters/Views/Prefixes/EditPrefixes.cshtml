@@ -1,0 +1,350 @@
+﻿
+@model BusinessEntities.Masters.Prefixes
+<style>
+    .ui-datepicker {
+        z-index: 100000000 !important;
+    }
+
+    #vou_date, #vou_edate {
+        border: 0px;
+    }
+
+    #size {
+        max-width: 800px;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update Prefixes</h5>
+    <button type="button" class="btn-close btnCloseEdit" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Edit_Prefixes">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.pfxId)
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold"> Branch(es) &nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.pfx_branch, new SelectList(Model.BranchList, "id", "text"), new { @class = "form-select select2", @multiple = "multiple", @id = "upfx_branch" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold"> Type &nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.pfx_type, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Value="", Text="N/A", Selected=true},
+                        new SelectListItem{ Value="Patient File", Text="Patient File"},
+                        new SelectListItem{ Value="Appointment", Text="Appointment"},
+                        new SelectListItem{ Value="Invoices", Text="Invoice"},
+                        new SelectListItem{ Value="Invoice", Text="Receipt"},
+                        new SelectListItem{ Value="Advance", Text="Advance"},
+                        new SelectListItem{ Value="Loyalty", Text="Loyalty"},
+                        new SelectListItem{ Value="Invoice & Allocation", Text="Invoice & Allocation"},
+                        new SelectListItem{ Value="Refund", Text="Refund of Advance"},
+                        new SelectListItem{ Value="Inv Refund", Text="Refund of Invoice"},
+                        new SelectListItem{ Value="Purchase Request", Text="Purchase Request"},
+                        new SelectListItem{ Value="Purchase Order", Text="Purchase Order"},
+                        new SelectListItem{ Value="Goods Recieved Note", Text="Goods Recieved Note"},
+                        new SelectListItem{ Value="Purchase Invoice", Text="Purchase Invoice"},
+                        new SelectListItem{ Value="Purchase Return", Text="Purchase Return/Debit Note"},
+                        new SelectListItem{ Value="Purchase Payment", Text="Purchase Payment"},
+                        new SelectListItem{ Value="Direct Payment", Text="Direct Payment"},
+                        new SelectListItem{ Value="Advance Payment", Text="Advance Payment"},
+                        new SelectListItem{ Value="Refund Payment", Text="Refund Payment"},
+                        new SelectListItem{ Value="Journal", Text="Journal"},
+                        new SelectListItem{ Value="Fund Transfer", Text="Fund Transfer"},
+                        new SelectListItem{ Value="Fixed Assets", Text="Fixed Assets"},
+                    }, "Select Title", new { @class = "form-select select2 mb-2", @id = "upfx_type" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold">Prefix&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.pfx_prefix, new { @class = "form-control", @placeholder = "Ex : INV", @maxlength = "150", @id = "upfx_prefix" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold">Series&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.pfx_slno, new { @class = "form-control", @placeholder = "Ex : 10000", @maxlength = "150", @id = "upfx_slno" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group g-md-3">
+                    <label class="form-label text-black font-weight-semibold">Changeble</label>
+                    @Html.DropDownListFor(m => m.pfx_change, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Value="Yes", Text="Yes"},
+                        new SelectListItem{ Value="No", Text="No", Selected=true},
+                    }, "Please Select", new { @class = "form-control select2 mb-2", @id = "upfx_change", onchange = "checkChange()" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group g-md-3">
+                    <label class="form-label text-black font-weight-semibold">Period</label>
+                    @Html.DropDownListFor(m => m.pfx_changeby, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Value=" ", Text="N/A"},
+                        new SelectListItem{ Value="Year", Text="Year"},
+                        new SelectListItem{ Value="Month", Text="Month"},
+                    }, "Please Select", new { @class = "form-control select2 mb-2", @id = "upfx_changeby" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorCreate"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseEdit" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+
+    //#region Page Load
+    $(function () {
+       $("#upfx_change").select2({
+            placeholder: 'Select Title',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 3,
+            dropdownParent: $('#form_Add_Prefixes')
+        });
+        $("#upfx_type").select2({
+            placeholder: 'Select Title',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 3,
+            dropdownParent: $('#form_Add_Prefixes')
+        });
+        $("#upfx_changeby").select2({
+            placeholder: 'Select Title',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 3,
+            dropdownParent: $('#form_Add_Prefixes')
+        });
+        $('#upfx_branch').SumoSelect({
+            placeholder: "Select Branch(s)",
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Enter here.',
+            selectAll: true
+        });
+
+        validation();
+    });
+    //#endregion
+    function checkChange() {
+        $("#upfx_changeby").val("").trigger('change'); // Clear the value of pfx_changeby
+    }
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Edit_Prefixes").validate({
+            focusInvalid: true,
+            rules:
+            {
+                upfx_type: {
+                    required: true
+                },
+                upfx_branch: {
+                    required: true
+                },
+                upfx_prefix: {
+                    required: true
+                },
+                upfx_slno: {
+                    required: true
+                },
+                upfx_changeby: {
+                    required: function (element) {
+                        return $("#upfx_change").val() === "Yes";
+                    }
+                }
+
+            },
+            messages: {
+                upfx_type: {
+                    required: "Enter Prefixes Type"
+                },
+                upfx_branch: {
+                    required: "Please Select Branch"
+                },
+                upfx_prefix: {
+                    required: "Pleaes Select Prefix",
+                },
+                upfx_slno: {
+                    required: "Pleaes Select Series No",
+                },
+                upfx_changeby: {
+                    required: "Select change by"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });        
+    }
+    //#endregion
+
+    
+
+    //#region Update Prefixes Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Edit_Prefixes").valid()) {
+
+            $('#btn_Update').removeClass("btn btn-warning");
+            $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+            $('#btn_Update').parent().addClass("curdrop");
+            $('.btnCloseEdit').addClass("disabled");
+            $('#btn_Update').html("Saving Changes... Please Wait");
+
+            var _dataUpdate = {
+                "pfxId": $("#pfxId").val(),
+                "pfx_prefix": $("#upfx_prefix").val(),
+                "pfx_type": $("#upfx_type").val(),
+                "pfx_slno": $("#upfx_slno").val(),
+                "pfx_change": $("#upfx_change").val(),
+                "pfx_changeby": $("#upfx_changeby").val(),
+                "pfx_branch": $("#upfx_branch").val(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdatePrefixes", "Prefixes", new {area = "Masters" })",
+                dataType: 'json',
+                data: _dataUpdate,
+                success: function (data) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    if (data.isSuccess) {
+                        if (data.isUpdated) {
+                            GetPrefixes();
+                            alert("<i class='fe fe-check-circle text-white'></i> Prefixes Updated Successfully!", "success");
+                            clearControls();
+                            $('#vouchers_modal').modal('toggle');
+                            Timeout();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Prefixes Already exists with the same details!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorEdit").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+                        $("#errorEdit").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    $('#vouchers_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Clear Controls
+    var clearControls = function () {
+        $("#upfx_branch").val(1).trigger('change');
+        $("#upfx_type").val("");
+        $("#upfx_prefix").val("");
+        $("#upfx_slno").val("");
+        $("#upfx_changeby").val("");
+        $("#upfx_change").val("No");
+    }
+    //#endregion
+</script>

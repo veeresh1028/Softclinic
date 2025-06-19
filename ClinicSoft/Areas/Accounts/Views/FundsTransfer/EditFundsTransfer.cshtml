@@ -1,0 +1,599 @@
+﻿
+@model BusinessEntities.Accounts.Accounting.FundsTransfer
+
+<style type="text/css">
+    #sizeCJ {
+        max-width: 1000px;
+    }
+
+    #tbl_list_entries_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update Fund Transfer</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-group" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_EditFundTransfer" autocomplete="off">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.ft_code)
+        @Html.HiddenFor(m => m.ftId)
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ft_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uft_branch", @disabled= "true"})
+                    
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Period&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ft_acc_period, new SelectList(Model.PeriodList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uft_acc_period", @disabled = "true" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-0">
+                    <label class="form-label text-black" title="">Date&nbsp;<span class="text-danger">*</span> </label>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBoxFor(model => model.ft_date, new { @class = "form-control", @placeholder = "Select Transfer Date", maxlength = "18", @id = "uft_date"})                    
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Code&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ft_refno, new { @class = "form-control disabled text-danger", @placeholder = "Ex: FN45875", @maxlength = "25", @id = "uft_refno" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-4">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Amount&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ft_amount, new { @class = "form-control text-end", @placeholder = "0.00", @oninput = "validate(this,1000000)", @id = "uft_amount" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Debit A/C&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ft_to, new List<SelectListItem> { }, "Please Select", new { @class = "form-select select2", @id = "uft_to" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Credit A/C&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ft_from, new List<SelectListItem> { }, "Please Select", new { @class = "form-select select2", @id = "uft_from" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Description</label>
+                    @Html.TextAreaFor(m => m.ft_comments, new { @class = "form-control", @placeholder = "Enter comments for transfer", @maxlength = "1000", @id = "uft_comments" })
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="error_edit_ft"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1 close-group" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    var _from = $('#add_group_modal').attr("data-modal-from");
+
+    //#region Page Load
+    $(function () {
+        $("#uft_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditFundTransfer'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#uft_acc_period").select2({
+            placeholder: 'Select Period',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditFundTransfer'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+        var selectedValue = $('#uft_acc_period option:eq(1)').val();
+        var selectedText = $('#uft_acc_period option:eq(1)').text();
+        $('#uft_acc_period').val(selectedValue).trigger('change');
+
+        var select2SelectEvent = jQuery.Event("select2:select", {
+            params: {
+                data: {
+                    id: selectedValue,
+                    text: selectedText
+                }
+            }
+        });
+
+        $('#uft_acc_period').trigger(select2SelectEvent);
+
+        validation();
+        setItem('@Model.ft_from', '@Model.ft_branch', '@Model.ft_acc_period', 'uft_from')
+        setItem('@Model.ft_to', '@Model.ft_branch', '@Model.ft_acc_period', 'uft_to')
+    });
+    //#endregion
+
+    //#region On Branch Select
+    $('#uft_branch').on('select2:select', function (e) {
+        load_ag_code();
+    });
+    //#endregion
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion
+
+    //#region Load & Select Events
+
+    $('#uft_acc_period').on('select2:select', function (e) {
+        console.log('uft_acc_period');
+            var inputString = e.params.data.text;
+
+            var datePattern = /\[(\d{2}\/[a-zA-Z]+\/\d{4}) - (\d{2}\/[a-zA-Z]+\/\d{4})\]/;
+
+            var matches = inputString.match(datePattern);
+            if (matches && matches.length === 3) {
+                var startDate = matches[1];
+                var endDate = matches[2];
+
+                startDate = moment(startDate, 'DD/MMM/YYYY');
+                endDate = moment(endDate, 'DD/MMM/YYYY');
+
+                $('#uft_date').bootstrapdatepicker('destroy');
+
+                $('#uft_date').bootstrapdatepicker({
+                    format: "dd-MM-yyyy",
+                    viewMode: "date",
+                    todayHighlight: true,
+                    autoclose: true,
+                    multidate: false,
+                    multidateSeparator: "-",
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                });
+
+                $("#uft_date").bootstrapdatepicker("setDate", "today");
+
+                $('#uft_date').keypress(function (e) {
+                    var charCode = (e.which) ? e.which : e.keyCode
+                    if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                        return false;
+                    }
+                    else {
+                        if (e.target.value.length >= 18)
+                            return false;
+                    }
+                });
+            }
+            else {
+                console.log("Invalid A/C Period Date");
+            }
+
+            load_accounts_create();
+    });
+
+        var load_accounts_create = function () {
+            if ($('#uft_branch').val() != "" && $('#uft_acc_period').val() != "") {
+                $('#uft_to').select2({
+                    placeholder: 'Search Account',
+                    dropdownParent: $('#form_EditFundTransfer'),
+                    width: '100%',
+                    allowClear: true,
+                    minimumInputLength: 3,
+                    maximumInputLength: 12,
+                    escapeMarkup: function (markup) {
+                        return markup;
+                    },
+                    ajax: {
+                        url: '@Url.Action("GetAccountsDropdown", "ChartOfAccounts", new { area = "Accounts" })',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (query) {
+                            return {
+                                query: query.term,
+                                branches: $('#uft_branch').val(),
+                                period: $('#uft_acc_period').val()
+                            };
+                        },
+                        processResults: function (data) {
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    }
+                });
+
+                $('#uft_from').select2({
+                    placeholder: 'Search Account',
+                    dropdownParent: $('#form_EditFundTransfer'),
+                    width: '100%',
+                    allowClear: true,
+                    minimumInputLength: 3,
+                    maximumInputLength: 12,
+                    escapeMarkup: function (markup) {
+                        return markup;
+                    },
+                    ajax: {
+                        url: '@Url.Action("GetAccountsDropdown", "ChartOfAccounts", new { area = "Accounts" })',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (query) {
+                            return {
+                                query: query.term,
+                                branches: $('#uft_branch').val(),
+                                period: $('#uft_acc_period').val()
+                            };
+                        },
+                        processResults: function (data) {
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    }
+                });
+            }
+        }
+    //#endregion
+
+    //#region Set Accounts Details
+    var data = '';
+    var setItem = function (acc_code, branchId, acc_period, id) {
+        $.ajax({
+            url: '@Url.Action("GetAccountDropdownByCode", "ChartOfAccounts", new { area = "Accounts" })?acc_code=' + acc_code + '&acc_period=' + acc_period + '&acc_branch=' + branchId,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+                $('#' + id).append(newOption).trigger('change');
+            },
+            error: function (xhr) {
+                console.log(xhr.statusText);
+            }
+        });
+    }
+//#endregion
+
+    //#region Adding Validation on Fields
+    var validation = function () {
+        $("#form_EditFundTransfer").validate({
+            focusInvalid: true,
+            rules:
+            {
+                uft_branch: {
+                    required: true
+                },
+                uft_acc_period: {
+                    required: true
+                },
+                uft_date: {
+                    required: true
+                },
+                uft_refno: {
+                    required: true,
+                    maxlength:25
+                },
+                uft_from: {
+                    required: true
+                },
+                uft_to: {
+                    required: true
+                },
+                uft_amount: {
+                    required: true
+                }
+
+            },
+            messages: {
+                uft_branch: {
+                    required: "Select Branch"
+                },
+                uft_acc_period: {
+                    required: "Select Period"
+                },
+                uft_date: {
+                    required: "Select Date"
+                },
+                uft_refno: {
+                    required: "Enter Refrence#",
+                    maxlength: "Enter No More than 25 Characters"
+                },
+                uft_from: {
+                    required: "Select Credit Account"
+                },
+                uft_to: {
+                    required: "Select Debit Account"
+                },
+                uft_amount: {
+                    required: "Enter Transfer Amount"
+                }
+
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#uft_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uft_acc_period').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uft_from').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uft_to').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uft_amount').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uft_amount').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+    }
+    //#endregion
+
+    //#region Update Funds Transfer on Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_EditFundTransfer').valid()) {
+            if ($('#uft_from').val() !== $('#uft_to').val()) {
+                Swal.fire({
+                    title: "Update",
+                    text: "Are you sure you want to Update Transfer Entries!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _dataInsert = {
+                            "ftId": '@Model.ftId',
+                            "ft_code": '@Model.ft_code',
+                            "ft_date": $('#uft_date').val().trim(),
+                            "ft_from": $('#uft_from').val(),
+                            "ft_to": $('#uft_to').val(),
+                            "ft_amount": $('#uft_amount').val().trim(),
+                            "ft_refno": $('#uft_refno').val().trim(),
+                            "ft_comments": $('#uft_comments').val().trim(),
+                            "ft_branch": $('#uft_branch').val(),
+                            "ft_acc_period": $('#uft_acc_period').val(),
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("UpdateFundsTransfer", "FundsTransfer", new { area = "Accounts" })",
+                            dataType: "json",
+                            data: _dataInsert,
+                            beforeSend: function () {
+                                $('#btn_Update').removeClass("btn btn-success");
+                                $('#btn_Update').addClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Update').html("Inserting....");
+                            },
+                            success: function (data) {
+                                $('#btn_Update').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-success");
+                                $('#btn_Update').html("Save Changes");
+
+                                if (data.isUpdated > 0) {
+                                    GetFundsTransfer();
+
+                                    alert("<i class='fe fe-check-circle text-white'></i> Fund Transfer Updated Successfully!", "success");
+
+                                    $('#edit_fundstransfer_modal').modal('toggle');
+
+                                    Timeout();
+                                }
+                                else {
+                                    $("#error_edit_ft").html('');
+
+                                    if (data.message == "Error While Updating Funds Transfer!" || data.message == "Funds Transfer already exists!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+
+                                        $("#error_edit_ft").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+
+                                        html += "</ul></div></div>";
+
+                                        $("#error_edit_ft").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_Update').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Update').addClass("btn btn-success");
+                                $('#btn_Update').html("Save Chnages");
+
+                                alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Fund Transfer!", "danger");
+                                $('#edit_fundstransfer_modal').modal('toggle');
+                                Timeout();
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+                var error_message = "Amount should be greater than 0";
+                if (parseFloat($('#uft_amount').val().trim()) > 0)
+                    error_message = "Debit and Credit account can not be same";
+
+                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                    "<div class='alert alert-light-warning' role='alert'>" +
+                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                    "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + error_message + "!&nbsp;</strong></div></div>";
+
+                $("#error_edit_ft").html(html);
+            }
+
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Close Group Click
+    $('.close-group').on('click', function (e) {
+        e.preventDefault();
+
+        if (_from === "create-category") {
+            $('#add_group_modal').modal('hide');
+            $('#add_category_modal').modal('toggle');
+        }
+        else if (_from === "update-category") {
+            $('#edit_group_modal').modal('hide');
+            $('#edit_category_modal').modal('toggle');
+        }
+        else if (_from === "create-account") {
+            $('#add_group_modal').modal('hide');
+            $('#add_account_modal').modal('toggle');
+        }
+        else if (_from === "update-account") {
+            $('#add_group_modal').modal('hide');
+            $('#edit_account_modal').modal('toggle');
+        }
+    });
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alter Holder
+    var alertPlaceholder = document.getElementById("FundsTransferAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

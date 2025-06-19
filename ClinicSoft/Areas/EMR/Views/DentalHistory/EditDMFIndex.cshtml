@@ -1,0 +1,502 @@
+﻿
+
+
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.EMR.DMFIndex
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_EditDMF" class="needs-validation" >
+
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.dmfId)
+    @Html.HiddenFor(m => m.dmf_appId)
+    @Html.HiddenFor(m => m.dmfId, new { @id = "udmfId", @value = "@Model.dmfId" })
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-12 mb-4 ">
+            <div class="row">
+                <div class="col-sm-12 col-md-6 col-lg-2">
+                    <div>
+                        <h4 class="page-title mb-0 text-primary">
+                            Medical History
+                        </h4>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-6 col-lg-12">
+                    <label class="form-label text-black">Permanent Dentition</label>
+                    <table id="utbl_dmfpermant" class="table table-bordered card-table table-vcenter text-nowrap " width="100%">
+                        <thead class="d-none">
+
+                        </thead>
+                        <tbody>
+                            <!-- Data rows will be dynamically added here -->
+                        </tbody>
+
+                    </table>
+                    <label class="form-label text-black">Deciduous Dentition</label>
+                    <table id="utbl_dmfdeci" class="table table-bordered card-table table-vcenter text-nowrap " width="100%">
+                        <thead class="d-none">
+
+                        </thead>
+                        <tbody>
+                            <!-- Data rows will be dynamically added here -->
+                        </tbody>
+
+                    </table>
+                </div>
+                <div class="col-sm-12 col-md-6 col-lg-12">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Treatment Plan&nbsp;<span class="text-danger">*</span></label>
+                        @Html.TextAreaFor(m => m.dmf_other, new { @class = "form-control", @placeholder = "Enter Med Notes", @row = "6",@id= "udmf_other" })
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2 alig">
+                <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+                    <div class="form-group m-0">
+                        <div class="row g-xs">
+                            <div class="col-auto">
+                                <label class="colorinput">
+                                    <span class="colorinput-color  bg-black dmfclr">D-DECAY</span>
+                                </label>
+                            </div>
+                            <div class="col-auto">
+                                <label class="colorinput">
+                                    <span class="colorinput-color bg-orange dmfclr">M-MISSING</span>
+                                </label>
+                            </div>
+                            <div class="col-auto">
+                                <label class="colorinput">
+                                    <span class="colorinput-color bg-green dmfclr"> F-FILLED</span>
+                                </label>
+                            </div>
+                            <div class="col-auto">
+                                <label class="colorinput">
+                                    <span class="colorinput-color bg-red dmfclr">E-EXTRACTION</span>
+                                </label>
+                            </div>
+                            <div class="col-auto">
+                                <label class="colorinput">
+                                    <span class="colorinput-color bg-blue dmfclr ">C-CROWN</span>
+                                </label>
+                            </div>
+                            <div class="col-auto">
+                                <label class="colorinput">
+                                    <span class="colorinput-color bg-yellow dmfclr"> I-IMPLANT</span>
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+                    <div class="btn-list btn-animation">
+                        <button type="submit" class="btn btn-sm btn-warning" id="btn_Update_DMF">Save Changes</button>
+                        <button type="submit" class="btn btn-sm btn-outline-danger" id="btn_Delete_DMF">Delete</button>
+                        <button type="submit" class="btn btn-sm btn-outline-light d-none" id="btn_Print_DMF" onclick="PrintDMFIndex(@Model.dmfId)">
+                            <i class="fa fa-print">&nbsp;&nbsp;</i>Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<style>
+    .dmfclr {
+        display: inline-block;
+        width: 6.75rem;
+        height: 1rem;
+    }
+    /*    #tbl_dmfdeci:nth-child(1) tr:nth-child(12) {
+        background-color: red;
+    }*/
+</style>
+<script>
+    //#region Page Load
+        $(function () {
+
+            DeciduousDentition();
+            PermanentDentition();
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                $("#btn_Update_DMF,#btn_Delete_DMF").show();
+            } else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Update_DMF,#btn_Delete_DMF").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Update_DMF,#btn_Delete_DMF").show();
+                    }
+                    else {
+                        $("#btn_Update_DMF,#btn_Delete_DMF").hide();
+                    }
+                }
+            }
+            
+            validate();
+
+
+        });
+
+    //#endregion Page Load
+
+    //#region Permanent Dentition
+    var PermanentDentition = function () {
+        var numRows = 2;
+        var numCols = 16;
+
+        var data = [];
+        for (let i = 1; i <= numRows; i++) {
+            var rowData = { i };
+            for (let j = 1; j <= numCols; j++) {
+                rowData[j] = j;
+            }
+            data.push(rowData);
+        }
+
+        var table = document.getElementById('utbl_dmfpermant');
+        var valuesToSelect = "@Model.dmf_index".split(",")
+        
+        for (let i = 0; i < numRows; i++) {
+            var row = table.insertRow();
+            for (let j = 0; j <= numCols; j++) {
+                var cell = row.insertCell();
+
+                var value = (i * numCols) + j;
+                var selectElement = document.createElement('select');
+                selectElement.className = 'form-control select2 dmf_xcip';
+                selectElement.id = 'dmf_xcip_' + (i + 1) + '_' + j;
+                cell.appendChild(selectElement);
+                //cell.attr.add("class", "bg-orange");
+                var selectOptions = [
+                    { id: value, text: value },
+                    { id: value + "D", text: value + "D", class: "colorinput-color bg-black" },
+                    { id: value + "M", text: value + "M", class: "colorinput-color bg-orange" },
+                    { id: value + "F", text: value + "F", class: "colorinput-color bg-green" },
+                    { id: value + "X", text: value + "X", class: "colorinput-color bg-red" },
+                    { id: value + "C", text: value + "C", class: "colorinput-color bg-blue" },
+                    { id: value + "I", text: value + "I", class: "colorinput-color bg-yellow" }
+                ];
+
+                for (var k = 0; k < selectOptions.length; k++) {
+                    var option = document.createElement('option');
+                    option.value = selectOptions[k].id;
+                    option.textContent = selectOptions[k].text;
+                    if (selectOptions[k].class) {
+                        option.className = selectOptions[k].class;
+                    }
+                    if (valuesToSelect.includes(option.textContent)) {
+                        option.selected = true;
+                        
+                    }
+                    
+                    selectElement.appendChild(option);
+                    if (valuesToSelect.includes(option.textContent)) {
+                        if (selectOptions[k].class) {
+                            var classes = selectOptions[k].class.split(' ');
+                            var newClasses = classes.filter(className => className !== 'colorinput-color');
+                            var newClass = newClasses.join(' ');
+                            $("#" + selectElement.id).addClass(newClass);
+                        }
+                        //$("#" + selectElement.id).addClass(selectOptions[k].class);
+                    }
+                   
+                    
+
+                    //selectElement.addClass("form-control select2 dmf_xcip colorinput-color bg-orange");
+                }
+            }
+        }
+
+    }
+
+    //#endregion Permanent Dentition
+
+    //#region Deciduous  Dentition
+        var DeciduousDentition = function () {
+
+            var table = document.getElementById('utbl_dmfdeci');
+            var valuesToSelect = "@Model.dmf_index".split(",")
+            var numRowsD = 2;  // Two rows
+            var numColsD = 10; // Number of columns for each row
+
+            var dataD = [];
+            for (let i = 1; i <= numRowsD; i++) {
+                var rowDataD = { i };
+                var startCharCode = (i === 1) ? 65 : 75;  // 'A' or 'K' depending on the row
+
+                if (i === 2) {
+                    startCharCode = 75;  // Always start from 'K' for the second row
+                }
+
+                for (let j = 0; j < numColsD; j++) {
+                    //const charCode = startCharCode + j + ((i - 1) * numColsD);
+                    const charCode = startCharCode + j;
+                    const char = String.fromCharCode(charCode);
+                    rowDataD[char] = char;
+                }
+                dataD.push(rowDataD);
+
+
+                var row = table.insertRow();
+
+
+                for (let j = 0; j < numColsD; j++) {
+                    var cell = row.insertCell();
+                    var selectElementD = document.createElement('select');
+                    selectElementD.className = 'form-control select2 dmf_xcid';
+                    selectElementD.id = 'dmf_xcid_' + i + '_' + j;
+
+                    var selectOptions = [
+                        { id: dataD[i - 1][String.fromCharCode(startCharCode + j)], text: dataD[i - 1][String.fromCharCode(startCharCode + j)] },
+                        { id: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "D", text: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "D", class: "colorinput-color bg-black" },
+                        { id: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "M", text: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "M", class: "colorinput-color bg-orange" },
+                        { id: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "F", text: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "F", class: "colorinput-color bg-green" },
+                        { id: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "X", text: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "X", class: "colorinput-color bg-red" },
+                        { id: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "C", text: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "C", class: "colorinput-color bg-blue" },
+                        { id: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "I", text: dataD[i - 1][String.fromCharCode(startCharCode + j)] + "I", class: "colorinput-color bg-yellow" }
+                    ];
+
+                
+
+                    cell.appendChild(selectElementD);
+                    for (var k = 0; k < selectOptions.length; k++) {
+                        var option = document.createElement('option');
+                        option.value = selectOptions[k].id;
+                        option.textContent = selectOptions[k].text;
+                        if (selectOptions[k].class) {
+                            option.className = selectOptions[k].class;
+                        }
+                        if (valuesToSelect.includes(option.textContent)) {
+                            option.selected = true;
+                        }
+                        selectElementD.appendChild(option);
+
+
+                        if (valuesToSelect.includes(option.textContent)) {
+                            if (selectOptions[k].class) {
+                                var classes1 = selectOptions[k].class.split(' ');
+                                var newClasses1 = classes1.filter(className1 => className1 !== 'colorinput-color');
+                                var newClass1 = newClasses1.join(' ');
+                                console.log(newClass1);
+                                $("#" + selectElementD.id).addClass(newClass1);
+                            }
+                            //$("#" + selectElementD.id).addClass(selectOptions[k].class);
+                        }
+                    }
+                }
+            }
+
+        }
+    //#endregion
+
+
+    //#region Update  Button Click
+        $('#btn_Update_DMF').on('click', function (e) {
+             e.preventDefault();
+            if ($("#form_EditDMF").valid()) {
+                $('#btn_Update_DMF').removeClass("btn btn-sm btn-success");
+                $('#btn_Update_DMF').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+                $('#btn_Update_DMF').html("Updating the Record....");
+                var utbl_dmf_ = $("#utbl_dmfpermant select, #utbl_dmfdeci select").map(function () {
+                    return $(this).val();
+                }).get().join(',');
+                var _dataInsert = {
+                    "dmfId": @Model.dmfId,
+                    "dmf_appId": $("#dmf_appId").val(),
+                    "dmf_index": utbl_dmf_,
+                    "dmf_other": $("#udmf_other").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                console.log(_dataInsert)
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdateDMFIndex", "DentalHistory", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#btn_Update_DMF').removeClass("btn btn-sm btn-warning btn-loaders btn-icon");
+                        $('#btn_Update_DMF').addClass("btn btn-sm btn-warning");
+                        $('#btn_Update_DMF').html("Save Changes");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> DMF Index Updated Successfully!", "success");
+                                Timeout();
+                                GetDMFIndex();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. DMF Index Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Update_DMF').removeClass("btn btn-sm btn-warning btn-loaders btn-icon");
+                        $('#btn_Update_DMF').addClass("btn btn-sm btn-warning");
+                        $('#btn_Update_DMF').html("Save Changes");
+                        Timeout();
+                    }
+                });
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Update  Button Click
+
+
+    //#region Delete Click
+        $('#btn_Delete_DMF').on('click', function (e) {
+            e.preventDefault();
+            $('#btn_Delete_DMF').removeClass("btn btn-sm btn-success");
+            $('#btn_Delete_DMF').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+            $('#btn_Delete_DMF').html("Deleting the Record....");
+
+                $.ajax({
+                    url: '@Url.Action("DeleteDMFIndex", "DentalHistory", new { area = "EMR" })?dmfId=' + @Model.dmfId,
+                    type: "POST",
+                    dataType: 'JSON',
+                    success: function (data) {
+                        $('#btn_Delete_DMF').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                        $('#btn_Delete_DMF').addClass("btn btn-sm btn-warning");
+                        $('#btn_Delete_DMF').html("Delete");
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> DMF Index Deleted Successfully!", "success");
+                                clearControls();
+                                GetDMFIndex();
+                                GetPreviousDMFIndex();
+                                Timeout();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Error!.. Failed to Delete..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            var alertPlaceholder = document.getElementById("Alert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> You do not have Enough Privileges to Delete this Designation!", "Access Denied!");
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Delete_DMF').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                        $('#btn_Delete_DMF').addClass("btn btn-sm btn-Delete");
+                        $('#btn_Delete_DMF').html("Delete");
+                        Timeout();
+                    }
+                })
+        });
+    //#endregion Delete Click
+
+    //#region Validation Initialization
+        var validate = function () {
+
+            $("#form_EditDMF").validate({
+                rules: {
+                    udmf_other: {
+                        required: true
+                    },
+
+                },
+                messages: {
+                    udmf_other: {
+                        required: "Please  Treatment Plan!"
+                    },
+
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                    error_timeout(elem.attr("id"));
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+
+        }
+    //#endregion Validation Initialization
+
+    //#region Clear Controls
+        var clearControls = function () {
+            $(".form-control").val("");
+
+        }
+    //#endregion Clear Controls
+</script>

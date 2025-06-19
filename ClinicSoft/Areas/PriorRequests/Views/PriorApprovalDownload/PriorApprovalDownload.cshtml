@@ -1,0 +1,377 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "PriorApprovalDownload";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    //var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    //var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    //var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    //var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            Prior Requests
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-12 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch<small>(es)</small></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">From Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from_app" class="form-control" placeholder="Select Appointment Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">To Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to_app" class="form-control" placeholder="Select Appointment Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-1">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Type<small>(s)</small></label>
+                                <select class="form-control select2 custom-select" id="s_status">
+                                    <option value="1">New</option>
+                                    <option value="2">All</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Download PR From</label>
+                                <select class="form-control" id="s_type" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btn_search">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+
+    $(function () {
+        $("body").addClass("app sidebar-mini sidenav-toggled");
+
+        load_filters();
+    });
+
+    var load_filters = function () {
+        load_branches();
+        load_types();
+
+        $("#s_status").select2({
+            placeholder: 'Select Type',
+            width: '100%',
+            minimumResultsForSearch: '',
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+
+
+        $('#select_date_from_app').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+        $("#select_date_from_app").bootstrapdatepicker("setDate", "today");
+        $('#select_date_to_app').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+        $("#select_date_to_app").bootstrapdatepicker("setDate", "tomorrow");
+
+        $('#select_date_from_app').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#select_date_to_app').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+    }
+
+
+    var load_branches = function () {
+        $('#select_branch').SumoSelect({
+            placeholder: 'Select Branch(es)',
+            captionFormat: '{0} Branch(es) Selected',
+            captionFormatAllSelected: 'All {0} Branches selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true,
+            showCheckBox: false
+        });
+
+        $.ajax({
+            url: '@Url.Action("GetPriorReqBranches", "PriorRequestDownload", new { area = "PriorRequests" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                if ("@emp_designation.ToString()" === "Doctor") {
+                    $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                }
+                else {
+                    $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    });
+                }
+                pageLoad = false;
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        }).done(function () {
+            $('#select_branch')[0].sumo.reload();
+        });
+    }
+
+    var load_types = function () {
+        $("#s_type").SumoSelect({
+            placeholder: 'Select Branch(es)',
+            captionFormat: '{0} Branch(es) Selected',
+            captionFormatAllSelected: 'All {0} Branches selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true,
+            showCheckBox: false
+        });
+
+        $('#s_type').html('');
+        $('#s_type')[0].sumo.reload();
+
+        $('#s_type')[0].sumo.add("DHA", "DHA");
+        $('#s_type')[0].sumo.add("MOH", "MOH");
+
+        $('#s_type')[0].sumo.reload();
+    }
+
+    $("#btn_search").click(function (e) {
+        e.preventDefault();
+
+        var _data = {
+            "search_type": $('#s_type').val().toString(),
+            "app_branch": $('#select_branch').val().toString(),
+            "s_status": $('#s_status').val(),
+            "date_from": $('#select_date_from_app').val(),
+            "date_to": $('#select_date_to_app').val()
+        }
+
+        if (isValidForSearch()) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("DownloadAndSearchFromOnline", "PriorApprovalDownload", new { area = "PriorRequests" })",
+                data: _data,
+                success: function (response) {
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+    });
+
+    var isValidForSearch = function () {
+        let isValid = false;
+
+        if ($("#s_type").val() != null && $("#s_type").val() != 0 && $("#s_type").val() != "") {
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") ||
+                    ($("#s_status").val() != null && $("#s_status").val() != 0 && $("#s_status").val() != "")) {
+                    isValid = true;
+                    let app_frm = moment($("#select_date_from_app").val());
+                    let app_to = moment($("#select_date_to_app").val());
+
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) {
+                        if (!app_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined) {
+                        if (!app_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#select_date_from_app").val() != null && $("#select_date_from_app").val() != 0 && $("#select_date_from_app").val() != "" && $("#select_date_from_app").val() != undefined) && ($("#select_date_to_app").val() != null && $("#select_date_to_app").val() != 0 && $("#select_date_to_app").val() != "" && $("#select_date_to_app").val() != undefined)) {
+                        if (app_frm.isValid() && app_to.isValid()) {
+                            if (app_to.diff(app_frm, 'days') <= -1) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from_app");
+                                index.push("select_date_to_app");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Search by Either of the following filters : Branch(es) /  Type(s)",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+        else {
+            Swal.fire({
+                title: "Attention!",
+                text: "You need to select DHA/MOH to download from online!",
+                icon: "warning",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+            });
+        }
+
+        return isValid;
+    }
+
+    </script>
+
+}
+

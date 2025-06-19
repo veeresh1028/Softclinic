@@ -1,0 +1,347 @@
+﻿@model BusinessEntities.Patient.PatientWithInsurance
+<!-- INTERNAL telephoneinput css-->
+<link href="~/assets/plugins/telephoneinput2/intlTelInput.css" rel="stylesheet" />
+<style type="text/css">
+    #sizeI {
+        max-width: 800px;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Create New Enquiry Patient</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-inquiry-modal" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Inquiry_Create" autocomplete="off">
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="d-none">
+                @Html.AntiForgeryToken()
+                @Html.DropDownListFor(m => m.patient.pat_branch, (IEnumerable<SelectListItem>)ViewData["BranchList"], "Please Select", new { @class = "form-select select2 mb-2", @id = "ipat_branch" })
+            </div>
+            <div class="col-sm-6 col-md-4">
+                <div class="form-group">
+                    <label class="form-label">First Name&nbsp;<span class="text-danger">*</span></label>
+                    @Html.HiddenFor(model => model.patient.patId, new { @id = "ipatId" })
+                    @Html.TextBoxFor(model => model.patient.pat_name, new { @class = "form-control mb-2", @placeholder = "Ex: Alston", @id = "ipat_name", @maxlength = "50" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Last Name&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(model => model.patient.pat_lname, new { @class = "form-control mb-2", @placeholder = "Ex: Rebello", @id = "ipat_lname", @maxlength = "50" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Mobile&nbsp;<span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <div class="d-flex">
+                            @Html.TextBoxFor(model => model.patient.pat_mob, new { @type = "tel", @class = "form-control mb-2", @id = "ipat_mob", @style = "width:100%;", @maxlength = "15" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorEnquiry"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert_Inquiry">Create Inquiry</button>
+                    <button type="button" class="btn btn-outline-danger me-1 close-inquiry-modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<!--INTERNAL telephoneinput js-->
+<script src="~/assets/plugins/telephoneinput2/intlTelInput.min.js"></script>
+<script src="~/assets/plugins/telephoneinput2/intlTelInput-jquery.min.js"></script>
+<script>
+    //#region Document Load
+    $(function () {
+        validation();
+
+        mobileFieldInititalization();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+
+        $('#ipat_name').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                return false;
+        });
+
+        $('#ipat_lname').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                return false;
+        });
+
+        $('#ipat_mob').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9+]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 15)
+                    return false;
+            }
+        });
+
+        $.validator.addMethod("intlPhoneNumber", function (value, element) {
+            return value === '' || $("#" + element.id).intlTelInput('isValidNumber');
+        }, "Invalid Phone number");
+
+        $("#form_Inquiry_Create").validate({
+            focusInvalid: true,
+            rules: {
+                "patient.pat_name": {
+                    required: true,
+                    minlength: 3
+                },
+                "patient.pat_lname": {
+                    required: true,
+                    minlength: 3
+                },
+                "patient.pat_mob": {
+                    required: true,
+                    intlPhoneNumber: true
+                }
+            },
+            messages: {
+                "patient.pat_name": {
+                    required: "Enter the First Name",
+                    minlength: "Name should be Minimum 3 Characters"
+                },
+                "patient.pat_lname": {
+                    required: "Enter the Last Name",
+                    minlength: "Name should be Minimum 3 Characters"
+                },
+                "patient.pat_mob": {
+                    required: "Enter Mobile No."
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    };
+    //#endregion
+
+    //#region International Telephone Input
+    var mobileFieldInititalization = function () {
+        $("#ipat_mob").intlTelInput({
+            initialCountry: "auto",
+            geoIpLookup: callback => {
+                fetch("https://ipapi.co/json")
+                    .then(res => res.json())
+                    .then(data => callback(data.country_code))
+                    .catch(() => callback("ae"));
+            },
+            separateDialCode: true,
+            numberType: "MOBILE",
+            allowExtensions: true,
+            autoPlaceholder: "polite",
+            preventInvalidNumbers: true,
+            formatOnDisplay: true,
+            autoInsertDialCode: true,
+            preferredCountries: ["ae"],
+            utilsScript: "@Url.Content("~/assets/plugins/telephoneinput2/utils.js")"
+        });
+    }
+    //#endregion
+
+    //#region Insert Patient Click
+    $('#btn_Insert_Inquiry').on('click', function (e) {
+
+        e.preventDefault();
+
+        if ($("#form_Inquiry_Create").valid()) {
+            save_inquiry_patient();
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Save Inquiry Patient
+    var save_inquiry_patient = function () {
+        $('#btn_Insert_Inquiry').removeClass("btn btn-success");
+        $('#btn_Insert_Inquiry').addClass("btn btn-success btn-loaders btn-icon");
+        $('#btn_Insert_Inquiry').html("Saving the Record....");
+
+        var _from = $('#inquiry_modal').attr("data-modal-from");
+
+        var form = $('#form_Inquiry_Create')
+        const formData = new FormData(form.get(0));
+
+        formData.append("patId", parseInt($("#ipatId").val()));
+        formData.append("pat_name", $("#ipat_name").val());
+        formData.append("pat_lname", $("#ipat_lname").val());
+        formData.append("pat_mob", $("#ipat_mob").val());
+        formData.append("pat_branch", parseInt($("#ipat_branch :selected").val()));
+
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("InsertInquiryPatient", "Patient", new { area = "Patient" })",
+            dataType: 'JSON',
+            contentType: false,
+            processData: false,
+            data: formData,
+            success: function (data) {
+                $('#btn_Insert_Patient').removeClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Patient').addClass("btn btn-success");
+                $('#btn_Insert_Patient').html("Create Patient");
+
+                if (data.isSuccess) {
+                    if (_from == "create-appointment") {
+                        localStorage.setItem("newInquiry", JSON.stringify(data.message));
+                        $('#inquiry_modal').modal('hide');
+                        $('#create_appointment_modal').modal('show');
+                    }
+                    else if (_from == "update-appointment") {
+                        localStorage.setItem("newInquiry", JSON.stringify(data.message));
+                        $('#inquiry_modal').modal('hide');
+                        $('#update_appointment_modal').modal('show');
+                    }
+                    else if (_from == "create-enquiry") {
+                        localStorage.setItem("newInquiry", JSON.stringify(data.message));
+                        $('#inquiry_modal').modal('hide');
+                        $('#create_enquiry').modal('show');
+                    }
+                    else if (_from == "update-enquiry") {
+                        localStorage.setItem("newInquiry", JSON.stringify(data.message));
+                        $('#inquiry_modal').modal('hide');
+                        $('#update_enquiry').modal('show');
+                    }
+                    else if (_from == "patient") {
+                        var alertPlaceholder = document.getElementById("PatientAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> Patient Created Successfully!", "success");
+
+                        $('#inquiry_modal').modal('hide');
+                        GetPatients();
+                        Timeout();
+                    }
+                }
+                else {
+                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                        "<div class='alert alert-danger' role='alert'>" +
+                        "<button type='button' class='btn-close text-white mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                        "<strong>Validation Error! Please validate before you submit Again.</strong><br/><ul>";
+
+                    $.each(data.message, function (_index, value) {
+                        html += "<li><small>" + value + "</small><li>";
+
+                        var index = _index.split(',');
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                console.log(elem);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+                    });
+
+                    html += "</ul></div></div>";
+
+                    $("#errorEnquiry").html(html);
+                }
+            },
+            error: function (xhr) {
+                $('#inquiry_modal').modal('toggle');
+                console.log(xhr);
+            }
+        }).done(function () {
+            $('#btn_Insert_Inquiry').removeClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Insert_Inquiry').addClass("btn btn-success");
+            $('#btn_Insert_Inquiry').html("Create Patient");
+        });
+    }
+    //#endregion
+
+    //#region Close Inquiry Click
+    $('.close-inquiry-modal').on('click', function (e) {
+        e.preventDefault();
+        var _from = $('#inquiry_modal').attr("data-modal-from");
+
+        if (_from === "create-appointment") {
+            $('#inquiry_modal').modal('hide');
+            $('#create_appointment_modal').modal('toggle');
+        }
+        else if (_from === "update-appointment") {
+            $('#inquiry_modal').modal('hide');
+            $('#update_appointment_modal').modal('toggle');
+        }
+        else if (_from == "create-enquiry") {
+            $('#inquiry_modal').modal('hide');
+            $('#create_enquiry').modal('toggle');
+        }
+        else if (_from == "update-enquiry") {
+            $('#inquiry_modal').modal('hide');
+            $('#update_enquiry').modal('toggle');
+        }
+    });
+    //#endregion
+</script>

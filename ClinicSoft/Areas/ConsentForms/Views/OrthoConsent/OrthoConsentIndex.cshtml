@@ -1,0 +1,108 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Ortho Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Informed Consent For Orthodontic Treatment</h3>
+            </div>
+            <div class="card-body">
+                <div id="OrthoConsent_add" style="display:none">
+                </div>
+                <div id="OrthoConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="OrthoConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+        //#region Page Load
+        $(function () {
+            GetOrthoConsentInfo();
+            OrthoConsentPreviousHistory();
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetOrthoConsentInfo
+        var GetOrthoConsentInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetOrthoConsentData", "OrthoConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        console.log(response.length);
+                        if (response.length > 0) {
+                            EditOrthoConsent();
+                            $("#OrthoConsent_add").hide();
+                            $("#OrthoConsent_edit").show();
+
+                        }
+                        else {
+                            $("#OrthoConsent_add").show();
+                            $("#OrthoConsent_edit").hide();
+                            AddOrthoConsent();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load OrthoConsent
+
+        //#region Add OrthoConsent
+        function AddOrthoConsent() {
+            var x = $("#OrthoConsent_add");
+            x.load("@Url.Action("CreateOrthoConsent", "OrthoConsent", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add OrthoConsent
+
+        //#region Update OrthoConsent
+        function EditOrthoConsent() {
+            var x = $("#OrthoConsent_edit");
+            x.load("@Url.Action("UpdateOrthoConsent", "OrthoConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update OrthoConsent
+
+        //#region History of OrthoConsent
+        function OrthoConsentPreviousHistory() {
+            var x = $("#OrthoConsent_history");
+            x.load("@Url.Action("OrthoConsentPreviousHistory", "OrthoConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of OrthoConsent
+
+</script>

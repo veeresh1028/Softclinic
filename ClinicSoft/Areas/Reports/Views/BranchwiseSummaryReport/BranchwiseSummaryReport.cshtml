@@ -1,0 +1,436 @@
+﻿@{
+    ViewBag.Title = "Branchwise Summary Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Branchwise Summary Report</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+            <button class="btn btn-secondary mb-2" type="button" id="printReport">
+                <i class="fa fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row mt-2">
+                        <div class="col-sm-6 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">From Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">To Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress_loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_branch_summ_report" class="table table-bordered table-hover text-nowrap" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Cash</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Credit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl_body"></tbody>
+                        <tfoot id="tbl_foot"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="text-wrap d-none" id="toastReport">
+    <div class="toast-main p-5">
+        <div class="demo-static-toast">
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="reportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header text-dark">
+                        <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                        <strong class="me-auto">Branchwise Summary Report</strong>
+                        <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="toast-body" id="toastBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            // Load Advanced Filters
+            load_filters();
+            // Load Report
+            GetReport(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        //#endregion
+
+        //#region Search Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "") &&
+                ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "")) {
+
+                let isValid = true;
+                let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!date_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid From Date!"
+                        });
+                    }
+                }
+                // Check if Date To is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!date_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid To Date!"
+                        });
+                    }
+                }
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (date_frm.isValid() && date_to.isValid()) {
+                        if (date_to.diff(date_frm, 'days') <= -1) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error!",
+                                message: "Search From Date Filter should be less than Search To Date Filter!"
+                            });
+                        }
+                        else if (date_to.diff(date_frm, 'days') >= 100) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error!",
+                                message: "The date range should not exceed 100 days!"
+                            });
+                        }
+                    }
+                }
+                // Check If Valid
+                if (isValid) {
+                    GetReport(1);
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Search From Date & To Date is Required!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Get Report Details
+        var GetReport = function (search_type) {
+
+            var _data = {
+                "search_type"   : search_type,
+                "date_from"     : $('#select_date_from').val(),
+                "date_to"       : $('#select_date_to').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetBranchwiseSummaryReport", "BranchwiseSummaryReport", new { area = "Reports" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress_loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#toastReport').removeClass("d-none");
+                    $('#reportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        $('#progress_loader').hide();
+
+                        //#region Load Report Details
+                        BindDataTable(response);
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                        $('#reportToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress_loader').hide();
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#reportToast').fadeOut('fast');
+                    $('#toastReport').addClass("d-none");
+                }, 5000);
+            });
+        }
+        //#endregion
+
+        //#region Bind Data to Table
+        var BindDataTable = function (response) {
+
+            var _body = '';
+            var branches = response.branches;
+            var tables = response.DatasetSummaryReports;
+            var tableKeys = Object.keys(tables);
+
+            $.each(branches, function (branchIndex, branch) {
+
+                var gross_cash = 0.00;
+                var gross_ins = 0.00;
+                var final_total = 0.00;
+
+                _body += (
+                    '<tr class="bg-secondary-light">' +
+                    '<td class="border-bottom-0 font-weight-semibold text-center" colspan="4">' + branch.branch_name + '</td>' +
+                    '</tr>'
+                );
+
+                if (branchIndex < tableKeys.length) {
+                    var tableKey = tableKeys[branchIndex];
+                    var table = tables[tableKey];
+
+                    $.each(table, function (tableIndex, rowData) {
+
+                        var total = parseFloat(rowData.total_cash) + parseFloat(rowData.total_insurance);
+
+                        _body += (
+                            '<tr>' +
+                            '<td>' + moment(rowData.date).format("DD-MM-YYYY") + '</td>' +
+                            '<td class="text-end">' + rowData.total_cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                            '<td class="text-end">' + rowData.total_insurance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                            '<td class="text-end">' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                            '</tr>'
+                        );
+
+                        gross_cash += parseFloat(rowData.total_cash);
+                        gross_ins += parseFloat(rowData.total_insurance);
+                        final_total += total;
+                    });
+
+                    _body += (
+                        '<tr>' +
+                        '<td class="bg-teal-lightest font-weight-semibold">Total</td>' +
+                        '<td class="bg-teal-lightest text-end font-weight-semibold">' + gross_cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                        '<td class="bg-teal-lightest text-end font-weight-semibold">' + gross_ins.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                        '<td class="bg-teal-lightest text-end font-weight-semibold">' + final_total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                        '</tr>'
+                    );
+                }
+            });
+            $('#tbl_body').html(_body);
+        }
+        //#endregion
+
+        //#region Print Report
+        document.getElementById('printReport').addEventListener('click', handlePrintButtonClick);
+
+        function handlePrintButtonClick() {
+            var printWindow = window.open('', '_blank');
+
+            var tableData = $('#tbl_branch_summ_report').clone();
+
+            $(printWindow.document.body).html(tableData);
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PrintReport", "BranchwiseSummaryReport", new { area = "Reports" })",
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        printWindow.print();
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Access Denied!",
+                            text: "You do not have enough privileges to Print this Report!",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+    </script>
+}

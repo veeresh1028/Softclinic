@@ -1,0 +1,483 @@
+﻿@model BusinessEntities.EMR.Vaccination
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_AddVaccine" class="needs-validation" >
+    @Html.AntiForgeryToken()
+  
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">
+                            Vaccination &nbsp;<span class="text-danger">*</span>
+                            @Html.DropDownListFor(m => m.pv_vaccination, new List<SelectListItem> { }, "Select Vaccination For", new { @class = "form-select  mb-2 select2", @id = "pv_vaccination" })
+
+                        </label>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">&nbsp;</label>
+                        <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addVaccination">
+                            <i class="fa fa-bullseye"></i>
+                            Add Vaccine
+                        </button>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Dose&nbsp;<span class="text-danger">*</span></label>
+                        @Html.DropDownListFor(m => m.pv_dose, new List<SelectListItem> { }, "Select Vaccination For", new { @class = "form-select  mb-2 select2", @id = "pv_dose" })
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-4">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Notes&nbsp;</label>
+                        @Html.TextBoxFor(m => m.pv_notes, new { @class = "form-control", @placeholder = "Ex : Your notes will go here...", @maxlenth = "1500" })
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Batch No&nbsp;<span class="text-danger">*</span></label>
+                        @Html.TextBoxFor(m => m.pv_batchno, new { @class = "form-control", @placeholder = "Ex : Batch No", @maxlenth = "15" })
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Manufacturer&nbsp;<span class="text-danger">*</span></label>
+                        @Html.TextBoxFor(m => m.pv_manufacturer, new { @class = "form-control", @placeholder = "Ex : Manufacturer", @maxlenth = "15" })
+                    </div>
+                </div>
+
+                <div class="col-sm-12 col-md-6 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label mb-2">
+                            Vaccination Expiry Date<span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div>
+                            @Html.TextBoxFor(m => m.pv_exp_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "pv_exp_date" })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-6 col-lg-2">
+                    <div class="form-group mb-3">
+                        <label class="form-label mb-2">
+                            Next Vaccination Reminder
+                        </label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div>
+                            @Html.TextBoxFor(m => m.pv_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "pv_date" })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-4">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Reminder Notes&nbsp;</label>
+                        @Html.TextBoxFor(m => m.pv_reminder_notes, new { @class = "form-control", @placeholder = "Ex : Reminder Notes", @maxlenth = "15" })
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="form-group mb-3">
+                        <div class="ql-wrapper ql-wrapper-demo">
+                            <span class="errorr text-danger fw-bold"></span>
+                            <div id="prog_notes">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                    <div class="btn-list btn-animation">
+                        <button type="submit" class="btn btn-success" id="btn_Insert_Vaccine">Add Vaccine</button>
+                        <button type="button" class="btn btn-outline-dark" id="btn_Reset_Vaccine">Reset</button>
+                        <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_Vaccine" style="display:none">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+
+    $(function () {
+        if ("@emp_designation.ToString()" === "Super Administrator") {
+                $("#btn_Insert_Vaccine").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Insert_Vaccine").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Insert_Vaccine").show();
+                    }
+                    else {
+                        $("#btn_Insert_Vaccine").hide();
+                    }
+                }
+            }
+            $("#pv_vaccination").select2({
+                placeholder: 'Select For',
+                width: '100%',
+                minimumResultsForSearch: '',
+                minimumInputLength: 3,
+                dropdownParent: $('#form_AddVaccine'),
+
+                ajax: {
+                    url: '@Url.Action("GetVaccine", "Vaccination", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            flag: "Vaccine"
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+            $("#pv_dose").select2({
+                placeholder: 'Select For',
+                width: '100%',
+                minimumResultsForSearch: '',
+                minimumInputLength: 3,
+                dropdownParent: $('#form_AddVaccine'),
+
+                ajax: {
+                    url: '@Url.Action("GetVaccine", "Vaccination", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            flag: "Dose"
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+
+        $('#pv_date,#pv_exp_date').bootstrapdatepicker({
+        format: "dd-MM-yyyy",
+        viewMode: "date",
+        todayHighlight: true,
+        autoclose: true,
+        multidate: false,
+        multidateSeparator: "-"
+        });
+        $("#pv_date").bootstrapdatepicker("setDate", moment(new Date("@emr.today")).format("DD-MMMM-YYYY"));
+        $("#pv_exp_date").bootstrapdatepicker("setDate", moment(new Date("@emr.today")).format("DD-MMMM-YYYY"));
+        validate();
+    });
+    //#endregion Partial View Onload
+    //#region Validation Initialization
+    var validate = function () {
+        $("#form_AddVaccine").validate({
+            rules: {
+                pv_vaccination: {
+                    required: true
+                },
+                pv_dose: {
+                    required: true
+                },
+                pv_batchno: {
+                    required: true
+                },
+                pv_manufacturer: {
+                    required: true
+                },
+                pv_exp_date: {
+                    required: true
+                },
+
+            },
+            messages: {
+                pv_vaccination: {
+                    required: "Please select Vaccination For!"
+                },
+                pv_dose: {
+                    required: "Please select Dose !"
+                },
+                pv_batchno: {
+                    required: "Please Enter Batch No !"
+                },
+                pv_manufacturer: {
+                    required: "Please Enter Manufacture !"
+                },
+                pv_exp_date: {
+                    required: "Please select Exp Date !"
+                },
+
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                }
+                else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                error_timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+        $('#pv_vaccination').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pv_dose').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pv_exp_date').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+    }
+    //#endregion Validation Initialization
+    //#region Reset
+        $('#btn_Reset_Vaccine').on('click', function (e) {
+            e.preventDefault();
+            clearControls();
+        });
+    //#endregion Reset
+
+
+    //#region Clear Controls
+    var clearControls = function () {
+        $(".form-control").val("");
+        $(".form-select").val("").trigger("change");
+    }
+    //#endregion Clear Controls
+
+
+     //#region Add NotesMaster
+        $('#addVaccination').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateVaccinations", "Vaccinations", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $('#vaccination_master_modal').attr("data-modal-from", "create-PatientVaccine");
+                    $("#vaccination_master_body").html(data);
+                    $("#vaccination_master_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+     //#region Create Notes On Modal Close
+        $('#vaccination_master_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newVaccine") != null) {
+                var Vaccine = JSON.parse(localStorage.getItem("newVaccine"));
+                setNotes(Vaccine);
+                localStorage.removeItem("newVaccine");
+            }
+        });
+    //#endregion Create Notes On Modal Close
+
+    //#region set Notes
+        var setNotes = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#pv_vaccination').append(newOption).trigger('change');
+
+            $('#pv_vaccination').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion Set Notes
+
+
+    //#region load Notes
+        var load_Notes = function () {
+            $("#pv_vaccination").select2({
+                placeholder: 'Select Item',
+                width: '100%',
+                minimumResultsForSearch: '',
+                minimumInputLength: 3,
+                dropdownParent: $('#form_AddVaccine'),
+
+                ajax: {
+                    url: '@Url.Action("GetVaccine", "Vaccination", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            flag:"Vaccine"
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+        };
+    //#endregion load Notes
+
+     //#region Insert Button Click
+        $('#btn_Insert_Vaccine').on('click', function (e) {
+            e.preventDefault();
+            if ($("#form_AddVaccine").valid()) {
+                $('#btn_Insert_Vaccine').removeClass("btn btn-success");
+                $('#btn_Insert_Vaccine').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Vaccine').html("Saving the Record....");
+                    var _dataInsert = {
+                    "pvId": 0,
+                    "pv_appId": @emr.appId,
+                    "pv_vaccination": $("#pv_vaccination").val(),
+                    "pv_notes": $("#pv_notes").val(),
+                    "pv_batchno": $("#pv_batchno").val(),
+                    "pv_manufacturer": $("#pv_manufacturer").val(),
+                    "pv_exp_date": $("#pv_exp_date").val(),
+                    "pv_dose": $("#pv_dose").val(),
+                    "pv_reminder_notes": $("#pv_reminder_notes").val(),
+                    "pv_date": $("#pv_date").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertVaccination", "Vaccination", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#btn_Insert_Vaccine').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_Vaccine').addClass("btn btn-success");
+                        $('#btn_Insert_Vaccine').html("Add Vaccine");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Vaccination Added Successfully!", "success");
+                                clearControls();
+                                Timeout();
+                                GetVaccination();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. Vaccination Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Insert_Vaccine').removeClass("btn btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_Vaccine').addClass("btn btn-success");
+                        $('#btn_Insert_Vaccine').html("Add Vaccine");
+                        Timeout();
+                    }
+                });
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+     //#endregion Insert Button Click
+
+
+</script>
+

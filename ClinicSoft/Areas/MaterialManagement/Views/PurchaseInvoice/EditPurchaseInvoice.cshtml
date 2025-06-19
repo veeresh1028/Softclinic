@@ -1,0 +1,693 @@
+﻿@model BusinessEntities.Accounts.MaterialManagement.purchaseInvoiceWithItems
+<div class="modal-header py-4 px-5">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update Purchase Invoice</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+        </div>
+    </div>
+    <form id="form_EditPurchaseInvoice" >
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group">
+                    <label class="form-label text-black">Branch</label>
+                    <span class="text-dark"> @Html.DisplayFor(m => m.purchaseInvoice.branch_name) </span>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">Supplier Name</label>
+                    <span class="text-dark"> @Html.DisplayFor(m => m.purchaseInvoice.supplier_name) </span>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">GRN&nbsp;<span class="text-danger">*<label id="lbl_message_grn" class="fw-bold"></label></span></label>
+                    <select id="_grnId" class="form-control mb-4" multiple="multiple"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">Date&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("u_pinv_idate", Model.purchaseInvoice.pinv_idate, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", maxlength = "18" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label text-black">Supplier Invoice&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBox("u_pinv_invno", Model.purchaseInvoice.pinv_invno, new { @class = "form-control", maxlength = "23", @placeholder = "Enter Supplier Invoice No." })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group">
+                    <label class="form-label text-black">Notes</label>
+                    @Html.TextArea("u_pinv_notes", Model.purchaseInvoice.pinv_notes, new { @class = "form-control", maxlength = "998", @placeholder = "Enter Notes", @rows = "3" })
+                </div>
+            </div>
+        </div>
+        <div id="divItemsEdit" class="d-none">
+            <div class="row">
+                <div class="table-responsive">
+                    <table id="tbl_pinv_items_edit" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">GRN No</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Order No</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Disc</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Net</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Net + VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">prId</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">mode</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="table_footer_align"><span class="text-right text-dark"> Total : &nbsp;</span></th>
+                                <th class="table_footer_align"></th>
+                                <th class="table_footer_align"></th>
+                                <th class="table_footer_align"></th>
+                                <th class="table_footer_align"></th>
+                                <th class="table_footer_align"></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div id="error_update_pinv" class="text-center" style="max-width:500px"></div>
+                </div>
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div id="PurchaseInvoiceUpdatedAlert"></div>
+                </div>
+                @if (TempData["ErrorMessage_Update"] != null)
+                {
+                    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <strong>Error!&nbsp;</strong>@TempData["ErrorMessage_Update"]
+                        </div>
+                    </div>
+                }
+                <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                    <button type="submit" class="btn btn-outline-warning" id="btn_Update"><i class="fe fe-check-circle"></i> Save Changes</button>
+                    <button type="button" class="btn btn-outline-primary" id="btnPrint_PINV"><i class="fe fe-printer"></i> Print Purchase Invoice</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        <i class="fe fe-x"></i> Close
+                    </button>
+                    <label class="text-red" id="error_message"></label>
+                    <input type="hidden" id="hi_pinvId" value="0" />
+                    <input type="hidden" id="hi_pinv_code" value="" />
+                    <input type="hidden" id="hi_pinv_pocode" value="" />
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        $('#_grnId').SumoSelect({
+            placeholder: 'Select GRN(s)',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Enter here.',
+            selectAll: false
+        });
+        $('#u_pinv_idate').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+        //$("#u_pinv_idate").bootstrapdatepicker("setDate", "today");
+        $('#u_pinv_idate').val(moment('@Model.purchaseInvoice.pinv_idate', 'DD/MM/YYYY').format('DD-MMMM-YYYY'));
+        $("#btnPrint_PINV").hide();
+        validation();
+        loadGRN();
+    });
+    //#endregion
+
+    //#region Adding Validation on Main Form
+    var validation = function () {
+        $("#form_EditPurchaseInvoice").validate({
+            focusInvalid: true,
+            rules:
+            {
+                _grnId: {
+                    required: true,
+                },
+                u_pinv_idate: {
+                    required: true,
+                },
+                u_pinv_invno: {
+                    required: true,
+                },
+
+            },
+            messages: {
+                _grnId: {
+                    required: "Select GRN",
+                },
+                u_pinv_idate: {
+                    required: "Select Invoice Date",
+                },
+                u_pinv_invno: {
+                    required: "Enter Supplier Invoice No#",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    $('#u_pinv_idate').keypress(function (e) {
+        var charCode = (e.which) ? e.which : event.keyCode
+        if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+            return false;
+
+        }
+        else {
+            if (e.target.value.length >= 18)
+                return false;
+        }
+    });
+    //#endregion
+
+    //#region load GRN
+    var loadGRN = function () {
+        $('#_grnId').html('');
+        $('#_grnId')[0].sumo.reload();
+        $('#divItemsEdit').addClass('d-none');
+        var branchId = '@Model.purchaseInvoice.pinv_branch';
+        var supplierId = '@Model.purchaseInvoice.pinv_supplier';
+        var pinvId = '@Model.purchaseInvoice.pinvId';
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetGRN_Dropdown_Edit", "PurchaseInvoice", new { area = "MaterialManagement" })?branchId=' + branchId + "&supId=" + supplierId + "&pinvId=" + pinvId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            $('#_grnId')[0].sumo.add(response[j].Value, response[j].Text);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            }).done(function () {
+                var prList = @Html.Raw(Json.Encode(Model.purchaseInvoiceItems));
+                var length = prList.length;
+                for (var i = 0; i < length; i++) {
+                    var prId = prList[i].pit_preceived;
+                    $('#_grnId')[0].sumo.selectItem(prId.toString());
+                }
+                var grnId = $("#_grnId").val();
+                getItemsDetail(grnId);
+            });
+        }
+    };
+    //#endregion
+
+    //#region On GRN Click Event
+    $(document).on('click', '#_grnId ~ .optWrapper .MultiControls .btnOk', function () {
+        var grnId = $("#_grnId").val();
+        $('#divItemsEdit').addClass('d-none');
+        if (grnId.length > 0) {
+            getItemsDetail(grnId);
+        }
+    });
+
+    var getItemsDetail = function (grnId) {
+        var branchId = '@Model.purchaseInvoice.pinv_branch';
+        var supplierId = '@Model.purchaseInvoice.pinv_supplier';
+        var pinvId = '@Model.purchaseInvoice.pinvId';
+        $.ajax({
+              url: '@Url.Action("GetGRN_Details", "PurchaseInvoice", new { area = "MaterialManagement" })?branchId=' + branchId + "&supId=" + supplierId + "&grnIds=" + grnId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        if (response.isAuthorized != false) {
+                            $('#divItemsEdit').removeClass('d-none');
+                            $('#btn_Update').show();
+                            $("#btnPrint_PINV").hide();
+                            var table;
+                            if ($.fn.dataTable.isDataTable('#tbl_pinv_items_edit')) {
+                                table = $('#tbl_pinv_items_edit').DataTable();
+                                table.clear();
+                                table.rows.add(response).draw();
+                            }
+                            else {
+                                BindDataTable(response);
+                            }
+                        }
+                        else {
+                            BindDataTable(null);
+                        }
+                    }
+                    else {
+                        BindDataTable(null);
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+    }
+    //#endregion
+
+    //#region Bind Purchase Items Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_pinv_items_edit").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            searching: false,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "prId",
+                },
+                {
+                    "mData": "pr_code",
+                },
+                {
+                    "mData": "pr_date",
+                },
+                {
+                    "mData": "purchase_order",
+                },
+                {
+                    "mData": "pr_total",
+                    "searchable": false,
+                    "orderable": false,
+                },
+                {
+                    "mData": "pr_discount",
+                    "searchable": false,
+                    "orderable": false,
+                },
+                {
+                    "mData": "pr_net",
+                    "searchable": false,
+                    "orderable": false,
+                },
+                {
+                    "mData": "pr_vat",
+                    "searchable": false,
+                    "orderable": false,
+                },
+                {
+                    "mData": "pr_netvat",
+                    "searchable": false,
+                    "orderable": false,
+                },
+                {
+                    "mData": "prId",
+                    "searchable": false,
+                    "orderable": false,
+
+                },
+                {
+                    "mData": "mode",
+                    "searchable": false,
+                    "orderable": false,
+
+                },
+
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "select-checkbox text-center inbox-small-cells",
+                    'checkboxes': {
+                        'selectRow': true,
+                        'selectAll': true
+                    }
+                },
+                {
+                    "aTargets": [4],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [5],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [6],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [7],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [8],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [9],
+                    "visible": false
+                },
+                {
+                    "aTargets": [10],
+                    "visible": false
+                },
+
+            ],
+            select: {
+                style: 'multi',
+                selector: 'td:first-child'
+            },
+            order: [[1, 'desc']],
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                // Total Amount
+                _total = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(4).footer()).html(numFormat(_total));
+
+                // Total Discount
+                total_discount = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(5).footer()).html(numFormat(total_discount));
+
+                // Total Net Amount
+                total_net = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(6).footer()).html(numFormat(total_net));
+
+                // Total VAT Amount
+                total_vat = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(7).footer()).html(numFormat(total_vat));
+
+                // Total NETVAT Amount
+                total_netvat = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(8).footer()).html(numFormat(total_netvat));
+
+            }
+        });
+        table.buttons().container().appendTo('#tbl_pinv_items_edit_wrapper .col-md-6:eq(0)');
+        resizedt('tbl_pinv_items_edit');
+    }
+        //#endregion Bind Datatable
+
+    //#region Update Purchase Invoice on Button Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+        var itemsValid = purchase_ItemsValid();        
+        if ($('#form_EditPurchaseInvoice').valid() && itemsValid > 0) {
+            Swal.fire({
+                title: "Save",
+                text: "Are you sure you want to Save Purchase Invoice!.",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2",
+                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    var grnIds = new Array();
+                    grnIds = $('#_grnId').val();
+                    var _grnIds = "";
+                    for (var i = 0; i < grnIds.length; i++) {
+                        if (i == 0)
+                            _grnIds += grnIds[i];
+                        else
+                            _grnIds += ',' + grnIds[i];
+                    }
+
+                    var _pinv = {
+                        "pinvId": '@Model.purchaseInvoice.pinvId',
+                        "pinv_icode": '@Model.purchaseInvoice.pinv_icode',
+                        "pinv_idate": $('#u_pinv_idate').val(),
+                        "pinv_supplier": '@Model.purchaseInvoice.pinv_supplier',
+                        "pinv_grnIds": _grnIds,
+                        "pinv_disc_type": "Fixed",
+                        "pinv_notes": $('#u_pinv_notes').val().trim(),
+                        "pinv_branch": '@Model.purchaseInvoice.pinv_branch',
+                        "pinv_invno": $('#u_pinv_invno').val(),
+                    }
+                    var _pinv_items = new Array();
+                    $("#tbl_pinv_items_edit tbody tr").each(function () {
+                        var row = $(this);
+                        var dataTable = $("#tbl_pinv_items_edit").DataTable();
+                        var rowIndex = dataTable.row(row).index();
+                        var _Items = {};
+                        var isChecked = row.find("td:eq(0) input").prop("checked");
+                        if (isChecked) {
+                            _Items.pitId = 0;
+                            _Items.pit_preceived = dataTable.cell(rowIndex, 9).data();
+                            _Items.pit_pinvoice = '@Model.purchaseInvoice.pinvId';
+                            _Items.pit_notes = "";
+                            _Items.pit_total = (row.find("td").eq(4).html()).replace(/[,]/g, '');
+                            _Items.pit_disc = "0";
+                            _Items.pit_disc_val = (row.find("td").eq(5).html()).replace(/[,]/g, '');
+                            _Items.pit_disc_type = "Fixed";
+                            _Items.pit_net = (row.find("td").eq(6).html()).replace(/[,]/g, '');
+                            _Items.pit_vat = (row.find("td").eq(7).html()).replace(/[,]/g, '');
+                            _Items.pit_net_vat = (row.find("td").eq(8).html()).replace(/[,]/g, '');
+                            _Items.pr_code = row.find("td").eq(1).html();
+                            _Items.po_code = row.find("td").eq(3).html();
+                            _Items.mode = dataTable.cell(rowIndex, 10).data();
+                            _pinv_items.push(_Items);
+                        }
+                        else {
+                            _Items.pitId = 0;
+                            _Items.pit_preceived = dataTable.cell(rowIndex, 9).data();
+                            _Items.pit_pinvoice = '@Model.purchaseInvoice.pinvId';
+                            _Items.pit_notes = "";
+                            _Items.pit_total = (row.find("td").eq(4).html()).replace(/[,]/g, '');
+                            _Items.pit_disc = "0";
+                            _Items.pit_disc_val = (row.find("td").eq(5).html()).replace(/[,]/g, '');
+                            _Items.pit_disc_type = "Fixed";
+                            _Items.pit_net = (row.find("td").eq(6).html()).replace(/[,]/g, '');
+                            _Items.pit_vat = (row.find("td").eq(7).html()).replace(/[,]/g, '');
+                            _Items.pit_net_vat = (row.find("td").eq(8).html()).replace(/[,]/g, '');
+                            _Items.pr_code = row.find("td").eq(1).html();
+                            _Items.po_code = row.find("td").eq(3).html();
+                            _Items.mode = "delete";
+                            _pinv_items.push(_Items);
+                        }
+                    });
+                    var _dataVal = {
+                        purchaseInvoice: _pinv,
+                        purchaseInvoiceItems: _pinv_items,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    };                   
+                    $.ajax({
+                        url: '@Url.Action("UpdatePurchaseInvoice", "PurchaseInvoice", new { area = "MaterialManagement" })',
+                        type: 'POST',
+                        dataType: "json",
+                        data: _dataVal,
+                        beforeSend: function () {
+                            $('#btn_Update').removeClass("btn btn-warning");
+                            $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                            $('#btn_Update').html("Saving....");
+                        },
+                        success: function (data) {
+                            $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                            $('#btn_Update').addClass("btn btn-warning");
+                            $('#btn_Update').html("Save Changes");
+                            if (data.isInserted) {
+                                search_PurchaseInvoice();
+                                $('#btn_Update').hide();
+                                $("#btnPrint_PINV").show();
+                                var alertPlaceholder = document.getElementById("PurchaseInvoiceUpdatedAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i>&nbsp;Purchase Invoice Updated Successfully!", "success");
+                                //  $('#purchaseOrder_modal').modal('toggle');
+                                Timeout();
+                            }
+                            else {
+                                $("#btn_Update").show();
+                                $("#btnPrint_PINV").hide();
+                                $("#error_update_pinv").html('');
+                                var error_message = data.message;
+                                if (error_message == "Error While Updating Purchase Invoice!") {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong><i class='fe fe-alert-triangle'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+                                    $("#error_update_pinv").html(html);
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-danger' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong><i class='fe fe-alert-circle text-white' ></i>&nbsp;Validation Error.. Please correct before you submit!&nbsp;</strong><br/><ul>";
+                                    $.each(data.message, function (index, value) {
+                                        html += "<li><small>" + value + "</small><li>";
+                                        var elem = $("#" + index);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    });
+                                    html += "</ul></div></div>";
+                                    $("#error_update_pinv").html(html);
+                                }
+                                Timeout();
+                            }
+                        },
+                        error: function (xhr) {
+                            //clearData();
+                            $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                            $('#btn_Update').addClass("btn btn-warning");
+                            $('#btn_Update').html("Save Changes");
+                            var alertPlaceholder = document.getElementById("PurchaseInvoiceUpdatedAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Purchase Invoice!", "danger");
+                            Timeout();
+                        }
+                    });
+                }
+            });
+        }
+        else {
+            var alertPlaceholder = document.getElementById("error_update_pinv");
+            function alert(e, t) {
+                var l = document.createElement("div");
+                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+            }
+            if (itemsValid == 0) {
+                alert("<i class='fa fa-exclamation-triangle text-white text-center'></i>&nbsp;Select at least one GRN to Update Purchase Invoice.!", "warning");
+
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+                alert("<i class='fa fa-exclamation-triangle text-white text-center'></i>&nbsp; Please Make sure to Fill all Mandatory fields.!", "warning");
+            }
+            Timeout();
+        }
+    });
+    //#endregion
+
+    //#region Validation on GRN Items Table
+    var purchase_ItemsValid = function () {
+        var Rows_count = 0;
+        var table = $("#tbl_pinv_items_edit").DataTable();
+        var rows = $(table.$('input[type="checkbox"]').map(function () {
+            return $(this).prop("checked") ? $(this).closest('tr') : null;
+        }));
+        if (rows.length > 0) {
+            Rows_count = 1
+        }
+        else
+            Rows_count = 0;
+
+        return Rows_count;
+    }
+    //#endregion
+
+    //#region Print Purchase Invoice
+    $('#btnPrint_PINV').on('click', function () {
+        var pinvId = '@Model.purchaseInvoice.pinvId';
+        window.open("@Url.Action("PrintPurchaseInvoice", "PurchaseInvoice", new { area = "MaterialManagement" })?pinvId=" + pinvId, "Purchase Invoice Print");
+
+    });
+    //#endregion
+
+</script>

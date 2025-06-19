@@ -1,0 +1,399 @@
+﻿@model IEnumerable<BusinessEntities.Masters.EmployeeRoasters>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Employee Rosters";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+    var emp_desig = claims.Where(c => c.Type == ClaimTypes.Version).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Employee Rosters</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchRosterFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+            <a href="@Url.Action("Employees", "Employees", new { area="Masters"})" class="btn btn-secondary">&nbsp;Employees &amp; Security</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @if (TempData["ErrorMessageRoster"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-light-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close text-danger" data-bs-dismiss="alert" aria-label="Close">×</button>
+                <i class="fa fa-ban"></i> <strong>Error!&nbsp;</strong> @TempData["ErrorMessageRoster"]
+            </div>
+        </div>
+    }
+    else if (TempData["InfoMessageRoster"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-light-info alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close text-info" data-bs-dismiss="alert" aria-label="Close">×</button>
+                <i class="fa fa-info-circle"></i> <strong>Info!&nbsp;</strong> @TempData["InfoMessageRoster"]
+            </div>
+        </div>
+    }
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="RosterAlert"></div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchRosterFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch<small>(es)</small></label>
+                                <select class="form-control" id="roster_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Day<small>(s)</small></label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="roster_day">
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
+                                    <option value="Saturday">Saturday</option>
+                                    <option value="Sunday">Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Type<small>(s)</small></label>
+                                <select class="form-control select2-show-search" multiple="multiple" id="roster_type">
+                                    <option value="Normal">Normal</option>
+                                    <option value="Meeting">Meeting</option>
+                                    <option value="Reserved">Reserved</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearchRosters">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_employee_rosters" class="table table-hover table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Employee Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Day</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">From Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">To Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">From Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">To Time</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            load_filters();
+            GetRosters(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_branches();
+            load_days();
+            load_types();
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#roster_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                Selection: false
+            });
+
+            var _url = "";
+
+            if ("@emp_designation.ToString().Contains("Administrator")" == "True") {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?empId=" + @empId.ToString();
+            }
+            else {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?setid=" + @emp_branch.ToString();
+            }
+
+            $.ajax({
+                url: _url,
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#roster_branch').html('');
+                    $('#roster_branch')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString().Contains("Doctor")" == "True") {
+                        $('#roster_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                        $('#roster_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    }
+                    else {
+                        $.each(response, function (j) {
+                            $('#roster_branch')[0].sumo.add(response[j].id, response[j].text);
+                            $('#roster_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Branch(es)! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#roster_branch')[0].sumo.reload();
+            });
+        }
+        // Load Days
+        var load_days = function () {
+            $('#roster_day').SumoSelect({
+                placeholder: 'Select Day(s)',
+                captionFormat: '{0} Day(s) Selected',
+                captionFormatAllSelected: 'All {0} Days selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                Selection: false
+            });
+        }
+        // Load Types
+        var load_types = function () {
+            $('#roster_type').SumoSelect({
+                placeholder: 'Select Type(s)',
+                captionFormat: '{0} type(s) Selected',
+                captionFormatAllSelected: 'All {0} types selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true,
+                Selection: false
+            });
+        }
+        //#endregion
+
+        //#region Search Rosters Click
+        $("#btnSearchRosters").click(function (e) {
+            e.preventDefault();
+            if (($("#roster_branch").val() != null && $("#roster_branch").val() != 0 && $("#roster_branch").val() != "") ||
+                ($("#roster_day").val() != null && $("#roster_day").val() != 0 && $("#roster_day").val() != "") ||
+                ($("#roster_type").val() != null && $("#roster_type").val() != 0 && $("#roster_type").val() != "")) {
+                GetRosters(1);
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Advanced Filter to Search Employee Rosters!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+
+        });
+        //#endregion
+
+        //#region Get Employee Rosters
+        var GetRosters = function (search_type) {
+
+            var _data = {
+                "search_type"   : search_type,
+                "er_branch"     : $('#roster_branch').val().toString(),
+                "er_day"        : $('#roster_day').val().toString(),
+                "er_type"       : $('#roster_type').val().toString()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetRosters", "Employees", new { area = "Masters" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_employee_rosters')) {
+                            table = $('#tbl_employee_rosters').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindRosters(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindRosters = function (response) {
+            var tableroster = $("#tbl_employee_rosters").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "set_company"
+                    },
+                    {
+                        "className": "text-capitalize",
+                        "mData": "er_employee_name"
+                    },
+                    {
+                        "mData": "er_day"
+                    },
+                    {
+                        "mData": "er_type"
+                    },
+                    {
+                        "mData": "er_fdate",
+                        "render": function (er_fdate, type, full, meta) {                      
+                            if (type === 'display' || type === 'filter') {
+
+                                return moment(er_fdate).format("DD-MM-YYYY");
+                            }
+                            return er_fdate;
+                        }
+                    },
+                    {
+                        "mData": "er_tdate",
+                        "render": function (er_tdate, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+
+                                return moment(er_tdate).format("DD-MM-YYYY");
+                            }
+                            return er_tdate;
+                        }
+                    },
+                    {
+                        "mData": "ftime"
+                    },
+                    {
+                        "mData": "ttime"
+                    }
+                ],
+                order: [[4, 'desc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Employee Name / Branch / Day / Type</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                },
+                scrollX: true,
+                scrollY: 600,
+                scrollCollapse: true,
+                fixedColumns: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Employee Rosters',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Employee Rosters',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Employee Rosters',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Employee Rosters',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        }
+                    }
+                ]
+            });
+            tableroster.buttons().container().appendTo('#tbl_employee_rosters_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+    </script>
+}

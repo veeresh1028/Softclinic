@@ -1,0 +1,113 @@
+﻿@model BusinessEntities.Common.DocReference
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_OPGIOPA_Doc" class="card" action="@Url.Action("UploadFiles", "Patient", new { area = "Patient" })" method="post" enctype="multipart/form-data">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class='badge bg-danger'>Required</span>
+            <span class="text-info" style="font-size:smaller">Select atlest One File</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <div class="form-group mb-3">
+                @Html.DropDownListFor(m => m.doc_category, new List<SelectListItem>
+                 {
+                    new SelectListItem{ Text="OPG Images", Value = "OPG" },
+                    new SelectListItem{ Text="IOPA Images", Value = "IOPA" },
+                    new SelectListItem{ Text="Clinic Images", Value = "Clinic" },
+                    new SelectListItem{ Text="Other Images", Value = "Other" },
+                 }, "Select Type", new { @class = "form-select select2", @id = "doc_category" })
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Document Description&nbsp;<small class="text-info">(Optional)</small></label>
+            <textarea id="doc_label" name="doc_label" class="form-control mb-2" placeholder="Ex:Patient Medical History Document" rows="4"></textarea>
+        </div>
+        <div class="form-group mb-0">
+            <input id="pat_docs" type="file" name="files" accept=".jpg, .png, image/jpeg, image/png,.pdf" multiple>
+        </div>
+    </div>
+</form>
+<style>
+    .ff_fileupload_dialog_background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 99999999;
+    }
+</style>
+<script type="text/javascript">
+    //#region page Load
+        $(function () {
+            $("#doc_category").select2({
+                placeholder: 'Select Type',
+                width: '100%',
+                minimumResultsForSearch: '',
+                dropdownParent: $('#form_OPGIOPA_Doc'),
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+
+        var token;
+		    $('#pat_docs').FancyFileUpload({
+			    params : {
+				    action : 'fileuploader'
+			    },
+                maxfilesize: 5242880,
+			    startupload: function (SubmitUpload, e, data) {
+                    var formData = new FormData();
+                    formData.append('id', @emr.appId);
+                    formData.append('type', '@Model.reftype');
+                    formData.append('label', $("#doc_label").val());
+                    formData.append('files', data.files[0]);
+                    formData.append('doc_category', $("#doc_category").val());
+				    $.ajax({
+					    url:  "@Url.Action("UploadFiles", "Patient", new { area = "Patient" })",
+					    data: formData,
+					    type: 'POST',
+					    contentType: false,
+					    processData: false,
+					    success: function(tokendata) {
+						    token = tokendata;
+						    console.log(tokendata);
+                            SubmitUpload();
+					    },
+					    error: function(err) {
+						    console.log(err);
+					    }
+				    });
+			    },
+			    continueupload : function(e, data) {
+				    var ts = Math.round(new Date().getTime() / 1000);
+
+				    // Alternatively, just call data.abort() or return false here to terminate the upload but leave the UI elements alone.
+				    if (token.expires < ts)  data.ff_info.RemoveFile();
+			    },
+			    uploadcancelled : function(e, data) {
+				    console.log("uploadcancelled");
+			    },
+			    uploadcompleted : function(e, data) {
+                    GetOPGIOPA(@emr.appId, '@Model.reftype');
+				    data.ff_info.RemoveFile();
+			    }
+            });
+            });
+    //#endregion page Load
+
+
+
+
+</script>

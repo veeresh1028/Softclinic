@@ -1,0 +1,323 @@
+﻿@model BusinessEntities.Masters.ToothTreatmentsCategory
+<style>
+    #size {
+        max-width: 800px;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Create New Tooth Treatments Category</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Add_Category" >
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold">Procedure &nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.cct_code, new SelectList(Model.toothTreatmentsList, "id", "text"), new { @class = "form-select select2", @required = "required" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group g-md-3">
+                    <label class="form-label text-black font-weight-semibold">Category &nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.cct_category, new List<SelectListItem> { }, "Select Category", new { @class = "form-select  mb-2 select2", @id = "cct_category" })
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <div class="form-group g-md-3">
+                    <label class="form-label text-black font-weight-semibold">Sub Category &nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.cct_sub_category, new List<SelectListItem> { }, "Select Sub Category", new { @class = "form-select  mb-2 select2", @id = "cct_sub_category" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorCreate"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert">Create Category</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseCreate" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $('#cct_code').select2({
+            minimumResultsForSearch: '',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_Add_Category'),
+            width: '100%'
+        });         
+
+        $('#cct_sub_category').select2({
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Add_Category'),
+            width: '100%',
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        load_category();
+        validation();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Add_Category").validate({
+            focusInvalid: true,
+            rules:
+            {
+                cct_code: {
+                    required: true
+                },
+                cct_category: {
+                    required: true
+                },
+                cct_sub_category: {
+                    required: true
+                }
+            },
+            messages: {
+                cct_code: {
+                    required: "Select Treatment Procedure"
+                },
+                cct_category: {
+                    required: "Select Tooth Treatment Category"
+                },
+                cct_sub_category: {
+                    required: "Select Treatment Sub Category"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#cct_code').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#cct_category').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#cct_sub_category').on('change', function () {
+            $(this).trigger('blur');
+        });
+    };
+    //#endregion
+
+    //#region Load Categories
+    var load_category = function (ctcyId) {
+
+        $('#cct_category').select2({
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Add_Category'),
+            width: '100%',
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $.ajax({
+            url: '@Url.Action("GetToothTreatmentsMainCategory", "ToothTreatmentsCategory", new { area = "Masters" })?ctcyId=' + ctcyId,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#cct_category').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].Text, response[j].Value);     
+                        $('#cct_category').append(newOption).trigger('change');
+                    });
+                }              
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        }).done(function () {
+            $('#cct_category').trigger('select2:select');
+        });
+    }
+    //#endregion
+
+    //#region Load Sub Categories Based on Category
+    $('#cct_category').on('select2:select', function (e) {
+
+        if ($(this).val() > 0) {
+            $.ajax({
+                url: '@Url.Action("GetToothTreatmentsSubCategory", "ToothTreatmentsCategory", new { area = "Masters" })?ctsy_code=' + $('#cct_category').val(),
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $('#cct_sub_category').empty();
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Value);
+                            $('#cct_sub_category').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        else {
+            $('#cct_sub_category').empty();
+            $('#cct_sub_category').append('<option value="" selected>Select Sub Category</option>').trigger('change');
+        }
+    });
+    //#endregion
+
+    //#region Insert Tooth Treatments Category Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Add_Category").valid()) {
+
+            $('#btn_Insert').removeClass("btn btn-success");
+            $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Insert').parent().addClass("curdrop");
+            $('.btnCloseCreate').addClass("disabled");
+            $('#btn_Insert').html("Creating... Please Wait");
+
+            var _dataInsert = {
+                "cctId": 0,
+                "cct_code": $("#cct_code :selected").val(),
+                "cct_category": $("#cct_category :selected").text(),
+                "cct_sub_category": $("#cct_sub_category :selected").text(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertToothTreatmentsCategory", "ToothTreatmentsCategory", new { area = "Masters" })",
+                dataType: 'json',
+                data: _dataInsert,
+                success: function (data) {
+
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Category");
+
+                    if (data.isSuccess) {
+                        if (data.isInserted) {
+                            GetToothTreatmentsCategory();                        
+                            alert("<i class='fe fe-check-circle text-white'></i> Tooth Treatments Category Created Successfully!", "success");
+                            Timeout();
+                            $('#ttc_modal').modal('toggle');
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Treatments Category Already Exists with the same details!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorCreate").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.&nbsp;</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+                        $("#errorCreate").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Category");
+
+                    $('#ttc_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else
+        {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

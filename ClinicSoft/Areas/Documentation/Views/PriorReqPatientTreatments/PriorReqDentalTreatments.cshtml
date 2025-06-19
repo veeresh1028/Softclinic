@@ -1,0 +1,3114 @@
+﻿@model BusinessEntities.EMR.PatientTreatments
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Dental Insurance Treatments";
+    Layout = "~/Areas/Documentation/Views/Shared/_Doc_layout.cshtml";
+}
+
+<style type="text/css">
+    #tbl_DentInsTreat_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+
+    #tbl_PreInsTreat_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: auto;
+    }
+</style>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between">
+                <h3 class="card-title text-primary fs-16">Dental Insurance Treatments & Procedures</h3>
+                <span class="text-danger font-weight-semibold" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+            <div class="card-body">
+                <div id="DentInsTreat_add">
+                </div>
+
+                <div id="DentInsTreat_edit">
+                </div>
+
+                <div class="row pb-2">
+                    <div class="col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div id="errorPI"></div>
+                        <div id="errorCreate"></div>
+                    </div>
+                </div>
+
+                <div class="mt-0 mb-5">
+                    <div class="row">
+                        <input type="hidden" id="hiInvId" value="0" />
+                    </div>
+
+                    <form id="formDentalIns" class="needs-validation" autocomplete="off">
+                        <div class="row">
+                            @Html.AntiForgeryToken()
+
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Update Status</label>
+                                <div class="wd-150 mg-b-30">
+                                    <div class="input-group">
+                                        @Html.DropDownListFor(m => m.pt_status, new List<SelectListItem>
+                                         {
+                                            new SelectListItem{ Text="Approved", Value = "Approved" },
+                                            new SelectListItem{ Text="Rejected", Value = "Rejected" },
+                                            new SelectListItem{ Text="In Review", Value = "In Review" },
+                                            new SelectListItem{ Text="Submitted", Value = "Submitted" },
+                                            new SelectListItem{ Text="Cancelled", Value = "Cancelled" }
+                                         }, "Select Status", new { @class = "form-select select2", @id = "upt_status" })
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-2 col-lg-1">
+                                <div class="btn-animation">
+                                    <label class="mt-4">&nbsp;</label>
+                                    <div class="wd-150 mg-b-30">
+                                        <div class="input-group">
+                                            <button type="submit" class="btn btn-warning" id="btn_Update_Status">Update</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Set Start Time</label>
+                                <div class="wd-150 mg-b-30">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 24 24" width="18"><path d="M0 0h24v24H0V0z" fill="none" /><path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm4.25 12.15L11 13V7h1.5v5.25l4.5 2.67-.75 1.23z" opacity=".3" /><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                                            </div>
+                                        </div>
+                                        <input class="form-control" id="time_picker1" name="time_picker1" placeholder="Start Time" type="text">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Set End Time</label>
+                                <div class="wd-150 mg-b-30">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 24 24" width="18"><path d="M0 0h24v24H0V0z" fill="none" /><path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm4.25 12.15L11 13V7h1.5v5.25l4.5 2.67-.75 1.23z" opacity=".3" /><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                                            </div>
+                                        </div>
+                                        <input class="form-control" id="time_picker2" name="time_picker2" placeholder="End Time" type="text">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3 col-lg-5">
+                                <div class="btn-animation">
+                                    <label class="mt-4">&nbsp;</label>
+                                    <div class="wd-150 mg-b-30">
+                                        <div class="input-group">
+                                            <button type="submit" class="btn btn-cyan ms-lg-2" id="btn_update_startendtime">Update Time</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Authorization Code</label>
+                                <input class="form-control" id="auth_code" name="auth_code" placeholder="Enter Auth Code" type="text" maxlength="100">
+                            </div>
+
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Approval Date</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <div class="input-group-text">
+                                            <i class="fe fe-calendar"></i>
+                                        </div>
+                                    </div>
+                                    <input id="appr_date" name="appr_date" class="form-control" placeholder="Select Approval Date" type="text" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-1 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Expiry Date</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <div class="input-group-text">
+                                            <i class="fe fe-calendar"></i>
+                                        </div>
+                                    </div>
+                                    <input id="exp_date" name="exp_date" class="form-control" placeholder="Select Expiry Date" type="text" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-2 col-lg-3">
+                                <label class="mt-4">&nbsp;</label>
+                                <div class="btn-list btn-animation">
+                                    <button type="submit" class="btn btn-indigo" id="btn_update_auth">Update Approval</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Re-Submission Type</label>
+                                <div class="form-group mb-2">
+                                    @Html.DropDownListFor(m => m.pt_resub_type, new List<SelectListItem>
+                                     {
+                                        new SelectListItem{ Text="Correction", Value = "Correction" },
+                                        new SelectListItem{ Text="Internal Complaint", Value = "Internal Complaint" },
+                                        new SelectListItem{ Text="Legacy", Value = "Legacy" },
+                                        new SelectListItem{ Text="Reconciliation", Value = "Reconciliation" },
+                                     }, "Select Re-Submission Type", new { @class = "form-select select2", @id = "upt_resub_type" })
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Re-Submission Notes</label>
+                                <div class="form-group mb-2">
+                                    <input class="form-control font-weight-semibold" placeholder="Enter Re-Submission Notes" type="text" id="upt_resub_notes" name="pt_resub_notes">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3 col-lg-2">
+                                <label class="mt-4 text-dark font-weight-semibold">Disposition Flag</label>
+                                <div class="form-group mb-2">
+                                    <select id="s_flag" class="form-control mb-2">
+                                        <option value="TEST">Test</option>
+                                        <option value="PRODUCTION">Production</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-12 col-md-12 col-lg-6">
+                                <label class="mt-4 text-dark font-weight-semibold">&nbsp;</label>
+                                <div class="btn-list btn-animation">
+                                    @{
+                                        if (emr.app_category == "MOH")
+                                        {
+                                            <button type="submit" class="btn btn-orange" id="btn_prior_request_direct_moh">PRIOR REQUEST DIRECT</button>
+                                            <button type="submit" class="btn btn-purple" id="btn_prior_request_manual_moh">PRIOR REQUEST MANUAL</button>
+                                            <button type="submit" class="btn btn-danger" id="btn_prior_auth_cancel_moh">PRIOR AUTH. CANCEL</button>
+                                        }
+                                        else
+                                        {
+                                            <button type="submit" class="btn btn-orange" id="btn_prior_request_direct">PRIOR REQUEST DIRECT</button>
+                                            <button type="submit" class="btn btn-purple" id="btn_prior_request_manual">PRIOR REQUEST MANUAL</button>
+                                            <button type="submit" class="btn btn-danger" id="btn_prior_auth_cancel">PRIOR AUTH. CANCEL</button>
+                                            <button type="submit" class="btn btn-success" id="btn_update_Batch">Generate Batch</button>
+                                            <button type="submit" class="btn btn-outline-danger" id="btn_clearBatch">Clear Batch</button>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="row p-4">
+                        <div class="col-sm-12 col-md-12 d-flex justify-content-center">
+                            <div id="warningMessage" class="text-danger" style="display: none;">Please Enter Authorization Code, Date and Expiry date.</div>
+                            <div id="errorDental"></div>
+                            <div id="errorSummary"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="tbl_DentInsTreat" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Pre Auth</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">CPT Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatment</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Teeth</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Surface</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Session</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Unit Price</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Gross</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Discount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Patient<br /> Share</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Pre-Auth Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Approved Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Expiry Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Start Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">End Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Lab Status</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-end text-dark font-weight-semibold fs-17">Total :</th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h3 class="card-title fs-16 text-primary">Previous Appointment(s) History</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_PreInsTreat" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">CPT<br /> Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatment</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Teeth</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Surface</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Session</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">EXP.<br /> Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Unit<br /> Price</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Gross</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Discount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Patient Share</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Lab<br /> Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor<br /> Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-end text-dark font-weight-semibold fs-17">Total :</th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th class="table_footer_align fs-16"></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Treatment Items Details -->
+<div class="modal fade overflow-auto" id="treatment_item_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="treatment_item_details_body">
+        </div>
+    </div>
+</div>
+
+<!-- Modal Treatment Attachments Details -->
+<div class="modal fade overflow-auto" id="treatment_attachments_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="treatment_attachments_details_body">
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+
+            $("#DentInsTreat_add").show();
+
+            addDentalInsTreatments();
+
+            getDentalInsTreatments();
+
+            getPreviousDentalInsTreatments();
+
+            $('#appr_date').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#appr_date").bootstrapdatepicker("setDate", "");
+
+            $('#exp_date').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#exp_date").bootstrapdatepicker("setDate", "");
+
+            $('#appr_date').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#exp_date').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $("#upt_status").select2({
+                placeholder: 'Select Status',
+                width: '100%',
+                dropdownParent: $('#formDentalIns')
+            });
+
+            $("#upt_resub_type").select2({
+                placeholder: 'Select Re-Submission Type',
+                width: '100%',
+                dropdownParent: $('#formDentalIns')
+            });
+
+            $("#s_flag").select2({
+                placeholder: 'Select Disposition Flag',
+                width: '100%',
+                dropdownParent: $('#formDentalIns')
+            });
+
+            $('#time_picker1').timepicker({
+                'scrollDefault': 'now',
+                'disableTextInput': true,
+                'step': 1,
+                'timeFormat': 'H:i'
+            });
+
+            $('#time_picker2').timepicker({
+                'scrollDefault': 'now',
+                'disableTextInput': true,
+                'step': 1,
+                'timeFormat': 'H:i'
+            });
+
+            validate_time();
+        });
+        //#endregion
+
+        //#region Load Dental Ins Treatments
+            var getDentalInsTreatments = function () {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetAllPatientTreatments", "PriorReqPatientTreatments", new { area = "Documentation" })?appId=" + "@emr.appId" + "&pt_type=Insurance",
+                    success: function (response) {
+                        if (response.isAuthorized != false) {
+                            var table;
+                            if ($.fn.dataTable.isDataTable('#tbl_DentInsTreat')) {
+                                table = $('#tbl_DentInsTreat').DataTable();
+                                table.clear();
+                                table.rows.add(response).draw();
+                            }
+                            else {
+                                BindDataTable(response);
+                            }
+                        }
+                        else {
+                            console.log("You are not Authorized!");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                }).done(function () {
+                    resizedt();
+                });
+            }
+        //#endregion
+
+        //#region Load Previous History
+            var getPreviousDentalInsTreatments = function () {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetAllPrePatientTreatments", "PriorReqPatientTreatments", new { area = "Documentation" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId + "&pt_type=Insurance",
+                    success: function (response) {
+                        if (response.isAuthorized != false) {
+                            var table;
+                            if ($.fn.dataTable.isDataTable('#tbl_PreInsTreat')) {
+                                table = $('#tbl_PreInsTreat').DataTable();
+                                table.clear();
+                                table.rows.add(response).draw();
+                            }
+                            else {
+                                BindDataTableP(response);
+                            }
+                        }
+                        else {
+                            console.log("You are not Authorized!");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                }).done(function () {
+                    resizedt();
+                });;
+            }
+        //#endregion
+
+        //#region Bind Dental Insurance Datatable
+            var BindDataTable = function (response) {
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                var table = $("#tbl_DentInsTreat").DataTable({
+                    fixedHeader: {
+                        header: true,
+                        footer: true
+                    },
+                    processing: true,
+                    "deferRender": true,
+                    "pageLength": 25,
+                    "retrieve": true,
+                    lengthChange: true,
+                    "aaData": response,
+                    "aoColumns": [
+                        {
+                            "mData": "ptId",
+                            "orderable": false,
+                            "className": "select-checkbox text-center inbox-small-cells",
+                            'checkboxes': {
+                                'selectRow': true
+                            }
+                        },
+                        {
+                            "mData": "ptId",
+                            "orderable": false,
+                            "searchable": false,
+                            "className": "text-center",
+                            "render": function (data, type, row, meta) {
+                                let _index = (meta.row) + 1;
+
+                                if (_index >= 10) {
+                                    return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                                }
+                                else {
+                                    return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                                }
+                            }
+                        },
+                        {
+                            "mData": "pt_auth_code",
+                            "className": 'text-center',
+                            "render": function (pt_auth_code, type, full, meta) {
+                                var dt = '';
+                                var date_app = full.pt_auth_adate;
+                                var date_exp = full.pt_auth_edate;
+                                var req = full.pt_tr_dent_option;
+
+                                if (pt_auth_code == "") {
+                                    if (req == "Required") {
+                                        pt_auth_code = '<span class="text-danger font-weight-semibold"><i class="fe fe-alert-octagon text-danger" title="Prior Auth Required"></i> Required!<span>';
+                                    }
+                                    else {
+                                        pt_auth_code = '<span class="text-muted">N/A</span>';
+                                    }
+                                }
+                                else {
+                                    pt_auth_code = '<span class="font-weight-semibold">' + pt_auth_code + '</span>';
+                                }
+
+                                if (type === 'display' || type === 'filter') {
+                                    date_app = moment(full.pt_auth_adate).format("DD-MM-YYYY");
+                                    date_exp = moment(full.pt_auth_edate).format("DD-MM-YYYY");
+
+                                    dt += pt_auth_code + '</span><br />';
+
+                                    if (date_app == "31-12-1899") {
+                                        dt += '<span class="badge bg-success-light mb-1">Approved Date</span><br/>' +
+                                            '<i class="fe fe-calendar text-dark"></i> <b class="text-muted">N/A<b><br/>';
+                                    }
+                                    else {
+                                        dt += '<span class="badge bg-success-light mb-1">Approved Date</span><br/>' +
+                                            '<i class="fe fe-calendar text-dark"></i> <b class="text-dark">' + date_app + '</b><br/>';
+                                    }
+
+                                    if (date_exp == "01-01-2100") {
+                                        dt += '<span class="badge bg-danger-light mb-1">Expiry Date</span><br/>' +
+                                            '<i class="fe fe-calendar text-dark"></i> <b class="text-muted">N/A<b>';
+                                    }
+                                    else {
+                                        dt += '<span class="badge bg-danger-light mb-1">Expiry Date</span><br/>' +
+                                            '<i class="fe fe-calendar text-dark"></i> <b class="text-dark">' + date_exp + '<b>';
+                                    }
+
+                                    return dt;
+                                }
+
+                                return moment(date_app).format("YYYY-MM-DD");
+                            }
+                        },
+                        {
+                            "mData": "pt_date_collected",
+                            "className": 'text-center',
+                            "render": function (pt_date_collected, type, full, meta) {
+                                var date_rec = full.pt_date_received;
+
+                                var dt = '';
+
+                                if (type === 'display' || type === 'filter') {
+                                    var collec = moment(pt_date_collected).format("DD-MM-YYYY");
+                                    var rec = moment(date_rec).format("DD-MM-YYYY");
+
+                                    dt += '<br />';
+
+                                    if (collec == "31-12-1899") {
+                                        dt += '<span class="badge bg-success-light mb-1">Start Time</span><br/>' +
+                                            '<i class="fe fe-clock text-dark"></i> <b class="text-muted">N/A<b><br/>';
+                                    }
+                                    else {
+                                        dt += '<span class="badge bg-success-light mb-1">Start Time</span><br/>' +
+                                            '<i class="fe fe-clock text-dark"></i> <b class="text-dark">' + moment(pt_date_collected).format(" HH:mm") + '</b><br/>';
+                                    }
+
+                                    if (rec == "31-12-1899") {
+                                        dt += '<span class="badge bg-danger-light mb-1">End Time</span><br/>' +
+                                            '<i class="fe fe-clock text-dark"></i> <b class="text-muted">N/A<b><br/>';
+                                    }
+                                    else {
+                                        dt += '<span class="badge bg-danger-light mb-1 mt-1">End Time</span><br/>' +
+                                            '<i class="fe fe-clock text-dark"></i> <b class="text-dark">' + moment(date_rec).format(" HH:mm") + '<b>';
+                                    }
+
+                                    return dt;
+                                }
+
+                                return moment(pt_date_collected).format(" HH:mm");
+                            }
+                        },
+                        {
+                            "mData": "tr_code",
+                            "className": 'text-left',
+                        },
+                        {
+                            "mData": "tr_name_type",
+                            "className": 'text-wrap text-justify'
+                        },
+                        {
+                            "mData": "pt_teeth",
+                            "className": 'text-center'
+                        },
+                        {
+                            "mData": "pt_sur"
+                        },
+                        {
+                            "mData": "pt_qty",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_ses",
+                            "className": 'text-right',
+                        },
+                        {
+                            "mData": "pt_uprice",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                             "mData": "pt_total",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                             "mData": "pt_disc",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pat__share",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_net",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_status",
+                            "className": 'text-center',
+                            "render": function (pt_status, type, full, meta) {
+                                var _more = '<b>' + pt_status +'</b><br />';
+                                var lab_status = full.pt_lab_status;
+
+                                if (lab_status != "") {
+                                    _more += '<span class="text-secondary" title="Lab Status">' + lab_status +'</span>';
+                                }
+                                else {
+                                    _more += '<span class="text-muted">N/A</span>';
+                                }
+
+                                return _more;
+                            }
+                        },
+                        {
+                            "mData": "pt_notes",
+                            "className": 'text-justify text-wrap',
+                            "render": function (pt_notes) {
+                                if (pt_notes != "") {
+                                    return pt_notes;
+                                }
+                                else {
+                                    return '<span class="text-muted">N/A</span>';
+                                }
+                            }
+                        },
+                        {
+                            "mData": "ptId",
+                            "className": 'btn-edit text-center',
+                            "orderable": false,
+                            "searchable": false,
+                            "render": function (ptId, type, full, meta) {
+                                var status = full.pt_status;
+                                var allocated = full.isAllocated;
+
+                                var more = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                                var edit_and_delete = '<a class="edit dropdown-item text-dark fw-bold" onclick="editDentalInsTreatments(\'' + ptId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="deleteDentalInsTreatments(\'' + ptId + '\',\'' + status + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="addItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk" onclick="addAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                    '</div>' +
+                                    '</div>';
+
+                                var no_edit = '<a class="dropdown-item text-dark fw-bold" onclick="deleteDentalInsTreatments(\'' + ptId + '\',\'' + status + '\')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Delete</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="addItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk" onclick="addAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                    '</div>' +
+                                    '</div>';
+
+                                var no_delete = '<a class="edit dropdown-item text-dark fw-bold" onclick="editDentalInsTreatments(\'' + ptId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Edit</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold" onclick="addItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk" onclick="addAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                    '</div>' +
+                                    '</div>';
+
+                                var no_edit_and_no_delete = '<a class="dropdown-item text-dark fw-bold" onclick="addItems(\'' + ptId + '\')"><i class="fe fe-folder-plus text-primary curpointer" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Items</a>' +
+                                    '<a class="dropdown-item text-dark fw-bold remrk" onclick="addAttachements(\'' + ptId + '\')"><i class="fa fa-comments-o text-dark" style="font-size: 15px;margin-right: 0.5rem;cursor:pointer"></i>&nbsp;Attachments</a>' +
+                                    '</div>' +
+                                    '</div>';
+
+                                if (allocated == 0) {
+                                    if ("@emp_designation.ToString()" === "Super Administrator") {
+                                        more += edit_and_delete;
+                                    }
+                                    else {
+                                        if ("@emr.set_emr_lock" == "NoLock") {
+                                            more += edit_and_delete;
+                                        }
+                                        else {
+                                            if ("@emr.app_ae_date" >= "@emr.today") {
+                                                more += edit_and_delete;
+                                            }
+                                            else {
+                                                if (status == "Approved" || status == "Rejected" || status == "Partially Approved") {
+                                                    more += no_edit;
+                                                }
+                                                else {
+                                                    more += edit_and_delete;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else {
+                                    if ("@emp_designation.ToString()" === "Super Administrator") {
+                                        more += no_delete;
+                                    }
+                                    else {
+                                        if ("@emr.set_emr_lock" == "NoLock") {
+                                            more += no_delete;
+                                        }
+                                        else {
+                                            if ("@emr.app_ae_date" >= "@emr.today") {
+                                                more += no_delete;
+                                            }
+                                            else {
+                                                if (status == "Approved" || status == "Rejected" || status == "Partially Approved") {
+                                                    more += no_edit_and_no_delete;
+                                                }
+                                                else {
+                                                    more += no_delete;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                return more;
+                            }
+                        },
+                        //#region Hidden Export Columns
+                        {
+                            "visible":false,
+                            "mData": "pt_auth_code"
+                        },
+                        {
+                            "visible": false,
+                            "mData": "pt_auth_adate",
+                            "render": function (pt_auth_adate, type, full, meta) {
+                                if (type === 'display' || type === 'filter') {
+                                    pt_auth_adate = moment(pt_auth_adate).format("DD-MM-YYYY");
+
+                                    if (pt_auth_adate == "31-12-1899") {
+                                        return '';
+                                    }
+                                    else {
+                                        return pt_auth_adate;
+                                    }
+                                }
+
+                                return moment(pt_auth_adate).format("YYYY-MM-DD");
+                            }
+                        },
+                        {
+                            "visible": false,
+                            "mData": "pt_auth_edate",
+                            "render": function (pt_auth_edate, type, full, meta) {
+                                if (type === 'display' || type === 'filter') {
+                                    pt_auth_edate = moment(pt_auth_edate).format("DD-MM-YYYY");
+
+                                    if (pt_auth_edate == "31-12-1899") {
+                                        return '';
+                                    }
+                                    else {
+                                        return pt_auth_edate;
+                                    }
+                                }
+
+                                return moment(pt_auth_edate).format("YYYY-MM-DD");
+                            }
+                        },
+                        {
+                            "visible": false,
+                            "mData": "pt_date_collected",
+                            "render": function (pt_date_collected, type, full, meta) {
+                                if (type === 'display' || type === 'filter') {
+                                    var dc = moment(pt_date_collected).format("DD-MM-YYYY");
+
+                                    if (dc == "31-12-1899") {
+                                        return '';
+                                    }
+                                    else {
+                                        return moment(pt_date_collected).format(" HH:mm");
+                                    }
+                                }
+
+                                return moment(pt_date_collected).format(" HH:mm");
+                            }
+                        },
+                        {
+                            "visible": false,
+                            "mData": "pt_date_received",
+                            "render": function (pt_date_received, type, full, meta) {
+                                if (type === 'display' || type === 'filter') {
+                                    var dc = moment(pt_date_received).format("DD-MM-YYYY");
+
+                                    if (dc == "31-12-1899") {
+                                        return '';
+                                    }
+                                    else {
+                                        return moment(pt_date_received).format(" HH:mm");
+                                    }
+                                }
+
+                                return moment(pt_date_received).format(" HH:mm");
+                            }
+                        },
+                        {
+                            "visible": false,
+                            "mData": "pt_status",
+                            "render": function (pt_status, type, full, meta) {
+                                return pt_status;
+                            }
+                        },
+                        {
+                            "visible":false,
+                            "mData": "pt_lab_status",
+                            "render": function (pt_lab_status, type, full, meta) {
+                                return pt_lab_status;
+                            }
+                        },
+                        //#endregion
+                    ],
+                    order: [[1, 'asc']],
+                    language: {
+                        searchPlaceholder: 'Search...',
+                        sSearch: '<span class="text-primary font-weight-semi-bold">Search By Treatment</span>',
+                        lengthMenu: '_MENU_',
+                        scrollX: "100%",
+                    },
+                    searching: false,
+                    select: {
+                        style: 'multi',
+                        selector: 'td:first-child'
+                    },
+                    scrollX: true,
+                    scrollY: 500,
+                    scrollCollapse: true,
+                    buttons: [
+                        {
+                            extend: 'excel',
+                            title: 'Dental Insurance Treatments',
+                            footer: 'true',
+                            exportOptions: {
+                                columns: [18, 19, 20, 21, 22, 23, 24, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
+                            }
+                        },
+                        {
+                            extend: 'pdf',
+                            title: 'Dental Insurance Treatments',
+                            footer: 'true',
+                            exportOptions: {
+                                columns: [18, 19, 20, 21, 22, 23, 24, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
+                            }
+                        },
+                        {
+                            extend: 'csv',
+                            title: 'Dental Insurance Treatments',
+                            footer: 'true',
+                            exportOptions: {
+                                columns: [18, 19, 20, 21, 22, 23, 24, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
+                            }
+                        },
+                        {
+                            extend: 'print',
+                            title: 'Dental Insurance Treatments',
+                            className: 'btn btn-primary',
+                            footer: 'true',
+                            exportOptions: {
+                                columns: [18, 19, 20, 21, 22, 23, 24, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
+                            }
+                        },
+                        {
+                            text: '<i class="fe fe-check-circle"></i> Generate Invoice',
+                            className: 'btn btn-outline-success ms-2',
+                            action: function (e, dt, node, config) {
+                                e.preventDefault();
+
+                                generateInvoice();
+                            }
+                        },
+                        {
+                            text: '<i class="fe fe-layout"></i> Quotation',
+                            className: 'btn btn-outline-success ms-2',
+                            action: function (e, dt, node, config) {
+                                e.preventDefault();
+
+                                print_Quotation();
+                            }
+                        },
+                        {
+                            text: '<i class="fe fe-layers"></i> Prior Request',
+                            className: 'btn btn-outline-success ms-2',
+                            action: function (e, dt, node, config) {
+                                e.preventDefault();
+
+                                prior_Request();
+                            }
+                        }
+                    ],
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api();
+
+                        var intVal = function (i) {
+                            return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                        };
+
+                        var total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(8).footer()).html(numFormat(total));
+
+                        total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(9).footer()).html(total);
+
+                        total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(10).footer()).html(total);
+
+                        total = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(11).footer()).html(numFormat(total));
+
+                        total = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(12).footer()).html(numFormat(total));
+
+                        total = api.column(13).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(13).footer()).html(numFormat(total));
+
+                        total = api.column(14).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(14).footer()).html(numFormat(total));
+                    }
+                });
+
+                table.buttons().container().appendTo('#tbl_DentInsTreat_wrapper .col-sm-12:eq(0)');
+            };
+        //#endregion
+
+        //#region Bind Previous History Datatable
+            var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+            var BindDataTableP = function (response) {
+                var table = $("#tbl_PreInsTreat").DataTable({
+                    fixedHeader: {
+                        header: true,
+                        footer: true
+                    },
+                    processing: true,
+                    "deferRender": true,
+                    "pageLength": 50,
+                    "retrieve": true,
+                    lengthChange: true,
+                    "aaData": response,
+                    "aoColumns": [
+                        {
+                            "mData": "ptId",
+                            "orderable": false,
+                            "searchable": false,
+                            "className": "text-center",
+                            "render": function (data, type, row, meta) {
+                                let _index = (meta.row) + 1;
+
+                                if (_index >= 10) {
+                                    return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                                }
+                                else {
+                                    return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                                }
+                            }
+                        },
+                        {
+                            "mData": "app_fdate",
+                            "className": "text-left",
+                            "render": function (app_fdate, type, full, meta) {
+                                if (type === 'display' || type === 'filter') {
+                                    return moment(app_fdate).format('DD-MM-YYYY')
+                                }
+
+                                return moment(app_fdate).format("YYYY-MM-DD");
+                            }
+                        },
+                        {
+                            "mData": "doctor_name",
+                            "className": "text-left"
+                        },
+                        {
+                            "mData": "tr_code",
+                            "className": 'text-left'
+                        },
+                        {
+                            "mData": "tr_name_type",
+                            "className": 'text-wrap text-justify'
+                        },
+                        {
+                            "mData": "pt_teeth"
+                        },
+                        {
+                            "mData": "pt_sur"
+                        },
+                        {
+                            "mData": "pt_qty",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_ses",
+                            "className": 'text-right',
+                        },
+                        {
+                            "mData": "pt_pack_exp_date",
+                            "render": function (pt_pack_exp_date, type, full, meta) {
+                                if (type === 'display' || type === 'filter') {
+                                    if (moment(pt_pack_exp_date).format('DD-MM-YYYY') == "31-12-1899") {
+                                        return '';
+                                    }
+                                    else {
+                                        return moment(pt_pack_exp_date).format('DD-MM-YYYY');
+                                    }
+                                }
+
+                                return moment(pt_pack_exp_date).format('YYYY-MM-DD');
+                            }
+                        },
+                        {
+                            "mData": "pt_uprice",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_total",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_disc",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pat__share",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_net",
+                            "className": 'text-right',
+                            "render": $.fn.dataTable.render.number(',', '.', 2)
+                        },
+                        {
+                            "mData": "pt_status",
+                            "className": 'text-left',
+                        },
+                        {
+                            "mData": "pt_lab_status",
+                            "className": 'text-left',
+                        },
+                        {
+                            "visible": false,
+                            "mData": "pt_tdn_notes",
+                            "className": 'text-wrap text-justify',
+                        },
+                        {
+                            "mData": "ptId",
+                            "className": 'btn-view text-center',
+                            "orderable": false,
+                            "searchable": false,
+                            "render": function (ptId, type, full, meta) {
+                                var Action = '';
+
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    Action += '<a id=btn_Copy_PadTreatment style="cursor:pointer" class="text-secondary" title="Copy Treatment" onclick="copyPrevious(' + ptId + ')"><i class="fa fa-lg fa-copy"></i></a>';
+
+                                    if (full.pt_status != "Invoiced") {
+                                        Action += '<a id=btn_Move_PadTreatment style="cursor:pointer" class="ms-2 text-success" title="Move Treatment" onclick="movePrevious(' + ptId + ')"><i class="fa fa-lg fa-cut"></i></a>';
+                                    }
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            if (full.pt_status != "Invoiced") {
+                                                AAction += '<a id=btn_Copy_PadTreatment style="cursor:pointer" class="text-secondary" title="Copy Treatment" onclick="copyPrevious(' + ptId + ')"><i class="fa fa-lg fa-copy"></i></a>';
+
+                                                if (full.pt_status != "Invoiced") {
+                                                    Action += '<a id=btn_Move_PadTreatment style="cursor:pointer" class="ms-2 text-success" title="Move Treatment" onclick="movePrevious(' + ptId + ')"><i class="fa fa-lg fa-cut"></i></a>';
+                                                }
+                                            }
+                                        }
+                                        else {
+                                            Action += ''
+                                        }
+                                    }
+                                    else {
+                                        if (full.pt_status != "Invoiced") {
+                                            Action += '<a id=btn_Copy_PadTreatment style="cursor:pointer" class="text-secondary" title="Copy Treatment" onclick="copyPrevious(' + ptId + ')"><i class="fa fa-lg fa-copy"></i></a>';
+
+                                            if (full.pt_status != "Invoiced") {
+                                                Action += '<a id=btn_Move_PadTreatment style="cursor:pointer" class="ms-2 text-success" title="Move Treatment" onclick="movePrevious(' + ptId + ')"><i class="fa fa-lg fa-cut"></i></a>';
+                                            }
+                                        }
+                                    }
+                                }
+
+                                return Action;
+                            }
+                        },
+                    ],
+                    order: [[0, 'asc']],
+                    language: {
+                        searchPlaceholder: 'Search...',
+                        sSearch: '<span class="text-primary font-weight-semi-bold">Search By Treatment</span>',
+                        lengthMenu: '_MENU_',
+                        scrollX: "100%",
+                    },
+                    scrollX: true,
+                    scrollY: 500,
+                    scrollCollapse: true,
+                    buttons: [
+                        {
+                            extend: 'excel',
+                            title: 'Previous Dental Insurance Treatments',
+                            footer: 'true',
+                            className:'oldbutton',
+                            exportOptions: {
+                                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                            }
+                        },
+                        {
+                            extend: 'pdf',
+                            title: 'Previous Dental Insurance Treatments',
+                            footer: 'true',
+                            className: 'oldbutton',
+                            exportOptions: {
+                                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                            }
+                        },
+                        {
+                            extend: 'csv',
+                            title: 'Previous Dental Insurance Treatments',
+                            footer: 'true',
+                            className: 'oldbutton',
+                            exportOptions: {
+                                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                            }
+                        },
+                        {
+                            extend: 'print',
+                            title: 'Previous Dental Insurance Treatments',
+                            footer: 'true',
+                            className: 'oldbutton',
+                            exportOptions: {
+                                columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                            }
+                        }
+                    ],
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api();
+
+                        var intVal = function (i) {
+                            return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                        };
+
+                        var total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(7).footer()).html(numFormat(total));
+
+                        total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(8).footer()).html(total);
+
+                        total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(10).footer()).html(numFormat(total));
+
+                        total = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(11).footer()).html(numFormat(total));
+
+                        total = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(12).footer()).html(numFormat(total));
+
+                        total = api.column(13).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(13).footer()).html(numFormat(total));
+
+                        total = api.column(14).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        $(api.column(14).footer()).html(numFormat(total));
+                    }
+                });
+
+                table.buttons().container().appendTo('#tbl_PreInsTreat_wrapper .col-md-6:eq(0)');
+            };
+        //#endregion
+
+        //#region Add Dental Ins Treatment
+        function addDentalInsTreatments() {
+            $('#DentInsTreat_edit').hide();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateDentalTreatments", "PatientTreatments", new { area = "EMR" })?appId=" + @emr.appId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#DentInsTreat_add").html(data);
+                    $("#DentInsTreat_add").show();
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Dental Insurance Treatment : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Dental Insurance Treatment
+            function editDentalInsTreatments(ptId) {
+                $('#DentInsTreat_add').hide();
+
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("EditDentalTreatments", "PatientTreatments", new { area = "EMR" })?ptId=" + ptId,
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (data) {
+                        $("#DentInsTreat_edit").html(data);
+                        $("#DentInsTreat_edit").show();
+                    },
+                    error: function (xhr) {
+                        console.log("Error while Editing Dental Insurance Treatment : " + xhr.statusText);
+                    }
+                });
+            }
+        //#endregion
+
+        //#region Delete Dental Treatments
+            var deleteDentalInsTreatments = function (ptId, pt_status) {
+                Swal.fire({
+                    title: "Are you sure you want to delete this Patient Treatment ?",
+                    text: "The selected Dental Insurance Treatment will be deleted!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        $.ajax({
+                            url: '@Url.Action("DeleteTreatments", "PatientTreatments", new { area = "EMR" })?data=' + ptId + "&pt_status=" + pt_status,
+                            type: "POST",
+                            dataType: 'json',
+                            success: function (data) {
+                                if (data.isAuthorized) {
+                                    if (data.isSuccess) {
+                                        Swal.fire({
+                                            title: "Success!",
+                                            text: "Patient Treatment Deleted Successfully!",
+                                            icon: "success",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                        });
+
+                                        getDentalInsTreatments();
+                                    }
+                                    else {
+                                        Swal.fire({
+                                            title: "Forbidden!",
+                                            text: "An active Patient Treatment with the same details already exists.",
+                                            icon: "error",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                        });
+                                    }
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Access Denied!",
+                                        text: "You do not have Enough Privileges to Delete this Patient Treatment!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            },
+                            error: function (xhr) {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to Delete Patient Treatment! Please Refresh The Page & Try Again.",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+
+                                getDentalInsTreatments();
+                            }
+                        });
+                    }
+                });
+            }
+        //#endregion
+
+        //#region Bind Select Data
+            var bindSelects = function () {
+                $("#uge_1_type,#uge_2_type,#uge_3_type,#uge_4_type, #uge_5_type, #uge_6_type").select2({
+                    placeholder: 'Select Type',
+                    width: '100%',
+                    minimumResultsForSearch: '',
+                    dropdownParent: $('#form_GeneralExam'),
+                    escapeMarkup: function (markup) {
+                        return markup;
+                    }
+                });
+
+                $("#uge_7_type, #uge_8_type, #uge_9_type, #uge_10_type, #uge_11_type, #uge_12_type").select2({
+                    placeholder: 'Select Type',
+                    width: '100%',
+                    minimumResultsForSearch: '',
+                    dropdownParent: $('#form_GeneralExam'),
+                    escapeMarkup: function (markup) {
+                        return markup;
+                    }
+                });
+
+                $("#uge_13_type, #uge_14_type, #uge_15_type, #uge_16_type,#uge_17_type, #uge_18_type, #uge_19_type ").select2({
+                    placeholder: 'Select Type',
+                    width: '100%',
+                    minimumResultsForSearch: '',
+                    dropdownParent: $('#form_GeneralExam'),
+                    escapeMarkup: function (markup) {
+                        return markup;
+                    }
+                });
+
+                $("#uge_20_type,#uge_21_type,#uge_22_type,#uge_23_type,#uge_24_type, #uge_25_type").select2({
+                    placeholder: 'Select Type',
+                    width: '100%',
+                    minimumResultsForSearch: '',
+                    dropdownParent: $('#form_GeneralExam'),
+                    escapeMarkup: function (markup) {
+                        return markup;
+                    }
+                });
+            }
+        //#endregion
+
+        //#region Generate Invoice
+        function generateInvoice() {
+            var table = $("#tbl_DentInsTreat").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            var invoicedTotal = 0;
+
+            table.rows().every(function () {
+                var rowData = this.data();
+
+                if (rowData.pt_status === "Invoiced") {
+                    invoicedTotal += parseFloat(rowData.pt_total);
+                }
+            });
+
+            if (rows.length > 0) {
+                var _ptIds = [];
+
+                $.each(rows, function (index, rowId) {
+                    var isInvoiced = false;
+                    var isAllowed = false;
+                    var flag = false;
+                    var _data = table.row(rowId).data();
+                    var totalAmount = _data.pt_total;
+                    var prior = _data.pt_tr_dent_option;
+
+                    if (_data.pt_status == "Invoiced") {
+                        isInvoiced = true;
+                    }
+
+                    if (isInvoiced) {
+                        Swal.fire({
+                            title: "This Treatment is Already Invoiced!",
+                            text: "Please Select another Treatment!",
+                            icon: "info",
+                            showCancelButton: 0,
+                            confirmButtonText: 'Ok',
+                            cancelButtonText: 'No! Cancel Please',
+                            confirmButtonClass: "btn btn-success mt-2",
+                            cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                            buttonsStyling: !1
+                        }).then(function (t) {
+                            if (t.value) {
+                                isInvoiced = false;
+                            }
+                        });
+                    }
+
+                    var sumOfTotals = invoicedTotal + totalAmount;
+
+                    if (sumOfTotals <= @emr.is_allowed_limit) {
+                        isAllowed = true;
+                    }
+
+                    if (!isAllowed) {
+                        Swal.fire({
+                            title: "Allowed Limit Exceeded !!",
+                            text: "Change Limit!",
+                            icon: "info",
+                            showCancelButton: !0,
+                            confirmButtonText: 'Yes! Proceed',
+                            cancelButtonText: 'No! Cancel Please',
+                            confirmButtonClass: "btn btn-success mt-2",
+                            cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                            buttonsStyling: !1
+                        }).then(function (t) {
+                            if (t.value) {
+                                isAllowed = false;
+                            }
+                        });
+                    }
+
+                    if (!isInvoiced) {
+                        if (isAllowed) {
+                            if (prior == "Not-Required") {
+                                flag = true;
+                            }
+                            else {
+                                if (_data.pt_status == "Approved") {
+                                    flag = true;
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Pre Auth!",
+                                        html: "Prior Authorisation is required for Patient Treatment : <b class='text-info'>" + _data.tr_name + "</b>",
+                                        icon: "warning",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197",
+                                        cancelButtonColor: "#ff3d60"
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    if (flag) {
+                        _ptIds.push(_data.ptId);
+                    }
+                });
+
+                if (_ptIds.length > 0) {
+                    var bulkTreatments = {
+                        ptIds: _ptIds,
+                        inv_appId: "@emr.appId",
+                        pat_name: "@emr.pat_name",
+                        pat_code: "@emr.pat_code"
+                    }
+
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("GenerateInsuranceInvoice", "PatientTreatments", new { area = "EMR" })",
+                        dataType: 'json',
+                        data: bulkTreatments,
+                        success: function (data) {
+                            $("#hiInvId").val(data.invId);
+
+                            if (data.isAuthorized) {
+                                if (data.isSuccess) {
+                                    getDentalInsTreatments();
+
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+
+                                    window.open("@Url.Action("printInsInvoice", "Invoice", new { area = "Invoice" })?invId=" + $("#hiInvId").val(), "Invoice Print");
+                                }
+                                else {
+                                    if (data.invId == -1) {
+                                        Swal.fire({
+                                            title: "Already Invoiced!",
+                                            text: data.message,
+                                            icon: "warning",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197"
+                                        });
+                                    }
+                                    else {
+                                        Swal.fire({
+                                            title: "Error!",
+                                            text: data.message,
+                                            icon: "error",
+                                            error: 0,
+                                            confirmButtonColor: "#0bb197"
+                                        });
+                                    }
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough priveleges to Generate Invoice!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197",
+                                    cancelButtonColor: "#ff3d60"
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select Atleast One Treatment To Invoice!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+        //#endregion
+
+        //#region Update Status to Prior Request
+        function prior_Request() {
+            var table = $("#tbl_DentInsTreat").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    if (_data.pt_status != 'Invoiced' && _data.pt_status != 'Prior Requests' && _data.pt_status != 'Approved') {
+                        var _dataInsert = {
+                            "ptId": _data.ptId,
+                            "inv_appId": @Model.appId,
+                        }
+
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("UpdateStatusToPriorRequest", "PatientTreatments", new { area = "EMR" })",
+                            dataType: 'json',
+                            data: _dataInsert,
+                            success: function (data) {
+                                var alertPlaceholder = document.getElementById("errorDental");
+
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+
+                                if (data.isSuccess) {
+                                    if (data.invId > 0) {
+                                        alert("<i class='fe fe-check-circle text-white'></i> " + data.message + "!", "success");
+
+                                        getDentalInsTreatments();
+                                    }
+                                    else {
+                                        alert("<i class='fe fe-alert-triangle text-white'></i> " + data.message + "", "warning");
+                                    }
+                                }
+                                else {
+                                    alert("<i class='fe fe-minus-circle text-white'></i> " + data.message + "!", "danger");
+                                }
+
+                                Timeout();
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                        });
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Forbidden!",
+                            text: "Unable to Update to Prior Request as Patient Treatment already Invoiced!!",
+                            icon: "warning",
+                            showCancelButton: 0,
+                            confirmButtonText: 'Ok',
+                            cancelButtonText: 'No! Cancel Please',
+                            confirmButtonClass: "btn btn-success mt-2",
+                            cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                            buttonsStyling: !1
+                        }).then(function (t) {
+                            if (t.value) {
+                                isInvoiced = false;
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select Atleast one Treatment To Prior Request!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+        //#endregion
+
+        //#region Print Quotation
+        function print_Quotation() {
+            var table = $("#tbl_DentInsTreat").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                var _objArray = [];
+
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    var _obj = {
+                        "id": _data.ptId
+                    };
+
+                    _objArray.push(_obj);
+                });
+
+                var idsString = _objArray.map(obj => obj.id).join(',');
+
+                $.ajax({
+                    url: '@Url.Action("Print_Insurance_Quotation", "PatientTreatments", new { area = "EMR" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: { ids: idsString, appId : "@emr.appId" },
+                    async: false,
+                    success: function (response) {
+                        if (response.isSuccess) {
+                            window.open(response.fileName)
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Error!",
+                                text: response.message,
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60"
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Print Quotation!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+        //#endregion
+
+        //#region Update Approval Button Click
+        $('#btn_update_auth').on('click', function (e) {
+            e.preventDefault();
+
+            if ($("#auth_code").val().trim() != "") {
+
+                if ($("#appr_date").val() != "" && $("#exp_date").val() != "") {
+                    var table = $("#tbl_DentInsTreat").DataTable();
+
+                    var rows = $(table.$('input[type="checkbox"]').map(function () {
+                        return $(this).prop("checked") ? $(this).closest('tr') : null;
+                    }));
+
+                    let isValid = true;
+                    let _frm = moment($("#appr_date").val(), "DD-MMMM-YYYY");
+                    let _to = moment($("#exp_date").val(), "DD-MMMM-YYYY");
+
+                    if (($("#appr_date").val() != null && $("#appr_date").val() != 0 && $("#appr_date").val() != "" && $("#appr_date").val() != undefined) && ($("#exp_date").val() != null && $("#exp_date").val() != 0 && $("#exp_date").val() != "" && $("#exp_date").val() != undefined)) {
+                        if (_frm.isValid() && _to.isValid()) {
+                            if (_to.diff(_frm, 'days') < -1) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("appr_date");
+                                index.push("exp_date");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+                            }
+                        }
+                    }
+
+                    if (isValid) {
+                        if (rows.length > 0) {
+                            $.each(rows, function (index, rowId) {
+                                var _data = table.row(rowId).data();
+
+                                if (_data.pt_status != 'Approved' && _data.pt_status != 'Invoiced') {
+                                    var _dataInsert = {
+                                        "ptId": _data.ptId,
+                                        "auth_code": $("#auth_code").val().trim(),
+                                        "appr_date": $("#appr_date").val(),
+                                        "exp_date": $("#exp_date").val()
+                                    }
+
+                                    $.ajax({
+                                        type: "POST",
+                                        url: "@Url.Action("UpdateApproval", "PatientTreatments", new { area = "EMR" })",
+                                        dataType: 'json',
+                                        data: _dataInsert,
+                                        success: function (data) {
+                                            var alertPlaceholder = document.getElementById("errorDental");
+
+                                            function alert(e, t) {
+                                                var l = document.createElement("div");
+                                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                            }
+
+                                            if (data.isSuccess) {
+                                                if (data.invId > 0) {
+                                                    getDentalInsTreatments();
+
+                                                    alert("<i class='fe fe-check-circle text-white'></i> " + data.message + "", "success");
+
+                                                    $("#auth_code").val("")
+                                                    $("#appr_date").val("")
+                                                    $("#exp_date").val("")
+                                                }
+                                                else {
+                                                    alert("<i class='fe fe-alert-triangle text-white'></i> " + data.message + "", "warning");
+                                                }
+                                            }
+                                            else {
+                                                alert("<i class='fe fe-alert-danger text-white'></i> " + data.message + "", "danger");
+                                            }
+
+                                            Timeout();
+                                        },
+                                        error: function (xhr) {
+                                            console.log(xhr);
+                                        }
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Forbidden!",
+                                        text: "Unable to Update to Approval Details as Patient Treatment already Approved!!",
+                                        icon: "warning",
+                                        showCancelButton: 0,
+                                        confirmButtonText: 'Ok',
+                                        cancelButtonText: 'No! Cancel Please',
+                                        confirmButtonClass: "btn btn-success mt-2",
+                                        cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                        buttonsStyling: !1
+                                    });
+                                }
+                            });
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Attention!",
+                                text: "Please Select atleast 1 Treatment in the list to Update Approval!",
+                                icon: "info",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60"
+                            });
+                        }
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Required!",
+                            text: "Approval Date can't be greater than the Expiry Date!",
+                            icon: "warning",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197",
+                            cancelButtonColor: "#ff3d60"
+                        });
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Required!",
+                        text: "Please Select Approval Date & Expiry Date!",
+                        icon: "info",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Required!",
+                    text: "Please Enter Authorization Code!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Update Status Click
+        $('#btn_Update_Status').on('click', function (e) {
+            e.preventDefault();
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if ($("#upt_status").val() != null && $("#upt_status").val() != "") {
+                if (rows.length > 0) {
+                    $.each(rows, function (index, rowId) {
+                        var _data = table.row(rowId).data();
+
+                        if (_data.pt_status != "Invoiced" && _data.pt_status != "Approved") {
+                            var _dataInsert = {
+                                "ptId": _data.ptId,
+                                "pt_status": $("#upt_status :selected").val(),
+                                "pt_notes": ""
+                            }
+
+                            $.ajax({
+                                type: "POST",
+                                url: "@Url.Action("UpdatePatientTreatmentStatus", "PatientTreatments", new { area = "EMR" })",
+                                dataType: 'json',
+                                data: _dataInsert,
+                                success: function (data) {
+                                    var alertPlaceholder = document.getElementById("errorDental");
+
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-light-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+
+                                    if (data.isSuccess) {
+                                        if (data.invId > 0) {
+                                            alert("<i class='fe fe-check-circle text-success'></i> Patient Treatment(s) Status Updated Successfully!", "success");
+
+                                            $("#upt_status").val("").trigger("change");
+
+                                            getDentalInsTreatments();
+                                        }
+                                        else {
+                                            alert("<i class='fe fe-alert-triangle text-warning'></i> " + data.message + "", "warning");
+                                        }
+                                    }
+                                    else {
+                                        alert("<i class='fe fe-minus-circle text-danger'></i> " + data.message + "!", "danger");
+                                    }
+
+                                    Timeout();
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Forbidden!",
+                                text: "Not Allowed to Change Treatment(s) " + _data.pt_status + " status!",
+                                icon: "warning",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197",
+                                cancelButtonColor: "#ff3d60"
+                            });
+                        }
+                    });
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Please Select atleast 1 Treatment in the list to Update Status!",
+                        icon: "info",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select Status to Update!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Add Items
+            function addItems(ptId) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("TreatmentItems", "TreatmentItems", new { area = "EMR" })?ptId=" + ptId,
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (response) {
+                        localStorage.setItem("ptId", ptId)
+
+                        $('#treatment_item_details').attr("data-modal-from", "Patient-Treatment");
+                        $("#treatment_item_details_body").html(response);
+                        $("#treatment_item_details").modal("show");
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                    }
+                });
+            }
+        //#endregion
+
+        //#region Add Attachements
+            function addAttachements(ptId) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("TreatmentAttachements", "TreatmentAttachements", new { area = "EMR" })?ptId=" + ptId,
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (response) {
+                        $('#treatment_attachments_details').attr("data-modal-from", "Patient-Treatment");
+
+                        $("#treatment_attachments_details_body").html(response);
+
+                        $("#treatment_attachments_details").modal("show");
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                    }
+                });
+            }
+        //#endregion
+
+        //#region Copy Previous Dental Treatment
+        function copyPrevious(ptId) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("CopyInsuranceTreatment", "PatientTreatments", new { area = "EMR" })?pt_appId=" + @emr.appId +"&ptId=" + ptId + "&type=Dental",
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        if (response.isSuccess) {
+                            getDentalInsTreatments();
+
+                            Swal.fire({
+                                title: "Success!",
+                                text: response.message,
+                                icon: "success",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                        else {
+                            if (response.val == -1) {
+                                Swal.fire({
+                                    title: "Duplicate!",
+                                    text: response.message,
+                                    icon: "warning",
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: response.message,
+                                    icon: "error",
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                        }
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Access Denied!",
+                            text: "You do not have enough priveleges to Copy Treatment!",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197",
+                            cancelButtonColor: "#ff3d60"
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Move Previous Dental Treatment
+        function movePrevious(ptId) {
+            Swal.fire({
+                title: "Are you sure you want to Move this Treatment ?",
+                text: "The selected Treatment will be moved to the current Appointment!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2",
+                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("MoveInsuranceTreatment", "PatientTreatments", new { area = "EMR" })?pt_appId=" + @emr.appId +"&ptId=" + ptId + "&type=Dental",
+                        success: function (response) {
+                            if (response.isAuthorized) {
+                                if (response.isSuccess) {
+                                    getPreviousDentalInsTreatments();
+                                    getDentalInsTreatments();
+
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: response.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    if (response.val == -1) {
+                                        Swal.fire({
+                                            title: "Forbidden!",
+                                            text: response.message,
+                                            icon: "warning",
+                                            confirmButtonColor: "#0bb197"
+                                        });
+                                    }
+                                    else if (response.val == -2) {
+                                        Swal.fire({
+                                            title: "Duplicate!",
+                                            text: response.message,
+                                            icon: "warning",
+                                            confirmButtonColor: "#0bb197"
+                                        });
+                                    }
+                                    else {
+                                        Swal.fire({
+                                            title: "Error!",
+                                            text: response.message,
+                                            icon: "error",
+                                            confirmButtonColor: "#0bb197"
+                                        });
+                                    }
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: response.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197",
+                                    cancelButtonColor: "#ff3d60"
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Time Validation Initialization
+        var validate_time = function () {
+            $.validator.addMethod("compareTimes", function (value, element, params) {
+                var startTime = $('#time_picker1').val();
+                var endTime = $('#time_picker2').val();
+
+                if (startTime && endTime) {
+                    var startDate = new Date('2000-01-01T' + startTime);
+                    var endDate = new Date('2000-01-01T' + endTime);
+
+                    return startDate.getTime() < endDate.getTime();
+                }
+
+                return true;
+            }, "End Time must be greater than Start Time");
+
+            $("#formDentalIns").validate({
+                rules: {
+                    time_picker1: {
+                        required: true
+                    },
+                    time_picker2: {
+                        required: true,
+                        compareTimes: true
+                    }
+                },
+                messages: {
+                    time_picker1: {
+                        required: "Select Start Time!"
+                    },
+                    time_picker2: {
+                        required: "Select End Time!"
+                    }
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                    } else {
+                        elem.parent().addClass('has-error');
+                    }
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                    } else {
+                        elem.removeClass('has-error');
+                    }
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        element = $("#select2-" + elem.attr("id") + "-container").parent();
+                        error.insertAfter(element);
+                    } else {
+                        error.insertAfter(element);
+                    }
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Update Time Button Click
+        $('#btn_update_startendtime').on('click', function (e) {
+            e.preventDefault();
+
+            if ($("#formDentalIns").valid()) {
+
+                var table = $("#tbl_DentInsTreat").DataTable();
+
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+
+                if (rows.length > 0) {
+                    $('#btn_update_startendtime').removeClass("btn btn-cyan");
+                    $('#btn_update_startendtime').addClass("btn btn-cyan btn-loaders btn-icon disabled");
+                    $('#btn_update_startendtime').html("Updating...");
+
+                    $.each(rows, function (index, rowId) {
+                        var _data = table.row(rowId).data();
+
+                        var _dataInsert = {
+                            "ptId": _data.ptId,
+                            "pt_date_collected": $("#time_picker1").val(),
+                            "pt_date_received": $("#time_picker2").val(),
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("UpdatePhysicianOrderTime", "PhysicianOrders", new { area = "NurseStation" })",
+                            dataType: 'json',
+                            data: _dataInsert,
+                            success: function (data) {
+                                $('#btn_update_startendtime').removeClass("btn btn-cyan btn-loaders btn-icon disabled");
+                                $('#btn_update_startendtime').addClass("btn btn-cyan");
+                                $('#btn_update_startendtime').html("Update Time");
+
+                                var alertPlaceholder = document.getElementById("errorDental");
+
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+
+                                if (data.isSuccess) {
+                                    if (data.isInserted) {
+                                        getDentalInsTreatments();
+
+                                        alert("<i class='fe fe-check-circle text-white'></i> Time Updated Successfully!", "success");
+
+                                        $("#time_picker1").val("");
+
+                                        $("#time_picker2").val("");
+                                    }
+                                    else {
+                                        alert("<i class='fe fe-alert-triangle text-white'></i> " + data.message + "", "warning");
+                                    }
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-danger' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Validation Error! Please validate before resubmitting!&nbsp;</strong><br/><ul>";
+
+                                    $.each(data.message, function (index, value) {
+                                        html += "<li><small>" + value + "</small><li>";
+                                        var elem = $("#" + index);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    });
+
+                                    html += "</ul></div></div>";
+
+                                    $("#errorSummary").html(html);
+                                }
+
+                                Timeout();
+                            },
+                            error: function (xhr) {
+                                $('#btn_update_startendtime').removeClass("btn btn-cyan btn-loaders btn-icon disabled");
+                                $('#btn_update_startendtime').addClass("btn btn-cyan");
+                                $('#btn_update_startendtime').html("Update Time");
+                                console.log(xhr);
+                            }
+                        });
+                    });
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Please Select atleast 1 Treatment in the list to Set Time!",
+                        icon: "info",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197",
+                        cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+        });
+        //#endregion
+
+        //#region Prior Request Direct Button Click
+        $('#btn_prior_request_direct').on('click', function (e) {
+            e.preventDefault();
+
+            var pt_resub_type_ = "";
+            var pt_resub_notes_ = "";
+            var batch_count = 0;
+            var pt_batch = "";
+            var pt_batch2 = "";
+            var btch_msg = 0;
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+
+            if (rows.length > 0) {
+                var ptIdArray = [];
+
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    if (_data) {
+                        ptIdArray.push(_data.ptId);
+
+                        if (batch_count === 0) {
+                            pt_batch = _data.pt_auth_batch;
+                        }
+                        else {
+                            var pt_batch2 = _data.pt_auth_batch;
+
+                            if (pt_batch !== pt_batch2) {
+                                btch_msg = 1;
+
+                                return false;
+                            }
+                        }
+
+                        batch_count++;
+                    }
+                });
+
+                var ptIds = ptIdArray.join(",");
+
+                var alertPlaceholder = document.getElementById("errorPI");
+
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close"><span aria-hidden="true">&times;</span></button></div>', alertPlaceholder.append(l)
+                }
+
+                if (pt_batch == "" || pt_batch == "&nbsp;" || pt_batch == null) {
+                    alert("<i class='fa fa-exclamation-triangle text-white'></i> Please Generate Batch to Prior Request Direct!", "warning");
+
+                    Timeout();
+                }
+                else if (btch_msg != 0) {
+                    alert("<i class='fa fa-exclamation-triangle text-white'></i> You can only Submit 1 batch at a time!", "warning");
+
+                    Timeout();
+                }
+                else {
+                    if (ptIds != "") {
+                        var s_flag = $("#s_flag").val();
+
+                        if (($("#upt_resub_type").val() != null) && ($("#upt_resub_type").val() != "")) {
+                            update_resub_type_comments(ptIds);
+                        }
+
+                        $.ajax({
+                            url: '@Url.Action("GenerateXmlDirect", "PriorReqPatientTreatments", new { area = "Documentation" })?ptIds=' + ptIds + "&appId=" + @emr.appId + "&s_flag=" + s_flag,
+                            type: "GET",
+                            dataType: "text",
+                            async: false,
+                            success: function (response) {
+                                if (response.includes("Error")) {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "eClaim transaction validation is failed with errors!! Please check the downloaded Error Report",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                    var currentDateTime = new Date();
+                                    var year = currentDateTime.getFullYear();
+                                    var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                                    var day = currentDateTime.getDate().toString().padStart(2, '0');
+                                    var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                                    var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                                    var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                                    var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+                                    console.log(response);
+                                    var eClaim_ErrorReport = response; // Assuming response is a string containing the Excel file data
+
+                                    var blob = new Blob([eClaim_ErrorReport], { type: 'application/vnd.ms-excel' });
+
+                                    var url = window.URL.createObjectURL(blob);
+                                    var link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = 'ERROR_REPORT_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xls';
+                                    document.body.appendChild(link);
+
+                                    link.click();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Prior Request Direct Generated Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                }
+
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                        });
+                    }
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Update Prior Request Direct!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Update Resubmission Type and Comments
+        function update_resub_type_comments(ptIds) {
+            if (ptIds != null) {
+                var _dataInsert = {
+                    "ptIds": ptIds,
+                    "pt_resub_type": $("#upt_resub_type").val(),
+                    "pt_resub_notes": $("#upt_resub_notes").val().trim(),
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdateResubTypeComments", "PriorReqPatientTreatments", new { area = "Documentation" })",
+                    dataType: 'json',
+                    data: _dataInsert,
+                    success: function (data) {
+                        console.log(data);
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Update Prior Request Direct!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+        //#endregion
+
+        //#region Prior Request Manual Button Click
+        $("#btn_prior_request_manual").click(function (event) {
+            event.preventDefault();
+            var Resub_ClaimSystemIds = "";
+            var Resub_ActclaimSystemIds = "";
+            var ptIds = "";
+            var table = $("#tbl_DentInsTreat").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            var ptIdArray = [];
+            var _data;
+
+            $.each(rows, function (index, rowId) {
+                _data = table.row(rowId).data();
+
+                if (_data) {
+                    ptIdArray.push(_data.ptId);
+                }
+            });
+
+            ptIds = ptIdArray.join(",");
+
+            if (ptIds.substring(1) != "") {
+                if (($("#upt_resub_type").val() != null) || ($("#upt_resub_type").val() != "")) {
+                    update_resub_type_comments(ptIds);
+                }
+
+                var _obj = {
+                    "Flag": $("#s_flag").val(),
+                    "appId": @emr.appId,
+                    "ptIds": ptIds.substring(1),
+                }
+
+                $.ajax({
+                    url: '@Url.Action("GenerateXml", "PriorReqPatientTreatments", new { area = "Documentation" })?ptIds=' + ptIds + "&appId=" + @emr.appId+ "&s_flag=" + $("#s_flag").val(),
+                    type: "GET",
+                    dataType: "text",
+                    success: function (response) {
+                        if (!response.isSuccess) {
+                            var currentDateTime = new Date();
+                            var year = currentDateTime.getFullYear();
+                            var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                            var day = currentDateTime.getDate().toString().padStart(2, '0');
+                            var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                            var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                            var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                            var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+
+                            // Create a hidden anchor element
+                            var link = document.createElement('a');
+                            link.href = 'data:application/xml;charset=utf-8,' + encodeURIComponent(response);
+                            link.download = 'PR-' + "@emr.set_permit_no" + '_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xml';
+
+                            link.click();
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Error!",
+                                text: response.message,
+                                icon: "error",
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list For Prior Request Manual!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Prior Request Cancel Button Click
+        $('#btn_prior_auth_cancel').on('click', function (e) {
+            e.preventDefault();
+
+            var pt_resub_type_ = "";
+            var pt_resub_notes_ = "";
+            var batch_count = 0;
+            var pt_batch = "";
+            var pt_batch2 = "";
+            var btch_msg = 0;
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+
+            if (rows.length > 0) {
+                var ptIdArray = [];
+                var _data;
+
+                $.each(rows, function (index, rowId) {
+                    _data = table.row(rowId).data();
+
+                    if (_data) {
+                        ptIdArray.push(_data.ptId);
+                    }
+                });
+
+                var ptIds = ptIdArray.join(",");
+
+                if (ptIds != "") {
+                    var s_flag = $("#s_flag").val();
+
+                    $.ajax({
+                        url: '@Url.Action("PriorRequestCancel", "PriorReqPatientTreatments", new { area = "Documentation" })?ptIds=' + ptIds + "&appId=" + @emr.appId + "&s_flag=" + s_flag,
+                        type: "POST",
+                        dataType: "json",
+                        async: false,
+                        success: function (response) {
+                            if (response.isSuccess) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Prior Authorization Cancelled Successfully!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: response.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Cancel eAuthorization!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Update Batch
+        $('#btn_update_Batch').on('click', function (e) {
+            e.preventDefault();
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    var _dataInsert = {
+                        "ptId": _data.ptId,
+                        "pt_appId": @emr.appId,
+                    }
+
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("UpdateBatch", "PriorReqPatientTreatments", new { area = "Documentation" })",
+                        dataType: 'json',
+                        data: _dataInsert,
+                        success: function (data) {
+                            if (data.isSuccess) {
+                                var alertPlaceholder = document.getElementById("errorPI");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Batch Successfully Updated for the selected Treatment(s)!", "success");
+
+                                getDentalInsTreatments();
+
+                                Timeout();
+                            }
+                            else {
+                                if (data.invId == -1) {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong><i class='fa fa-exclamation-triangle text-white'></i> Batch(es) already Updated for the selected Treatment(s)!</strong><br/>" +
+                                        "</div></div>";
+                                    $("#errorPI").html(html);
+
+                                    Timeout();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-light-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong><i class='fe fe-ban text-warning'></i> Failed to update Batch(es) for the selected Treatment(s)!</strong><br/>" +
+                                        "</div></div>";
+                                    $("#errorPI").html(html);
+
+                                    Timeout();
+                                }
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    });
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Update Batch!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Clear Batch
+        $('#btn_clearBatch').on('click', function (e) {
+            e.preventDefault();
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            if (rows.length > 0) {
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    var _dataInsert = {
+                        "ptId": _data.ptId,
+                        "pt_appId": @emr.appId,
+                    }
+
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("ClearBatch","PriorReqPatientTreatments", new { area = "Documentation" })",
+                        dataType: 'json',
+                        data: _dataInsert,
+                        success: function (data) {
+                            if (data.isSuccess) {
+                                if (data.invId > 0) {
+                                    var alertPlaceholder = document.getElementById("errorPI");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+
+                                    alert("<i class='fe fe-check-circle text-white'></i> Batch Successfully Cleared for the selected Treatment!", "success");
+
+                                    getDentalInsTreatments();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Failed to Clear the batch</strong><br/>" +
+                                        "</div></div>";
+                                    $("#errorPI").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                    "<strong>Error! " + data.message + "</strong><br/>" +
+                                    "</div>";
+
+                                $("#errorPI").html(html);
+
+                                Timeout();
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    });
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Clear Batch!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Prior Request Direct Button Click (MOH - Riayati)
+        $('#btn_prior_request_direct_moh').on('click', function (e) {
+            e.preventDefault();
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+
+            if (rows.length > 0) {
+                var ptIdArray = [];
+
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    if (_data) {
+                        ptIdArray.push(_data.ptId);
+                    }
+                });
+
+                var ptIds = ptIdArray.join(",");
+
+                var alertPlaceholder = document.getElementById("errorPI");
+
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close"><span aria-hidden="true">&times;</span></button></div>', alertPlaceholder.append(l)
+                }
+
+                if (ptIds != "") {
+                    var s_flag = $("#s_flag").val();
+
+                    if (($("#upt_resub_type").val() != null) && ($("#upt_resub_type").val().trim() != "")) {
+                        update_resub_type_comments(ptIds);
+                    }
+
+                    $.ajax({
+                        url: '@Url.Action("GenerateJsonDirect", "PriorReqPatientTreatments", new { area = "Documentation" })?ptIds=' + ptIds + "&appId=" + @emr.appId + "&s_flag=" + s_flag,
+                        type: "GET",
+                        dataType: "json",
+                        async: false,
+                        success: function (data) {
+                            if (data.isSuccess) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: data.message,
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: data.response.UserMessage,
+                                    html: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Submit for eAuthorization!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Prior Request Manual Button Click (MOH - Riayati)
+        $("#btn_prior_request_manual_moh").click(function (event) {
+            event.preventDefault();
+
+            var Resub_ClaimSystemIds = "";
+            var Resub_ActclaimSystemIds = "";
+            var ptIds = "";
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            var ptIdArray = [];
+            var _data;
+
+            $.each(rows, function (index, rowId) {
+                _data = table.row(rowId).data();
+
+                if (_data) {
+                    ptIdArray.push(_data.ptId);
+                }
+            });
+
+            ptIds = ptIdArray.join(",");
+
+            if (ptIds.substring(1) != "") {
+                if (($("#upt_resub_type").val() != null) && ($("#upt_resub_type").val().trim() != "")) {
+                    update_resub_type_comments(ptIds);
+                }
+
+                $.ajax({
+                    url: '@Url.Action("GenerateJsonManual", "PriorReqPatientTreatments", new { area = "Documentation" })?ptIds=' + ptIds + "&appId=" + @emr.appId+ "&s_flag=" + $("#s_flag").val(),
+                    type: "GET",
+                    dataType: "text",
+                    success: function (response) {
+                        if (!response.isSuccess) {
+                            var currentDateTime = new Date();
+                            var year = currentDateTime.getFullYear();
+                            var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                            var day = currentDateTime.getDate().toString().padStart(2, '0');
+                            var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                            var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                            var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                            var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+
+                            // Create a hidden anchor element
+                            var link = document.createElement('a');
+                            link.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(response);
+                            link.download = 'PR-' + "@emr.set_permit_no" + '_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.json';
+
+                            // Trigger a click event on the anchor to initiate the download
+                            link.click();
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Error!",
+                                text: response.message,
+                                icon: "error",
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list For Prior Request Manual!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Prior Request Cancel Button Click (MOH - Riayati)
+        $('#btn_prior_auth_cancel_moh').on('click', function (e) {
+            e.preventDefault();
+
+            var pt_resub_type_ = "";
+            var pt_resub_notes_ = "";
+            var batch_count = 0;
+            var pt_batch = "";
+            var pt_batch2 = "";
+            var btch_msg = 0;
+
+            var table = $("#tbl_DentInsTreat").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+
+            if (rows.length > 0) {
+                var ptIdArray = [];
+                var _data;
+
+                $.each(rows, function (index, rowId) {
+                    _data = table.row(rowId).data();
+
+                    if (_data) {
+                        ptIdArray.push(_data.ptId);
+                    }
+                });
+
+                var ptIds = ptIdArray.join(",");
+
+                if (ptIds != "") {
+                    var s_flag = $("#s_flag").val();
+
+                    $.ajax({
+                        url: '@Url.Action("PriorRequestJsonCancel", "PriorReqPatientTreatments", new { area = "Documentation" })?ptIds=' + ptIds + "&appId=" + @emr.appId + "&s_flag=" + s_flag,
+                        type: "POST",
+                        dataType: "json",
+                        async: false,
+                        success: function (data) {
+                            if (data.isSuccess) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Prior Authorization Cancelled Successfully!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: data.response.UserMessage,
+                                    html: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Please Select atleast 1 Treatment in the list to Cancel eAuthorization!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197",
+                    cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region UI/UX Functions
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

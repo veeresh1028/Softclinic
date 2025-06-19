@@ -1,0 +1,272 @@
+﻿@model BusinessEntities.EMRForms.NASNLGIC
+@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <img src="~/images/Reimbursement_Forms/NLGI.png" />
+            </div>
+            <div class="card-body">
+                <div id="nasnlgic_add">
+                </div>
+                <div id="nasnlgic_edit" style="display:none">
+                </div>
+
+                <div>
+                    <h4 class="page-title mb-0 text-primary">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_PreNASNLGIC" class="table table-striped table-bordered text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        $("#nasnlgic_add").show();
+        $("#nasnlgic_edit").hide();
+        GetNASNLGIC();
+        GetPreviousNASNLGIC();
+        });
+    //#endregion
+
+    //#region Load NASNLGIC
+        var GetNASNLGIC = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllNASNLGIC", "ReimbursementForms", new { area = "EMRForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var _data = response;
+                        console.log(response);
+                        if (_data.length > 0) {
+                            Editnasnlgic();
+                            $("#nasnlgic_add").hide();
+                            $("#nasnlgic_edit").show();
+                        }
+                        else {
+
+                            $("#nasnlgic_add").show();
+                            $("#nasnlgic_edit").hide();
+                            Addnasnlgic();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            }).done(function () {
+                resizedt();
+            });
+        }
+    //#endregion
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion
+
+    //#region Load PreviousNASNLGIC
+        var GetPreviousNASNLGIC = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreNASNLGIC", "ReimbursementForms", new { area = "EMRForms" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_PreNASNLGIC')) {
+                            table = $('#tbl_PreNASNLGIC').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion
+
+    //#region Previous Bind Datatable
+        var BindDataTableP = function (response) {
+        var table = $("#tbl_PreNASNLGIC").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "nalnId",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-center",
+                    "render": function (data, type, row, meta) {
+                        let _index = (meta.row) + 1;
+                        if (_index >= 10) {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                        }
+                        else {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                        }
+                    }
+                },
+
+                {
+                    "mData": "app_fdate",
+                    "className": "text-left",
+                    "render": function (data, type, row, meta) {
+                        if (type === 'display' || type === 'filter') {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                        return moment(data).format("YYYY-MM-DD");
+                    }
+                },
+                {
+                    "mData": "doctor_name",
+                    "className": 'text-justify text-wrap'
+                },
+
+                {
+                    "mData": "nalnId",
+                    "className": 'btn-view text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (nalnId, type, full, meta) {
+                        var Action = '';
+                        //View Details
+                        Action += '<a id=btn_View_NASNLGIC onclick="PrintPreNASNLGIC(' + full.nalnId + ')" ><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">  <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>  <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg></a> ';
+
+                        return Action;
+                    }
+                },
+            ],
+            order: [[0, 'asc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                lengthMenu: '_MENU_',
+                scrollX: "100%",
+            },
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Previous NAS-QIC Claim Request',
+                    footer: 'true',
+                    className: 'oldbutton',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Previous NAS-QIC Claim Request',
+                    footer: 'true',
+                    className: 'oldbutton',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Previous NAS-QIC Claim Request',
+                    footer: 'true',
+                    className: 'oldbutton',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Previous NAS-QIC Claim Request',
+                    footer: 'true',
+                    className: 'oldbutton',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3]
+                    }
+                }
+            ]
+        });
+        table.buttons().container().appendTo('#tbl_PreNASNLGIC_wrapper .col-md-6:eq(0)');
+    };
+    //#endregion
+
+    //#region Print previous
+        function PrintPreNASNLGIC(nalnId) {
+            window.open("@Url.Action("PrintNASNLGIC", "ReimbursementForms", new { area = "EMRForms" })?nalnId=" + nalnId)
+        }
+    //#endregion
+
+    //#region Add NASNLGIC
+        function Addnasnlgic() {
+            $('#nasnlgic_edit').hide();
+            var x = $("#nasnlgic_add");
+            x.load("@Url.Action("CreateNASNLGIC", "ReimbursementForms", new { area = "EMRForms" })", function () {
+                $("#nasnlgic_add").show();
+            });
+        }
+    //#endregion
+
+    //#region Edit NASNLGIC
+        function Editnasnlgic() {
+            var x = $("#nasnlgic_edit");
+            x.load("@Url.Action("EditNASNLGIC", "ReimbursementForms", new { area = "EMRForms" })?appId=" + @emr.appId, function () {
+            });
+        }
+    //#endregion
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion
+</script>
+

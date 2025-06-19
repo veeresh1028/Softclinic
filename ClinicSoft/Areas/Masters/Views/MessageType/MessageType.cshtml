@@ -1,0 +1,445 @@
+﻿@model IEnumerable<BusinessEntities.Masters.MessageType>
+@{
+    ViewBag.Title = "Message Type";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Message Type</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <a data-bs-toggle="modal" data-bs-target="#message_type_modal" class="btn btn-secondary" onclick="addMessageType()"><i class="mdi mdi-plus"></i>&nbsp;Add Message Type</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="MessageTypeAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_message_type" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Message Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Designation</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Employee</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">TAT <small class="text-lowercase">(in min)</small></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Message Type Modal -->
+<div class="modal fade" id="message_type_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="message_type_body">
+        </div>
+    </div>
+</div>
+<!-- End Message Type Modal -->
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            GetMessageTypes();
+        });
+        //#endregion
+
+        //#region Load Message Types
+        var GetMessageTypes = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllMessageTypes", "MessageType", new { area = "Masters" })",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_message_type')) {
+                            table = $('#tbl_message_type').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_message_type").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "mtId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    { "mData": "mt_branch_name" },
+                    { "mData": "mt_type" },
+                    { "mData": "mt_desig_name" },
+                    { "mData": "mt_emp_name" },
+                    { "mData": "mt_tat" },
+                    {
+                        "className": 'text-center',
+                        "mData": "mtId",
+                        "render": function (mtId, type, full, meta) {
+                            var visible = full.actionvisible;
+                            var mt_status = full.mt_status;
+
+                            if (visible === "True") {
+                                if (full.mt_status === "Active") {
+                                    return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateStatus(\'' + mtId + '\',\' Active \')">' + mt_status + '</button>'
+
+                                }
+                                else if (full.mt_status === "Inactive") {
+                                    return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateStatus(\'' + mtId + '\',\'Inactive\')">' + mt_status + '</button>'
+
+                                }
+                                else if (full.mt_status === "Deleted") {
+                                    return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateStatus(\'' + mtId + '\',\'Deleted\')">' + mt_status + '</button>'
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    },
+                    {
+                        "mData": "mtId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (mtId, type, full, meta) {
+                            var status = full.mt_status;
+                            var visible = full.actionvisible;
+                            if (status === "Active" && visible === "True") {
+
+                                return '<button type="button" data-bs-toggle="modal" data-bs-target="#message_type_modal" onclick="editMessageType(' + mtId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "mtId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (mtId, type, full, meta) {
+                            var status = full.mt_status;
+                            var visible = full.actionvisible;
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" onclick="deleteMessageType(' + mtId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Type / Name / Designation / Employee </span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Message Types',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Message Types to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Message Types',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Message Types to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Message Types',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Message Types to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Message Types',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Message Types!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_message_type_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion Bind DataTable
+
+        //#region Add Message Type
+        function addMessageType() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateMessageType", "MessageType", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#message_type_body").html(data);
+                    $("#message_type_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Message Type : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Message Type
+        function editMessageType(mtId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditMessageType", "MessageType", new { area = "Masters" })?mtId=" + mtId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#message_type_body").html(data);
+                    $("#message_type_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Editing Message Type : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Update Message Type Status
+        var updateStatus = function (mtId, mt_status) {
+            mt_status = (mt_status == "Deleted" || mt_status == "Inactive") ? "Active" : "Inactive"
+
+            Swal.fire({
+                title: "Are you sure you want to change status ?",
+                text: "This action will change the status of the selected Message Type!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("UpdateMessageTypeStatus", "MessageType", new { area = "Masters" })?mtId=" + mtId + "&mt_status=" + mt_status,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetMessageTypes();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to change Message Type Status!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Update Message Type Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Message Type
+        var deleteMessageType = function (mtId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Message Type ?",
+                text: "This action will delete this Message Type!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteMessageType", "MessageType", new { area = "Masters" })?mtId=' + mtId +'&mt_status=Deleted',
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetMessageTypes();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete Message Types!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Message Type! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region UI/UX Functions
+        var alertPlaceholder = document.getElementById("MessageTypeAlert");
+        function alert(e, t) {
+            var l = document.createElement("div");
+            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+        }
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

@@ -1,0 +1,179 @@
+﻿<div class="card mb-0">
+    <div class="card-header">
+        <div class="card-title">
+            Patients (By Survey Emojis)
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 col-lg-6">
+                <div class="morris-wrapper-demo" id="emoji_chart" title=""></div>
+            </div>
+            <div class="col-md-6 col-lg-6">
+                <div id="chart_emoji" class="chartsh" title=""></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="~/assets/plugins/morris/raphael-min.js"></script>
+<script src="~/assets/plugins/morris/morris.js"></script>
+<script src="~/assets/plugins/chart/chart.bundle.js"></script>
+<script src="~/assets/plugins/chart/utils.js"></script>
+<script src="~/assets/js/apexcharts.js"></script>
+<script src="~/assets/plugins/charts-c3/d3.v5.min.js"></script>
+<script src="~/assets/plugins/charts-c3/c3-chart.js"></script>
+<script type="text/javascript">
+    //#region Document Load
+    $(function () {
+        GetReport(0);
+    });
+    //#endregion
+
+    //#region Get Report Details
+    var GetReport = function (search_type) {
+
+        var _data = {
+            "search_type"   : search_type,
+            "date_from"     : $('#select_date_from').val(),
+            "date_to"       : $('#select_date_to').val()
+        }
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetSurveyEmojisChart", "SurveyGraphicalCharts", new { area = "Reports" })",
+            data: _data,
+            beforeSend: function () {
+                $('#progress_loader').show();
+                $('#toastBody').html('');
+                $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                $('#toastReport').removeClass("d-none");
+                $('#reportToast').show();
+            },
+            start_time: new Date().getTime(),
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    $('#progress_loader').hide();
+
+                    //#region Load Charts
+                    reportChart(response);
+                    reportBarChart(response);
+                    //#endregion
+
+                    //#region Toast Before / After Filtering
+                    var etime = new Date().getTime() - this.start_time;
+
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                    $('#reportToast').show();
+                    //#endregion
+                }
+                else
+                {
+                    console.log("You are not Authorized To View This Page!");
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+                $('#progress_loader').hide();
+            }
+        }).done(function () {
+            setTimeout(function () {
+                $('#reportToast').fadeOut('fast');
+                $('#toastReport').addClass("d-none");
+            }, 5000);
+        });
+    }
+    //#endregion
+
+    //#region Bind Report Pie Chart
+    var reportChart = function (response) {
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var dynamicNames = {};
+        _labels.forEach(function (name, index) {
+            var dataKey = 'data' + (index + 1);
+            dynamicNames[dataKey] = name;
+        });
+
+        var _columns = response.map(function (value) {
+            return value.total;
+        });
+
+        var dynamicColumns = [];
+        var isnull = true;
+
+        _columns.forEach(function (value, index) {
+            if (value > 0) {
+                isnull = false;
+            }
+            var dataKey = 'data' + (index + 1);
+            dynamicColumns.push([dataKey, value]);
+        });
+
+        if (isnull) {
+            dynamicColumns = [['data1', 100]];
+            dynamicNames = { 'data1': 'Null' };
+        }
+
+        var chart = c3.generate({
+            bindto: '#chart_emoji',
+            data: {
+                columns: dynamicColumns,
+                type: 'pie',
+                names: dynamicNames
+            },
+            axis: {
+            },
+            legend: {
+                show: false,
+            },
+            padding: {
+                bottom: 0,
+                top: 0
+            },
+        });
+    }
+    //#endregion
+
+    //#region Bind Report Bar Chart
+    var reportBarChart = function (response) {
+        $('#emoji_chart').empty('');
+
+        var _labels = response.map(function (value) {
+            return value.labels;
+        });
+
+        var barColorsArray = ['#3498DB', '#34495E', '#26B99A', '#44c4fa', '#664dc9', '#06c0d9', '#664dc9', '#d97b06', '#26B99A', '#44c4fa'];
+        var colorIndex = 0;
+
+        new Morris.Bar({
+            element: 'emoji_chart',
+            data: response,
+            xkey: 'labels',
+            ykeys: ['total'],
+            labels: _labels,
+            stacked: true,
+            gridTextSize: 10,
+            hideHover: 'auto',
+            resize: true,
+            xLabelMargin: 25,
+            hoverCallback: function (index, options, content, row) {
+                var label = options.data[index].labels;
+                var total = options.data[index].total;
+                return label + ': ' + total + ' Nos';
+            },
+            barColors: function () {
+                if (colorIndex < 4)
+                    return barColorsArray[++colorIndex];
+                else {
+                    colorIndex = 0;
+                    return barColorsArray[++colorIndex];
+                }
+            }
+        });
+    }
+    //#endregion
+</script>

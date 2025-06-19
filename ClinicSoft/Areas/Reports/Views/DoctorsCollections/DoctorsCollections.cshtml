@@ -1,0 +1,739 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Doctors Collections Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Doctors Collections Report</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch<small>(es)</small></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Department<small>(s)</small></label>
+                                <select class="form-control" id="select_dept" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Doctor<small>(s)</small></label>
+                                <select class="form-control" id="select_doctor" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">From Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">To Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress_loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_doctors_collections" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Patients</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Gross Income (CONS + PROC)</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Gross Income (LAB + RAD + MET + PHA)</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Net Income (CONS + PROC)</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Net Income (LAB + RAD + MET + PHA)</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT Amount</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th class="text-end fs-14 font-weight-semibold">Total :</th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="text-wrap d-none" id="toastReport">
+    <div class="toast-main p-5">
+        <div class="demo-static-toast">
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="reportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header text-dark">
+                        <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                        <strong class="me-auto">Doctors Collections Report</strong>
+                        <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="toast-body" id="toastBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            // Focus on select2 Dropdown
+            load_filters();
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Report
+            GetReport(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var pageLoad = false;
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_departments();
+            load_doctors();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            var _url = "";
+
+            if ("@emp_designation.ToString().Contains("Administrator")" == "True") {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?empId=" + @empId.ToString();
+            }
+            else {
+                _url = "@Url.Action("GetBranches", "Employees", new { area = "Masters" })?setid=" + @emp_branch.ToString();
+            }
+
+            $.ajax({
+                url: _url,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    pageLoad = true;
+                    $('#select_branch').html('');
+                    $('#select_branch')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString().Contains("Administrator")" == "True") {
+                        $.each(response, function (j) {
+                            $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                            $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        });
+                    }
+                    else {
+                        $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    }
+                    pageLoad = false;
+                },
+                error: function (xhr) {
+                    console.log("Failed to Load Branch(es)! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        // Load Departments
+        var load_departments = function () {
+            $('#select_dept').SumoSelect({
+                placeholder: 'Select Department(s)',
+                captionFormat: '{0} Department(s) Selected',
+                captionFormatAllSelected: 'All {0} Department(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "AppointmentList", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_dept').html('');
+                    $('#select_dept')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" === "Doctor")
+                    {
+                        $('#select_dept')[0].sumo.add(@emp_dept.ToString(), "@emp_department.ToString()");
+                        $('#select_dept')[0].sumo.selectItem(["@emp_dept.ToString()"]);
+                    }
+                    else
+                    {
+                        $.each(response, function (j) {
+                            $('#select_dept')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#select_dept')[0].sumo.selectItem([response[j].id]);
+                        });
+                    }
+                    $('#select_dept')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Doctors
+        var load_doctors = function () {
+            $("#select_doctor").SumoSelect({
+                placeholder: 'Select Doctor(s)',
+                captionFormat: '{0} Doctor(s) Selected',
+                captionFormatAllSelected: 'All {0} Doctors selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_doctor').html('');
+            $('#select_doctor')[0].sumo.reload();
+        }
+        // On Departments select
+        $('#select_dept').on('change', function (e) {
+            if ($(this).val() != "" && $('#select_branch').val() != "") {
+
+                var _data = {
+                    "Departments": $('#select_dept').val(),
+                    "Branches": $('#select_branch').val(),
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetDoctorsByDepartment", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'JSON',
+                    data: _data,
+                    success: function (response) {
+
+                        $('#select_doctor').html('');
+                        $('#select_doctor')[0].sumo.reload();
+
+                        if ("@emp_designation.ToString()" === "Doctor") {
+                            $('#select_doctor')[0].sumo.add(@empId.ToString(), "@emp_name.ToString()");
+                            $('#select_doctor')[0].sumo.selectItem(["@empId.ToString()"]);
+                        }
+                        else {
+                            $.each(response, function (j) {
+                                $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                            });
+                        }
+                        $('#select_doctor')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#select_doctor').html('');
+                $('#select_doctor')[0].sumo.reload();
+            }
+        });
+        // On Branches select
+        $('#select_branch').on('change', function () {
+
+            if (!pageLoad) {
+
+                if ($(this).val() != "" && $('#select_dept').val() != "") {
+
+                    var _data = {
+                        "Departments"   : $('#select_dept').val(),
+                        "Branches"      : $('#select_branch').val(),
+                    }
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("GetDoctorsByDepartment", "AppointmentList", new { area = "Appointment" })',
+                        dataType: 'JSON',
+                        data: _data,
+                        success: function (response) {
+                            $('#select_doctor').html('');
+                            $('#select_doctor')[0].sumo.reload();
+
+                            if ("@emp_designation.ToString()" === "Doctor") {
+                                $('#select_doctor')[0].sumo.add(@empId.ToString(), "@emp_name.ToString()");
+                                $('#select_doctor')[0].sumo.selectItem(["@empId.ToString()"]);
+                            }
+                            else {
+                                $.each(response, function (j) {
+                                    $('#select_doctor')[0].sumo.add(response[j].id, response[j].text);
+                                });
+                            }
+
+                            $('#select_doctor')[0].sumo.reload();
+                        },
+                        error: function (xhr) {
+                            console.log("Failed! Error Message : " + xhr.statusText);
+                        }
+                    });
+                }
+                else {
+                    $('#select_doctor').html('');
+                    $('#select_doctor')[0].sumo.reload();
+                }
+            }
+
+        });
+        //#endregion
+
+        //#region Search Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+
+                if (($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") ||
+                    ($("#select_dept").val() != null && $("#select_dept").val() != 0 && $("#select_dept").val() != "") ||
+                    ($("#select_doctor").val() != null && $("#select_doctor").val() != 0 && $("#select_doctor").val() != "")) {
+
+                    let isValid = true;
+                    let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                    let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                        if (!date_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                        if (!date_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                        if (date_frm.isValid() && date_to.isValid()) {
+                            if (date_to.diff(date_frm, 'days') <= -1) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from");
+                                index.push("select_date_to");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "Search From Date Filter should be less than Search To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetReport(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Search by Either of the following filters : Department(s) / Doctor(s)",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Doctors Collections Reports!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Get Report Details
+        var GetReport = function (search_type) {
+
+            var docId = "";
+
+            if ("@emp_designation.ToString()" === "Doctor") {
+                docId = @empId.ToString();
+            }
+            else {
+                docId = $('#select_doctor').val().toString();
+            }
+
+            var _data = {
+                "search_type"   : search_type,
+                "select_branch" : $('#select_branch').val().toString(),
+                "select_dept"   : $('#select_dept').val().toString(),
+                "select_doctor" : docId,
+                "date_from"     : $('#select_date_from').val(),
+                "date_to"       : $('#select_date_to').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDoctorsCollectionsReport", "DoctorsCollections", new { area = "Reports" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress_loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#toastReport').removeClass("d-none");
+                    $('#reportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        $('#progress_loader').hide();
+
+                        //#region Load Report Details
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_doctors_collections')) {
+                            table = $('#tbl_doctors_collections').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                        $('#reportToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress_loader').hide();
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#reportToast').fadeOut('fast');
+                    $('#toastReport').addClass("d-none");
+                }, 5000);
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable Report
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+            var table = $("#tbl_doctors_collections").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData":"doc_name"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData":"patients"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "gross_income_cons_proc",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "gross_income_lab_rad",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "net_income_cons_proc",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "net_income_lab_rad",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "total_vat",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[0, 'asc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Doctors Collections Report',
+                        footer: 'true',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Doctors Collections Report to Excel!");
+                        },
+                        exportOptions: {
+                            columns: [0, 1, 14, 15, 16, 17, 18, 19, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Doctors Collections Report',
+                        footer: 'true',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Doctors Collections Report to PDF!");
+                        },
+                        exportOptions: {
+                            columns: [0, 1, 14, 15, 16, 17, 18, 19, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Doctors Collections Report',
+                        footer: 'true',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Doctors Collections Report to CSV!");
+                        },
+                        exportOptions: {
+                            columns: [0, 1, 14, 15, 16, 17, 18, 19, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Doctors Collections Report',
+                        footer: 'true',
+                        action(e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Doctors Collections Report!");
+                        },
+                        exportOptions: {
+                            columns: [0, 1, 14, 15, 16, 17, 18, 19, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Doctor</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    total_pat = api.column(1).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(1).footer()).html(numberRenderer(total_pat.toFixed(2)));
+
+                    total_gi1 = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(2).footer()).html(numberRenderer(total_gi1.toFixed(2)));
+
+                    total_gi2 = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(numberRenderer(total_gi2.toFixed(2)));
+
+                    total_ni1 = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(4).footer()).html(numberRenderer(total_ni1.toFixed(2)));
+
+                    total_ni2 = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(numberRenderer(total_ni2.toFixed(2)));
+
+                    total_vat = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(numberRenderer(total_vat.toFixed(2)));
+                },
+            });
+            table.buttons().container().appendTo('#tbl_doctors_collections_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+    </script>
+}

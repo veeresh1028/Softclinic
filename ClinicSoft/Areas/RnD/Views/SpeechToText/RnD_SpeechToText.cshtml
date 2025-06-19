@@ -1,0 +1,299 @@
+﻿
+@{
+    ViewBag.Title = "RnD_SpeechToText";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Speech To Text</h4>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <form id="form_new">
+                    <div style="display: flex; align-items: center;">
+                        <button type="button" class="btn btn-purple me-5" id="btn-record">
+                            <i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Record
+                        </button>
+
+                        <span class="text-danger me-5" id="spn-recording">
+                            <i class="fa fa-microphone loader fs-15"></i>&nbsp;Recording ...&nbsp;
+                        </span>
+
+                        <div class="text-success  me-5 text-bold" id="spn-recording-timer">00:00:00</div>
+
+                        <button type="button" class="btn btn-info me-5" id="btn-pause" value="pause">
+                            <i class="fa fa-pause" aria-hidden="true"></i>&nbsp;Pause
+                        </button>
+
+                        <button type="button" class="btn btn-danger me-5" id="btn-stop">
+                            <i class="fa fa-stop" aria-hidden="true"></i>&nbsp;Stop
+                        </button>
+
+                        <audio id="audio_file" class="me-5" controls>
+                            Your browser does not support the audio element.
+                        </audio>
+
+                        <button type="button" class="btn btn-success" id="btn-speech-to-text">
+                            <i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text
+                        </button>
+
+
+                    </div>
+                </form>
+
+
+                <textarea id="ta_speech"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    'use strict';
+
+    var timerInterval;
+    var startTime;
+    var elapsedTime = 0;
+    var timerElement = $('#spn-recording-timer');
+    let audioElement = $("#audio_file");
+
+    let stream;
+    let mediaRecorder;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    $(function () {
+        $("#btn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Record');
+        $("#btn-record").show();
+        $("#spn-recording").hide();
+        $("#spn-recording-timer").hide();
+        $("#btn-pause").hide();
+        $("#btn-stop").hide();
+        $("#btn-speech-to-text").hide();
+        $("#audio_file").hide();
+
+        
+    });
+
+    $("#btn-record").on('click', function () {
+        startRecording();
+
+        $("#btn-pause").html('<i class="fa fa-pause" aria-hidden="true"></i> &nbsp;Pause');
+        $("#btn-pause").removeClass("btn btn-success me-5");
+        $("#btn-pause").addClass("btn btn-info me-5");
+
+        $("#spn-recording").removeClass("text-info me-5");
+        $("#spn-recording").addClass("text-danger me-5");
+        $("#spn-recording").html(' <i class="fa fa-microphone font-size-15"></i>&nbsp;Recording ...&nbsp;');
+
+        $("#btn-record").hide();
+        $("#spn-recording").show();
+        $("#spn-recording-timer").show();
+        $("#btn-pause").show();
+        $("#btn-stop").show();
+        $("#btn-speech-to-text").hide();
+        $("#audio_file").hide();
+
+        startTime = new Date().getTime();
+        timerInterval = setInterval(updateTimer, 1000);
+
+        $("#ta_speech").html("");
+    });
+
+    $("#btn-pause").on('click', function () {
+        let btn_mode = $(this).val();
+        btn_mode = (btn_mode === "pause") ? "play" : "pause";
+        $(this).val(btn_mode);
+
+        if (btn_mode === "play") {
+            if (isRecording && mediaRecorder) {
+                mediaRecorder.pause();
+                isRecording = false;
+            }
+
+            $("#btn-pause").html('<i class="fa fa-play" aria-hidden="true"></i> &nbsp;Resume');
+            $("#btn-pause").removeClass("btn btn-info me-5");
+            $("#btn-pause").addClass("btn btn-success me-5");
+
+
+            // Pause the timer
+            $("#spn-recording").removeClass("text-danger me-5");
+            $("#spn-recording").addClass("text-info me-5");
+            $("#spn-recording").html('<i class="fa fa-microphone font-size-15"></i>&nbsp;Recorded ...&nbsp;');
+            clearInterval(timerInterval);
+            elapsedTime += new Date().getTime() - startTime;
+        }
+        else {
+            if (!isRecording && mediaRecorder) {
+                mediaRecorder.resume();
+                isRecording = true;
+            }
+
+            $("#btn-pause").html('<i class="fa fa-pause" aria-hidden="true"></i> &nbsp;Pause');
+            $("#btn-pause").removeClass("btn btn-success me-5");
+            $("#btn-pause").addClass("btn btn-info me-5");
+
+            // Resume the timer
+            $("#spn-recording").removeClass("text-info me-5");
+            $("#spn-recording").addClass("text-danger me-5");
+            $("#spn-recording").html(' <i class="fa fa-microphone font-size-15"></i>&nbsp;Recording ...&nbsp;');
+            startTime = new Date().getTime();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        $("#btn-record").hide();
+        $("#btn-pause").show();
+        $("#btn-stop").show();
+        $("#btn-speech-to-text").hide();
+        $("#audio_file").hide();
+    });
+
+    $("#btn-stop").on('click', function () {
+        stopRecording();
+        $("#btn-record").show();
+        $("#btn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Re-Record');
+        $("#spn-recording").hide();
+        $("#spn-recording-timer").hide();
+        $("#btn-pause").hide();
+        $("#btn-pause").val("pause");
+        $("#btn-stop").hide();
+        $("#btn-speech-to-text").show();
+        $("#audio_file").hide();
+
+        clearInterval(timerInterval);
+        timerElement.text("00:00:00");
+        elapsedTime = 0;
+    });
+
+    function updateTimer() {
+        var currentTime = new Date().getTime();
+        var totalMilliseconds = currentTime - startTime + elapsedTime;
+
+        // Calculate hours, minutes, and seconds
+        var hours = Math.floor(totalMilliseconds / 3600000);
+        var minutes = Math.floor((totalMilliseconds % 3600000) / 60000);
+        var seconds = Math.floor((totalMilliseconds % 60000) / 1000);
+
+        // Format the time as HH:MM:SS
+        var formattedTime = padNumber(hours) + ':' + padNumber(minutes) + ':' + padNumber(seconds);
+
+        // Update the timer element
+        timerElement.text(formattedTime);
+    }
+
+    function padNumber(number) {
+        return number.toString().padStart(2, '0');
+    }
+
+    $("#btn-speech-to-text").on('click', function () {
+        $("#btn-speech-to-text").html('<i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;Processing...');
+        // Create a Blob from the recorded chunks
+        const audioBlob = new Blob(recordedChunks, { type: 'audio/wav' });
+
+        var formData = new FormData();
+        formData.append('audio', audioBlob, 'audio.wav');
+
+        recordedChunks = [];
+        isRecording = false;
+        stream = null;
+        mediaRecorder = null;
+
+        // Send the FormData to the server using AJAX
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("SaveAudio", "SpeechToText", new { area = "RnD" })",
+            dataType: 'json',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                $("#btn-speech-to-text").html('<i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text');
+
+
+                if (response.isConverted) {
+                    if (response.isSuccess) {
+                        $("#ta_speech").html(response.data.speechtext);
+                    }
+                }
+                //if (response.status == 200) {
+                //    var editor = $find("<%=nurse_notes.ClientID%>"); //get a reference to RadEditor client object
+                //    editor.set_html("<p>" + response.speechtext + "</p>");
+                //    $("#voicenote_path").val(response.filepath + "/" + response.filename);
+
+                //    $("#audio_file").show();
+                //    var audioUrl = $("#voicenote_path").val();
+                //    var audioPlayer = $("#audio_file")[0];
+                //    audioPlayer.src = audioUrl;
+
+                //    $("#btn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Re-Record');
+                //    $("#btn-record").show();
+                //    $("#spn-recording").hide();
+                //    $("#spn-recording-timer").hide();
+                //    $("#btn-pause").hide();
+                //    $("#btn-stop").hide();
+                //    $("#btn-speech-to-text").hide();
+                //}
+                //else {
+                //    alert(response.error);
+                //    console.error(response.error);
+                //}
+
+
+                console.log(response);
+            },
+            error: function (xhr, status, error) {
+                $("#btn-speech-to-text").html('<i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text');
+                console.error(error);
+                console.log(error);
+            }
+        });
+    });
+
+    
+
+    // Function to start recording
+    function startRecording() {
+        // Request access to the microphone
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(function (audioStream) {
+                // Store the microphone stream
+                stream = audioStream;
+
+                // Create a MediaRecorder instance
+                mediaRecorder = new MediaRecorder(stream);
+
+                // Event handler for data available
+                mediaRecorder.addEventListener('dataavailable', function (event) {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                });
+
+                // Start recording
+                mediaRecorder.start();
+                isRecording = true;
+            })
+            .catch(function (err) {
+                console.error('Error accessing microphone:', err);
+            });
+    }
+
+    function stopRecording() {
+        // Stop the MediaRecorder
+        if (mediaRecorder) {
+            mediaRecorder.stop();
+        }
+
+        // Stop the microphone stream
+        if (stream) {
+            stream.getTracks().forEach(function (track) {
+                track.stop();
+            });
+        }
+        isRecording = false;
+    }
+</script>

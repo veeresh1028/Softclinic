@@ -1,0 +1,134 @@
+﻿@model BusinessEntities.EMR.VaccinationRecord
+@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-6 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class='badge bg-danger'>Required</span>
+                        <span class="text-info" style="font-size:smaller">Please Fill atlest One Entry </span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 col-lg-12">
+                        <div>
+                            <h4 class="page-title mb-0 text-primary">
+                                Vaccination Record
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div id="VaccRecord_add" style="display:none">
+
+                </div>
+                <div id="VaccRecord_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+
+            GetVaccinationRecord();
+
+        });
+
+    //#endregion Page Load
+
+    //#region Load VaccinationRecord
+        var GetVaccinationRecord = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllVaccinationRecord", "Vaccination", new { area = "EMR" })?patId=" + "@emr.patId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditVaccinationRecord();
+                            $("#VaccRecord_add").hide();
+                            $("#VaccRecord_edit").show();
+
+                        }
+                        else {
+                            $("#VaccRecord_add").show();
+                            $("#VaccRecord_edit").hide();
+                            AddVaccinationRecord();
+
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load VaccinationRecord
+
+    //#region Add VaccinationRecord
+        function AddVaccinationRecord() {
+            var x = $("#VaccRecord_add");
+            x.load("@Url.Action("CreateVaccinationRecord", "Vaccination", new { area = "EMR" })", function () {
+            });
+        }
+    //#endregion Add VaccinationRecord
+
+    //#region Edit VaccinationRecord
+        function EditVaccinationRecord() {
+            var x = $("#VaccRecord_edit");
+            x.load("@Url.Action("EditVaccinationRecord", "Vaccination", new { area = "EMR" })?patId=" + @emr.patId, function () {
+            });
+        }
+    //#endregion Edit VaccinationRecord
+
+    //#region Print VaccinationRecord
+        function PrintVaccinationRecord(vac_recId) {
+            window.open("@Url.Action("PrintVaccinationRecord", "Vaccination", new { area = "EMR" })?vac_recId=" + vac_recId)
+        }
+    //#endregion Print VaccinationRecord
+
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).fadeUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    </script>
+}

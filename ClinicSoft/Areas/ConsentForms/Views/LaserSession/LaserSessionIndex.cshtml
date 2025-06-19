@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Laser Session";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Laser Sessions Record</h3>
+            </div>
+            <div class="card-body">
+                <div id="LaserSession_add" style="display:none">
+                </div>
+                <div id="LaserSession_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="LaserSession_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetLaserSessionInfo();
+        LaserSessionPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetLaserSessionInfo
+    var GetLaserSessionInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetLaserSessionData", "LaserSession", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditLaserSession();
+                        $("#LaserSession_add").hide();
+                        $("#LaserSession_edit").show();
+
+                    }
+                    else {
+                        $("#LaserSession_add").show();
+                        $("#LaserSession_edit").hide();
+                        AddLaserSession();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load LaserSession
+
+    //#region Add LaserSession
+    function AddLaserSession() {
+        var x = $("#LaserSession_add");
+        x.load("@Url.Action("CreateLaserSession", "LaserSession", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add LaserSession
+
+    // #region Update LaserSession
+    function EditLaserSession() {
+        var x = $("#LaserSession_edit");
+        x.load("@Url.Action("UpdateLaserSession", "LaserSession", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update LaserSession
+
+    // #region Histroy of LaserSession
+    function LaserSessionPreviousHistory() {
+        var x = $("#LaserSession_history");
+        x.load("@Url.Action("LaserSessionPreviousHistory", "LaserSession", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

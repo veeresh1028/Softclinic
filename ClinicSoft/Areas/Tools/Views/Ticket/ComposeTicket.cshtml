@@ -1,0 +1,406 @@
+﻿@model BusinessEntities.Tools.ComposeTickets
+<style>
+    #sizeC {
+        max-width: 600px;
+    }
+
+    .ff_fileupload_dialog_background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 99999999;
+    }
+</style>
+
+<!-- INTERNAL Rich TextBox css -->
+<link href="~/assets/plugins/wysiwyag/richtext.css" rel="stylesheet" />
+
+<!-- INTERNAL File Uploads css-->
+<link href="~/assets/plugins/fileupload/css/fileupload.css" rel="stylesheet" type="text/css" />
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Compose Ticket</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_ComposeTicket" >
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">To Department&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ticket_department, new List<SelectListItem>
+                       {
+                          new SelectListItem{ Text="Administration", Value = "Administration" },
+                          new SelectListItem{ Text="Marketing", Value = "Marketing" },
+                          new SelectListItem{ Text="IT", Value = "IT" },
+                          new SelectListItem{ Text="Technical", Value = "Technical" },
+                       }, "Select Department", new { @class = "form-control select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Priority&nbsp;<span class="text-danger">*</span></label>
+                    <select id="ticket_priority" class="form-select select2">
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-7">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Subject&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ticket_subject, new { @class = "form-control", @placeholder = "", @maxlength = "149" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Description&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextAreaFor(m => m.ticket_description, new { @class = "content", @placeholder = "", @maxlength = "1000" })
+                    @*@Html.TextArea("tr_message", null, new { @class = "content", @placeholder = "Reminder Message", maxlength = "1000" })*@
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-3 col-lg-3">
+                <div class="input-group file-browser mb-5">
+                    <input type="text" class="form-control browse-file" placeholder="Choose your attachments" readonly>
+                    <label class="input-group-text btn btn-primary">
+                        Attachments <input type="file" id="ticket_attachments" class="file-browserinput" style="display: none;" multiple accept=".jpg, .png, image/jpeg, image/png, application/pdf, .pdf, .doc, .docx" size="3000000">
+                    </label>
+                </div>
+                <span class="text-red">Allowed format jpg, png, pdf</span>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorCreate"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_send">Send</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseCreate" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- INTERNAL WYSIWYG Editor js -->
+<script src="~/assets/plugins/wysiwyag/jquery.richtext.js"></script>
+<script src="~/assets/js/form-editor.js"></script>
+
+<!-- INTERNAL File uploads js -->
+<script src="~/assets/plugins/fileupload/js/dropify.js"></script>
+<script src="~/assets/js/filupload.js"></script>
+
+<script src="~/assets/js/file-upload.js"></script>
+
+<script type="text/javascript">
+
+    //#region Page Load
+    $(function () {
+        validation();
+        $('#ticket_department').select2({
+            minimumResultsForSearch: '-1',
+            dropdownParent: $('#form_ComposeTicket'),
+            width: '100%'
+        });
+        $('#ticket_priority').select2({
+            minimumResultsForSearch: '-1',
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            dropdownParent: $('#form_ComposeTicket'),
+            width: '100%'
+        });
+        LoadPriority();
+
+    });
+    //#endregion
+
+    //#region Load Priority Items
+    var LoadPriority = function () {
+        var Low = '<i class="fa fa-star text-lime"></i>&nbsp;&nbsp;Low';
+        newOption = new Option(Low, "Low", true, true);
+        $("#ticket_priority").append(newOption).trigger('change');
+
+        var Medium = '<i class="fa fa-star text-warning"></i>&nbsp;&nbsp;Medium';
+        newOption = new Option(Medium, "Medium", true, true);
+        $("#ticket_priority").append(newOption);
+
+        var High = '<i class="fa fa-star text-orange"></i>&nbsp;&nbsp;High';
+        newOption = new Option(High, "High", true, true);
+        $("#ticket_priority").append(newOption);
+
+        var Critical = '<i class="fa fa-star text-red"></i>&nbsp;&nbsp;Critical';
+        newOption = new Option(Critical, "Critical", true, true);
+        $("#ticket_priority").append(newOption);
+
+        $("#ticket_priority").val("Low").trigger('change');
+    };
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_ComposeTicket").validate({
+            focusInvalid: true,
+            rules:
+            {
+                ticket_department: {
+                    required: function () {
+                        var dept = $('#ticket_department').val();
+                        if (dept === "" || dept === null)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                ticket_priority: {
+                    required: true,
+                },
+                ticket_subject: {
+                    required: true,
+                },
+                ticket_description: {
+                    required: true,
+                },
+
+            },
+            messages: {
+                ticket_department: {
+                    required: "Select Category",
+                },
+                ticket_priority: {
+                    required: "Select Category",
+                },
+                ticket_subject: {
+                    required: "Enter Subject"
+                },
+                ticket_description: {
+                    required: "Enter Decription"
+                },
+
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+        $('#ticket_department').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#ticket_priority').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+    }
+   //#endregion
+
+    //#region Item Image Size Check
+    document.getElementById('ticket_attachments').addEventListener('change', function (event) {
+        var file_count = this.files.length;
+        var maxFiles = 5;
+
+        // Check the number of selected files
+        if (this.files.length > maxFiles) {
+            this.value = '';
+            Swal.fire({
+                title: "Alert!",
+                text: "Up to 5 files can be uploaded, adhering to the upload limit!",
+                icon: "info",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+            });
+        }
+        else {
+            var exceedsize = 0;
+            for (var i = 0; i < file_count; i++) {
+                if (this.files[i].size > 300000) {
+                    exceedsize++;
+                }
+            }
+            if (exceedsize > 0) {
+                this.value = '';
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Uploading files beyond 3MB in size is not allowed.",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+    });  
+    //#endregion
+
+    //#region Send Composed Ticket Attachmnets
+    $('#btn_send').on('click', function (e) {
+        e.preventDefault();
+        if ($("#form_ComposeTicket").valid()) {
+            Swal.fire({
+                title: "Sending Ticket",
+                text: "Are you sure you want to Send Ticket To Vision Technologies ? ",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    var formData = new FormData();
+
+                    formData.append("ticketId", 0);
+                    formData.append("ticket_subject", $("#ticket_subject").val().trim());
+                    formData.append("ticket_description", encodeURIComponent($('#ticket_description').val()));
+                    formData.append("ticket_department", $("#ticket_department :selected").val());
+                    formData.append("ticket_priority", $("#ticket_priority :selected").val());
+
+                    var files = $('#ticket_attachments')[0].files;
+                    for (var i = 0; i < files.length; i++) {
+                        formData.append('files', files[i]);
+                    }
+
+                    formData.append("__RequestVerificationToken", $('input[name="__RequestVerificationToken"]').val());
+
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("SendTicket", "Ticket", new { area = "Tools" })",
+                        dataType: 'json',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (data) {
+                            $('#btn_send').parent().removeClass("curdrop");
+                            $('.btnCloseCreate').removeClass("disabled");
+                            $('#btn_send').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_send').addClass("btn btn-success");
+                            $('#btn_send').html("Send");
+
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    search_tickets();
+                                    var alertPlaceholder = document.getElementById("TicketAlert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> Ticket Sent Successfully!", "success");
+                                    $('#compose_modal').modal('toggle');
+                                    Timeout();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-light-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Ticket Sending Error. please Try Again Later!</strong><br/>" +
+                                        "</div></div>";
+                                    $("#errorCreate").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-light-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before Sending.&nbsp;</strong><br/><ul>";
+
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+
+                                html += "</ul></div></div>";
+                                $("#errorCreate").html(html);
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btn_send').parent().removeClass("curdrop");
+                            $('.btnCloseCreate').removeClass("disabled");
+                            $('#btn_send').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_send').addClass("btn btn-success");
+                            $('#btn_send').html("Send");
+
+                            $('#compose_modal').modal('toggle');
+                            Timeout();
+                        }
+                    });
+                }
+            });
+        }
+        else
+        {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });    
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+</script>

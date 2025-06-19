@@ -1,0 +1,470 @@
+﻿@model BusinessEntities.Accounts.Accounting.AccountCategories
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update Account Category</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_EditCategory" autocomplete="off">
+        @Html.HiddenFor(m => m.acId)
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ac_branch, new SelectList(Model.BranchList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uac_branch", @disabled = "true" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Period&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.ac_period, new SelectList(Model.PeriodList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uac_period", @disabled = "true" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Group&nbsp;<span class="text-danger">*</span></label>
+                    <select id="uac_group" name="uac_group"  disabled="true" class="form-select select2"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Code&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ac_code, new { @class = "form-control disabled text-danger", @placeholder = "AS1-10", @maxlength = "25", @readonly = "readonly", @id = "uac_code" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Category&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.ac_category, new { @class = "form-control", @placeholder = "Ex : Inventory", @maxlength = "80", @id = "uac_category" })
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorEdit"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update_Category">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    var edit_group;
+    var edit_code;
+
+    //#region Page Load
+    $(function () {
+        $("#uac_branch").select2({
+            placeholder: 'Select Branch',
+            width: '100%',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditCategory'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#uac_period").select2({
+            placeholder: 'Select Period',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditCategory'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $("#uac_group").select2({
+            placeholder: 'Select Group',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            dropdownParent: $('#form_EditCategory'),
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        var selectedValue = $('#uac_period option:eq(1)').val();
+        var selectedText = $('#uac_period option:eq(1)').text();
+        $('#uac_period').val(selectedValue).trigger('change');
+
+        var select2SelectEvent = jQuery.Event("select2:select", {
+            params: {
+                data: {
+                    id: selectedValue,
+                    text: selectedText
+                }
+            }
+        });
+
+        $('#uac_period').trigger(select2SelectEvent);
+
+        edit_code = "@Model.ac_code";
+
+        $("#uac_code").val(edit_code);
+
+        validation();
+    });
+    //#endregion
+
+    //#region Load Account Groups Based on Branch & Period
+    $('#uac_branch').on('select2:select', function () {
+        load_acc_groups_edit();
+        load_ac_code_edit();
+        $('#uac_group').val(null).trigger('select2:select');
+    });
+
+    $('#uac_period').on('select2:select', function () {
+        load_acc_groups_edit();
+        load_ac_code_edit();
+    });
+
+    $('#uac_group').on('select2:select', function () {
+        load_ac_code_edit();
+    });
+
+    var load_acc_groups_edit = function () {
+        if ($('#uac_period').val() != null && $('#uac_branch').val() != "") {
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetAccountGroupsByBranchPeriod", "AccountGroups", new { area = "Accounts" })?ag_period=' + $('#uac_period').val() + "&ag_branch=" + $('#uac_branch').val().toString(),
+                dataType: 'json',
+                success: function (response) {
+                    $("#uac_group").empty();
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].text, response[j].id, false, false);
+                            $('#uac_group').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    console.log("Failed to Load Groups! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                var acGroupValue = '@Model.ac_group';
+                $('#uac_group').val(acGroupValue).trigger('change');
+
+                edit_group = acGroupValue;
+            });
+        }
+        else {
+            $('#uac_group').val("").text("").trigger("change");
+        }
+    }
+    //#endregion
+
+    //#region Load Category Code Based on Branch, Period & Group
+    var load_ac_code_edit = function () {
+        if ($("#uac_branch").val() != "" && $("#uac_period").val() != "" && $('#uac_group').val() != null) {
+
+            var _data = {
+                "ac_branch": $('#uac_branch').val(),
+                "ac_group": $('#uac_group').val(),
+                "ac_period": $('#uac_period').val()
+            }
+
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("GetAccountCategoryCode", "AccountCategories", new { area = "Accounts" })',
+                dataType: 'json',
+                data: _data,
+                success: function (response) {
+                    if (edit_group == $("#uac_group").val()) {
+                        $("#uac_code").val(edit_code)
+                    }
+                    else {
+
+                        $("#uac_code").val(response.ac_code);
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        else {
+            $('#uac_code').val("").trigger("change");
+        }
+    }
+    //#endregion
+
+    //#region Adding Validation on Fields
+    var validation = function () {
+        $("#form_EditCategory").validate({
+            focusInvalid: true,
+            rules:
+            {
+                uac_branch: {
+                    required: true
+                },
+                uac_period: {
+                    required: true
+                },
+                uac_group: {
+                    required: true
+                },
+                uac_category: {
+                    required: true,
+                    maxlength:80
+                }
+            },
+            messages: {
+                uac_branch: {
+                    required: "Select Branch"
+                },
+                uac_period: {
+                    required: "Select Account Period"
+                },
+                uac_group: {
+                    required: "Select Account Group"
+                },
+                uac_category: {
+                    required: "Enter Account Category",
+                    maxlength: "Enter No More than 80 characters"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#uac_branch').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uac_period').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#uac_group').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Update Account Category on Click
+    $('#btn_Update_Category').on('click', function (e) {
+        e.preventDefault();
+
+        if ($('#form_EditCategory').valid()) {
+
+            var _dataUpdate = {
+                "acId"          : $('#acId').val(),
+                "ac_group"      : $('#uac_group').val(),
+                "ac_branch"     : $('#uac_branch').val(),
+                "ac_period"     : $('#uac_period').val(),
+                "ac_category"   : $('#uac_category').val().trim()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateAccountCategory", "AccountCategories", new { area = "Accounts" })",
+                dataType: "json",
+                data: _dataUpdate,
+                beforeSend: function () {
+                    $('#btn_Update_Category').removeClass("btn btn-warning");
+                    $('#btn_Update_Category').addClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update_Category').html("Saving....");
+                },
+                success: function (data) {
+                    $('#btn_Update_Category').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update_Category').addClass("btn btn-warning");
+                    $('#btn_Update_Category').html("Save Changes");
+
+                    if (data.isUpdated > 0) {
+                        getAccountCategories();
+
+                        alert("<i class='fe fe-check-circle text-white'></i> Account Category Updated Successfully!", "success");
+
+                        $("#uac_category").val("");
+
+                        $('#edit_category_modal').modal('toggle');
+
+                        Timeout();
+                    }
+                    else {
+                        $("#errorEdit").html('');
+
+                        if (data.message == "Account Category already exists!" || data.message == "Error While Updating Account Category!") {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+
+                            $("#errorEdit").html(html);
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fe fe-alert-circle text-danger' ></i>&nbsp;Validation Error! Please validate before submitting!&nbsp;</strong><br/><ul>";
+
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+
+                            html += "</ul></div></div>";
+
+                            $("#errorEdit").html(html);
+                        }
+
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update_Category').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update_Category').addClass("btn btn-warning");
+                    $('#btn_Update_Category').html("Save Changes");
+
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Account Category!", "danger");
+                    $('#edit_category_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Create Account Group
+    $('#ubtnAddGroup').on('click', function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreateAccountGroup", "AccountGroups", new { area = "Accounts" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#edit_category_modal').modal('hide');
+                $('#add_group_modal').attr("data-modal-from", "update-category");
+
+                $("#add_group_modal_body").html(data);
+                $('#add_group_modal').modal('show');
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    });
+
+    $('#add_group_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("newGroup") != null) {
+            var group = localStorage.getItem("newGroup");
+
+            set_group(group);
+            localStorage.removeItem("newGroup");
+        }
+    });
+
+    var set_group = function (group) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetAccountGroupsById", "AccountGroups", new { area = "Accounts" })?agId=" + group,
+            dataType: 'json',
+            success: function (response) {
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+                $('#uac_group').append(newOption).trigger('change');
+
+                var data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+
+                $('#uac_group').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alter Holder
+    var alertPlaceholder = document.getElementById("AccountCategoryAlert");
+    function alert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+    }
+    //#endregion
+</script>

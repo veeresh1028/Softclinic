@@ -1,0 +1,598 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Sales VAT Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Sales VAT Report</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-transparent"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch</label>
+                                <select class="form-control" id="select_branch" multiple>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">VAT Type</label>
+                                <select class="form-control" id="select_type" multiple>
+                                    <option value="0">0 %</option>
+                                    <option value="5">5 %</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date From</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select From Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date To</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select To Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class=" col-md-12 col-xl-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_vat_report" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Invoice No.</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Patient Details</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor Details</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">CPT Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Treatment</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">NET + VAT</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-16 font-weight-bold text-right">Total (AED) :</th>
+                                <th class="text-end fs-16 font-weight-semibold"></th>
+                                <th class="text-end fs-16 font-weight-semibold"></th>
+                                <th class="text-end fs-16 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            load_filters();
+
+            getVATReport();
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_type').SumoSelect({
+                placeholder: 'Select Type',
+                captionFormat: '{0} Type Selected',
+                captionFormatAllSelected: 'All {0} Types selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch',
+                captionFormat: '{0} Branch Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                if ("@emp_designation.ToString()" === "Super Administrator")
+                {
+                    $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    });
+                }
+                else
+                {
+                    $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                let isValid = true;
+                let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!date_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date!"
+                        });
+                    }
+                }
+                // Check if Date From is a valid Date
+                if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                    if (!date_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date!"
+                        });
+                    }
+                }
+                // Check if Date Range is valid
+                if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                    if (date_frm.isValid() && date_to.isValid()) {
+                        if (date_to.diff(date_frm, 'days') <= 0) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("select_date_from");
+                            index.push("select_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error!",
+                                message: "Report From Date Filter should be less than To Date Filter!"
+                            });
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    getVATReport();
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter VAT Report!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region VAT Report
+        var getVATReport = function () {
+            var _data = {
+                "select_branch": $('#select_branch').val().toString(),
+                "select_type": $('#select_type').val().toString(),
+                "date_from": $('#select_date_from').val(),
+                "date_to": $('#select_date_to').val()
+            }
+
+            if ($('#select_type').val().toString() == 5) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetVATTypeReport", "VATReport", new { area = "Reports" })",
+                    data: _data,
+                    start_time: new Date().getTime(),
+                    success: function (response) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_vat_report')) {
+                            table = $('#tbl_vat_report').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                        $('#progress-loader').hide();
+                    }
+                }).done(function () {
+                    resizedt();
+                    $('#progress-loader').hide();
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "There is no sales invoices available!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_vat_report").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "className" : "td_max_width",
+                        "mData": "set_company"
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "render": function (app_fdate, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                moment(app_fdate).format("DD-MM-YYYY")
+                            }
+
+                            return moment(app_fdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    { "mData": "inv_no" },
+                    {
+                        "mData": "pat_name",
+                        "render": function (pat_name, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var gender = full.pat_gender;
+                            var emid = full.pat_emirateid;
+
+                            if (emid == "") {
+                                emid = "999-9999-9999999-9";
+                            }
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a><br/> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a><br/> ';
+                            }
+                            else {
+                                pat_det += '<a class="text-dark font-weight-semibold text-capitalize fs-14" onclick="PatientDetails(\'' + full.patId + '\',\'' + pat_name + '\')"><span>' + pat_name + '</span></a><br/> ';
+                            }
+
+                            pat_det += '<span class="badge bg-primary-light-1 font-weight-semibold mt-2" title="MRN #">' + full.app_pat_code + '</span>';
+
+                            // Check EMID Expiry
+                            if (emid != null && emid != "" && emid != undefined) {
+
+                                let id_card_edate = moment(full.id_card_edate);
+                                if (id_card_edate.isValid()) {
+                                    let today = moment();
+                                    if (id_card_edate.diff(today, 'days') <= 0) {
+                                        pat_det += ' <div class="badge bg-danger-transparent font-weight-semibold mt-2" style="margin-left:5px;font-size: 0.9em">' + emid + '<span class="tag-addon"><i class="fa fa-exclamation-circle" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMM-YYYY") + '" style="color:#ff0000;"></i></span></div>';
+                                    }
+                                    else {
+                                        pat_det += '<span class="badge bg-primary-transparent text-dark ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span>';
+                                    }
+                                }
+                            }
+
+                            pat_det += ' <span class="badge bg-info-light ms-2 font-weight-bold" style="font-size: 0.9em;">' + full.pat_mob + '</span> <a class="ms-2" href="https://wa.me/' + full.pat_mob + '" target="_blank"><i class="fa fa-whatsapp fa-lg text-success"></i></a><br/>';
+
+                            // Check Patient Gender
+                            if (gender === "Male") {
+                                pat_det += ' <div class="tag bg-white border-1 border-info font-weight-semibold mt-2 text-info" title="Gender">Male<span class="tag-addon tag-info"><i class="fa fa-male"></i></span></div>';
+                            }
+                            else if (gender === "Female") {
+                                pat_det += '<div class="tag bg-white border-1 border-pink font-weight-semibold mt-2 text-pink" style="border: 1px solid;" title="Gender">Female<span class="tag-addon tag-pink"><i class="fa fa-female"></i></span></div>';
+                            }
+                            else {
+                                pat_det += '<div class="tag bg-white border-1 border-dark-transparent font-weight-semibold mt-2 text-gray" title="Gender">Unknown<span class="tag-addon tag-gray"><i class="fa fa-question-circle"></i></span></div>';
+                            }
+
+                            pat_det += '<div class="tag bg-white border-1 border-teal font-weight-semibold mt-2 ms-2 text-teal" title="Date of Birth">' + moment(full.pat_dob).format("DD-MM-YYYY") + '<span class="tag-addon tag-teal"><i class="fe fe-calendar"></i></span></div>';
+
+                            return pat_det;
+                        }
+                    },
+                    {
+                        "mData": "emp_name",
+                        "className": "text-capitalize",
+                        "render": function (emp_name, type, full, meta) {
+                            return '<a class="font-weight-semibold text-capitalize fs-14" onclick="DoctorDetails(\'' + full.empId + '\',\'' + emp_name + '\')"><span> <i class="fa fa-circle" style="color:' + full.emp_color + '"></i> ' + emp_name + '</span></a><br/>' +
+                                '<div class="tag tag-secondary font-weight-semibold mt-2" title="Department">' + full.emp_dept_name + '<span class="tag-addon"><i class="fe fe-activity"></i></span></div><div class="tag tag-default border-dark text-dark font-weight-semibold mt-2 ms-2" title="License">' + full.emp_license + '</div>';
+                        }
+                    },
+                    {
+                        "className":"text-justify text-wrap",
+                        "mData": "pt_tr_code"
+                    },
+                    {
+                        "className": "text-justify text-wrap",
+                        "mData": "pt_tr_name"
+                    },
+                    {
+                        "mData": "pt_net",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_vat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pt_netvat",
+                        "className": 'text-right',
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[1, 'desc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search VAT Report</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                },
+                scrollX: true,
+                scrollY: 600,
+                scrollCollapse: true,
+                fixedColumns: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Sales VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Sales VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Sales VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Employees & Security to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Sales VAT Report',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Employees & Security!");
+                        }
+                    }
+                ],
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    var  total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer(total.toFixed(2)));
+
+                    total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(numberRenderer(total.toFixed(2)));
+
+                    total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(9).footer()).html(numberRenderer(total.toFixed(2)));
+                }
+            });
+
+            table.buttons().container().appendTo('#tbl_vat_report_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        //#endregion
+    </script>
+}

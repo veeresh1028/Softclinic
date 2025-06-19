@@ -1,0 +1,459 @@
+﻿@model BusinessEntities.EMR.PrescriptionFavourites
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_AddPrescfavorite" class="needs-validation" >
+    @Html.AntiForgeryToken()
+
+    <div class="row">
+        <div class="col-sm-8 col-md-8 col-lg-8">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Drug&nbsp;<span class="text-danger">*</span></label>
+                
+                @Html.DropDownListFor(m => m.pref_medicine, new List<SelectListItem> { }, "Search Medicine", new { @class = "form-select  mb-2 select2", @id = "cpref_medicine" })
+            </div>
+        </div>
+        <div class="col-sm-4 col-md-4 col-lg-4">
+            <div class="form-group mb-3">
+                <label class="form-label text-black" >Route of Admin&nbsp;</label>
+
+                @Html.DropDownListFor(m => m.pref_temp6, new List<SelectListItem> { }, "Search Route of Admin", new { @class = "form-select  mb-2 select2", @id = "cpref_temp6" })
+            </div>
+        </div>
+        <div class="col-sm-1 col-md-1 col-lg-1">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Use&nbsp;</label>
+                @Html.TextBoxFor(m => m.pref_temp3, new { @class = "form-control", @placeholder = "1.00", maxlength = 5 })
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Units&nbsp;</label>
+
+                @Html.DropDownListFor(m => m.pref_type, new List<SelectListItem> { }, "Search Units", new { @class = "form-select  mb-2 select2", @id = "cpref_type" })
+            </div>
+        </div>
+        <div class="col-sm-1 col-md-1 col-lg-1">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Frequency&nbsp;</label>
+                @Html.TextBoxFor(m => m.pref_temp4, new { @class = "form-control", @placeholder = "1.00", maxlength = 5 })
+            </div>
+        </div>
+
+        <div class="col-sm-3 col-md-3 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Type&nbsp;</label>
+                @Html.DropDownListFor(m => m.pref_temp5, new List<SelectListItem>
+                 {
+                    new SelectListItem{ Text="Day", Value = "Day" },
+                    new SelectListItem{ Text="Week", Value = "Week" },
+                    new SelectListItem{ Text="Hour", Value = "Hour" },
+                    new SelectListItem{ Text="Once", Value = "Once" },
+                    new SelectListItem{ Text="Month", Value = "Month" },
+                    new SelectListItem{ Text="Year", Value = "Year" },
+                 }, "Select Type", new { @class = "form-select select2", @id = "pref_temp5" })
+            </div>
+        </div>
+        <div class="col-sm-2 col-md-2 col-lg-2">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">For&nbsp;</label>
+
+                @Html.DropDownListFor(m => m.pref_temp1, new List<SelectListItem> { }, "Search Prescription", new { @class = "form-select  mb-2 select2", @id = "cpref_temp1" })
+            </div>
+        </div>
+        <div class="col-sm-1 col-md-1 col-lg-1">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Duration&nbsp;<span class="text-danger">*</span></label>
+                @Html.TextBoxFor(m => m.pref_duration, new { @class = "form-control", @placeholder = "1.00", maxlength = 5 })
+            </div>
+        </div>
+        <div class="col-sm-1 col-md-1 col-lg-1">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Quantity &nbsp;<span class="text-danger">*</span></label>
+                @Html.TextBoxFor(m => m.pref_qty, new { @class = "form-control", @placeholder = "1.00", maxlength = 5 })
+            </div>
+        </div>
+        <div class="col-sm-8 col-md-8 col-lg-8">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Instrucations&nbsp;</label>
+                @Html.TextAreaFor(m => m.pref_instr, new { @class = "form-control", @placeholder = "Enter Instrucation", @row = "1" })
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-success" id="btn_Insert_PrescFavorite">Add Prescription Favourite</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_Reset_PrescFavorite">Reset</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_PrescFavorite" style="display:none">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+
+        $(function () {
+
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                $("#btn_Insert_PrescFavorite").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Insert_PrescFavorite").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Insert_PrescFavorite").show();
+                    }
+                    else {
+                        $("#btn_Insert_PrescFavorite").hide();
+                    }
+                }
+            }
+
+
+            $("#pref_temp5").select2({
+                placeholder: 'Select Type',
+                width: '100%',
+                minimumResultsForSearch: '',
+                dropdownParent: $('#form_AddPrescfavorite'),
+            });
+
+            $("#cpref_type").select2({
+                placeholder: 'Select Units',
+                width: '100%',
+                minimumResultsForSearch: '',
+                minimumInputLength: 3,
+                dropdownParent: $('#form_AddPrescfavorite'),
+
+                ajax: {
+                    url: '@Url.Action("GetPrescriptionType", "Prescription", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 1
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+            $("#cpref_temp1").select2({
+                placeholder: 'Select For',
+                width: '100%',
+                minimumResultsForSearch: '',
+                minimumInputLength: 3,
+                dropdownParent: $('#form_AddPrescfavorite'),
+
+                ajax: {
+                    url: '@Url.Action("GetPrescriptionType", "Prescription", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type:2
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+            $("#cpref_temp6").select2({
+                placeholder: 'Select Route of Admin',
+                width: '100%',
+                minimumResultsForSearch: '',
+                minimumInputLength: 3,
+                dropdownParent: $('#form_AddPrescfavorite'),
+
+                ajax: {
+                    url: '@Url.Action("GetRouteOfAdmin", "Prescription", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+            $("#cpref_medicine").select2({
+                placeholder: 'Select Medicine',
+                width: '100%',
+                minimumInputLength: 3,
+                minimumResultsForSearch: '',
+                dropdownParent: $('#form_AddPrescfavorite'),
+
+                ajax: {
+                    url: '@Url.Action("GetMedicine", "Prescription", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: $("input[name='check_fav']:checked").val()
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+
+            validate();
+            load_medicine();
+
+        });
+    //#endregion Partial View Onload
+    //#region load Prescription
+        var load_medicine = function () {
+            $("#cpref_medicine").select2({
+                placeholder: 'Select Medicine',
+                width: '100%',
+                minimumInputLength: 3,
+                minimumResultsForSearch: '',
+                dropdownParent: $('#form_AddPrescfavorite'),
+
+                ajax: {
+                    url: '@Url.Action("GetMedicine", "Prescription", new { area = "EMR" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 0
+                        };
+                    },
+                    processResults: function (data) {
+                        console.log(data);
+
+                        return {
+                            results: data,
+                        };
+                    },
+                    cache: true
+                }
+            });
+        };
+    //#endregion load Prescription
+
+    //#region Reset
+        $('#btn_Reset_PrescFavorite').on('click', function (e) {
+            e.preventDefault();
+            clearControls();
+        });
+    //#endregion Reset
+
+    //#region Clear Controls
+        var clearControls = function () {
+            $("#pref_instr").val("");
+            $("#pref_temp3").val("");
+            $("#pref_temp4").val("");
+            $("#pref_duration").val("");
+            $("#pref_qty").val("");
+            $("#cpref_medicine").val("").trigger("change");
+            $("#cpref_temp6").val("").trigger("change");
+            $("#pref_temp5").val("").trigger("change");
+            $("#cpref_type").val("").trigger("change");
+            $("#cpref_temp1").val("").trigger("change");
+
+        }
+    //#endregion Clear Controls
+
+     //#region Validation Initialization
+        var validate = function () {
+
+            $("#form_AddPrescfavorite").validate({
+                rules: {
+                    cpref_medicine: {
+                        required: true
+                    },
+                },
+                messages: {
+                    cpref_medicine: {
+                        required: "Please Select Diagnosiss!"
+                    },
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                    } else {
+                        elem.parent().addClass('has-error');
+                    }
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                    } else {
+                        elem.removeClass('has-error');
+                    }
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (elem.hasClass("select2-hidden-accessible")) {
+                        element = $("#select2-" + elem.attr("id") + "-container").parent();
+                        error.insertAfter(element);
+                    } else {
+                        error.insertAfter(element);
+                    }
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+            $('#cpref_medicine').on('change', function () {
+                $(this).trigger('blur');
+            });
+
+        }
+    //#endregion Validation Initialization
+
+    //#region Insert Button Click
+        $('#btn_Insert_PrescFavorite').on('click', function (e) {
+            e.preventDefault();
+            if ($("#form_AddPrescfavorite").valid()) {
+                $('#btn_Insert_PrescFavorite').removeClass("btn btn-success");
+                $('#btn_Insert_PrescFavorite').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Insert_PrescFavorite').html("Saving the Record....");
+
+                    var instr = ""
+                    if ($("#pref_instr").val() == "") {
+                        instr = " Take " + $("#pref_temp3").val() + " Unit(s), " + $("#pref_temp4").val() + " Time(s) per " + $("#pref_temp5").val() + " For " + $("#pref_duration").val() + " Day(s)";
+                    }
+                    else {
+                        instr = $("#pref_instr").val();
+                    }
+
+                    var _dataInsert = {
+                    "prefId": 0,
+                    "pref_empId": @emr.app_doctor,
+                    "pref_medicine": $("#cpref_medicine").val(),
+                    "pref_type": $("#cpref_type").val(),
+                    "pref_qty": $("#pref_qty").val(),
+                    "pref_qtype": "",
+                    "pref_duration": $("#pref_duration").val(),
+                    "pref_temp1": $("#cpref_temp1").val(),
+                    "pref_temp2": 0,
+                    "pref_temp3": $("#pref_temp3").val(),
+                    "pref_temp4": $("#pref_temp4").val(),
+                    "pref_temp5": $("#pref_temp5").val(),
+                    "pref_temp6": $("#cpref_temp6").val(),
+                    "pref_oc_code": 'NW',
+                    "pref_oc_type": 'New order/service',
+                    "pref_ra_code": 'AP',
+                    "pref_ra_type": 'Apply Externally',
+                    "pref_med_type": 'CASH',
+                    "pref_instr": instr,
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    }
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("InsertCreatePrescriptionFavourite", "PrescriptionFavourites", new { area = "EMR" })",
+                        dataType: 'JSON',
+                        data: _dataInsert,
+                        success: function (data) {
+                            $('#btn_Insert_PrescFavorite').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_PrescFavorite').addClass("btn btn-success");
+                            $('#btn_Insert_PrescFavorite').html("Add Diagnosis");
+                            if (data.isSuccess) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> Patient Diagnosis Added Successfully!", "success");
+                                    clearControls();
+                                    Timeout();
+                                    GetFavouritePrescription();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+                                html += "</ul></div></div>";
+                                $("#error").html(html);
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btn_Insert_PrescFavorite').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_PrescFavorite').addClass("btn btn-success");
+                            $('#btn_Insert_PrescFavorite').html("Add Diagnosis");
+                            Timeout();
+                        }
+                    });
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+     //#endregion Insert Button Click
+</script>

@@ -1,0 +1,2631 @@
+﻿
+@model BusinessEntities.EClaims.Submissions
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Invoices";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<style>
+    @@media (min-width: 768px) {
+        .col-md-6 {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+    }
+</style>
+<style type="text/css">
+    .dataTables_scroll .dataTables_scrollBody {
+        min-height: 250px;
+    }
+</style>
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="submissions(DHA)">Submissions(DHA)</span> 
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+        </div>
+    </div>
+</div>
+<form id="formSubDHA" class="needs-validation" autocomplete="off">
+    <div class="row">
+        <div class="row">
+            <div class="col">
+                <div id="PRAlert"></div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="card mb-0">
+                <div class="card-status bg-blue"></div>
+                <div class="collapse" id="searchFilter">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="branches">Branch<small>(es)</small></span></label>
+                                    <select class="form-control" id="s_app_branch" multiple="multiple">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="insurance TPA">Insurance TPA<small>(s)</small></span></label>
+                                    <select class="form-control select2-show-search" id="s_ic_name" multiple="multiple"></select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="insurance-payers">Insurance Payer<small>(s)</small></span></label>
+                                    <select class="form-control select2-show-search" id="s_payer" multiple="multiple"></select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="from-date">From Date</span></label>
+                                </div>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <div class="input-group-text">
+                                            <i class="fe fe-calendar"></i>
+                                        </div>
+                                    </div>
+                                    <input id="s_date_from" class="form-control" placeholder="Select Invoice Date From" type="text" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="to-date">To Date</span></label>
+                                </div>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <div class="input-group-text">
+                                            <i class="fe fe-calendar"></i>
+                                        </div>
+                                    </div>
+                                    <input id="s_date_to" class="form-control" placeholder="Select Invoice Date To" type="text" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-1">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="invoice-number">Invoice No.</span></label>
+                                    <input id="s_inv_no" class="form-control" placeholder="Invoice No." type="text" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="patient-search">Patient<small class="ms-2 text-info">(Search By MRN/EID/Mobile/Name)</small></span></label>
+                                    <select class="form-control select2-show-search" id="s_patient"></select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-1">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">	
+                                        <span data-lang-key="disposition-flag">Disposition Flag</span></label>
+                                    <select id="s_flag" class="form-control mb-2">
+                                        <option value="TEST">
+                                            <span data-lang-key="test">Test</span></option>
+                                        <option value="PRODUCTION">
+                                            <span data-lang-key="production">Production</span></option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-1">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="status">Status</span></label>
+                                    <select class="form-control select2 custom-select" id="s_inv_estatus">
+                                        <option value="">
+                                            <span data-lang-key="any">Any</span></option>
+                                        <option value="Submitted">
+                                            <span data-lang-key="submitted">Submitted</span></option>
+                                        <option value="Not-Submitted">
+                                            <span data-lang-key="not-submitted">Not-Submitted</span></option>
+                                        <option value="correction">
+                                            <span data-lang-key="correction">correction</span></option>
+                                        <option value="internal complaint">
+                                            <span data-lang-key="internal-complaint">internal complaint</span></option>
+                                        <option value="Accepted Rejection">
+                                            <span data-lang-key="accepted-rejection">Accepted Rejection</span></option>
+                                        <option value="For Reconciliation">
+                                            <span data-lang-key="for-reconciliation">For Reconciliation</span></option>
+                                        <option value="For Resubmission">
+                                            <span data-lang-key="for-resubmission">For Resubmission</span></option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="departments">Department<small>(s)</small></span></label>
+                                    <select class="form-control" id="select_dept" multiple="multiple">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-2">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="doctors">Doctor<small>(s)</small></span></label>
+                                    <select class="form-control" id="s_app_doctor" multiple="multiple">
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-4 col-lg-1">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="coder-status">Coder Status</span></label>
+                                    <select class="form-control select2 custom-select" id="s_inv_coder_status">
+                                        <option value="">
+                                            <span data-lang-key="any">Any</span></option>
+                                        <option value="New">
+                                            <span data-lang-key="new">New</span></option>
+                                        <option value="In-Progress">
+                                            <span data-lang-key="in-progress">In-Progress</span></option>
+                                        <option value="correction">
+                                            <span data-lang-key="correction">correction</span></option>
+                                        <option value="Queried">
+                                            <span data-lang-key="queried">Queried</span></option>
+                                        <option value="Coded">
+                                            <span data-lang-key="coded">Coded</span></option>
+                                        <option value="Audited">
+                                            <span data-lang-key="audited">Audited</span></option>
+                                        <option value="Not-For-submission">
+                                            <span data-lang-key="not-submitted">Not-For-submission</span></option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-1">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">
+                                        <span data-lang-key="processing-status">Processing Status</span></label>
+                                    <select class="form-control select2 custom-select" id="s_inv_sub_status">
+                                        <option value="">
+                                            <span data-lang-key="any">Any</span></option>
+                                        <option value="New">
+                                            <span data-lang-key="new">New</span></option>
+                                        <option value="In-Progress">
+                                            <span data-lang-key="in-progress">In-Progress</span></option>
+                                        <option value="correction">
+                                            <span data-lang-key="correction">correction</span></option>
+                                        <option value="Queried">
+                                            <span data-lang-key="queried">Queried</span></option>
+                                        <option value="Coded">
+                                            <span data-lang-key="coded">Coded</span></option>
+                                        <option value="Audited">
+                                            <span data-lang-key="audited">Audited</span></option>
+                                        <option value="Not-For-submission">
+                                            <span data-lang-key="not-submitted">Not-For-submission</span></option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-4 col-lg-1">
+                                <div class="form-group mb-2">
+                                    <label class="form-label font-weight-semibold">&nbsp;</label>
+                                    <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                        <i class="fa fa-search-plus"></i> 
+                                        <span data-lang-key="search">Search</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <div id="progress-loader" style="display:none;">
+                        <div class="progress progress-sm mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-2 col-md-2 col-lg-2">
+                            <div class="form-group mb-3 fs-14">
+                                @Html.DropDownListFor(m => m.inv_estatus, new List<SelectListItem>
+                                 {
+                                    new SelectListItem{ Text="Submitted", Value = "Submitted" },
+                                    new SelectListItem{ Text="Not-Submitted", Value = "Not-Submitted" },
+                                    new SelectListItem{ Text="Correction", Value = "Correction" },
+                                    new SelectListItem{ Text="Internal Complaint", Value = "Internal Complaint" },
+                                    new SelectListItem{ Text="Accepted Rejection", Value = "Accepted Rejection" },
+                                    new SelectListItem{ Text="For Reconciliation", Value = "For Reconciliation" },
+                                    new SelectListItem{ Text="For Resubmission", Value = "For Resubmission" },
+                                 }, "Select Type", new { @class = "form-select select2", @id = "uinv_estatus" })
+                            </div>
+                        </div>
+                        <div class="col-sm-1 col-md-1 col-lg-1">
+                            <div class="form-group mb-3">
+                                <div class="btn-list btn-animation">
+                                    <button type="submit" class="btn btn-warning" id="btn_update_status">
+                                        <span data-lang-key="execute">Execute</span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="tbl_invoicesSub" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%;">
+                            <thead>
+                                <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                    <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="receiver-code">Receiver Code.</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="payers-code">Payer Code.</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="policy-number">Policy No.</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="card-number">Card No.</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="authorization-number">Authorization No.</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="insurance">Insurance</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="medical-tourism">Medical tourism</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="doctor-info">Doctor Info</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="patient-info">Patient Info</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="invoice-number">Invoice No.</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="service-date">Service Date</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="topup">Topup </span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="status">Status</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="gross">Gross</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="discount">Discount</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="pat-share">Pat. Share</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="claim-net">Claim Net</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">
+                                        <span data-lang-key="activities-net">Activities Net</span>
+                                    </th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Patient Details -->
+    <div class="modal fade overflow-auto" id="patient_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" id="patient_details_body">
+            </div>
+        </div>
+    </div>
+    <!-- End Modal Patient Details -->
+    <!-- Modal Cash Invoice Details -->
+    <div class="modal fade overflow-auto" id="edit_cash_invoice" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" id="edit_cash_invoice_body">
+            </div>
+        </div>
+    </div>
+    <!-- End Modal Cash Invoice Details -->
+    <!-- Modal Treatment Items Details -->
+    <div class="modal fade overflow-auto" id="treatment_item_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" id="treatment_item_details_body">
+            </div>
+        </div>
+    </div>
+    <!-- End Modal Treatment Items Details -->
+    <!-- Modal Invoice Log Details -->
+    <div class="modal fade overflow-auto" id="invoice_log_details" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" id="invoice_log_details_body">
+            </div>
+        </div>
+    </div>
+    <!-- End Modal Invoice Log Details -->
+    <!-- Modal New Receipts -->
+    <div class="modal fade overflow-auto" id="new_receipts" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" id="new_receipts_body">
+            </div>
+        </div>
+    </div>
+    <!-- End Modal New Receipts -->
+
+
+    @section myScripts{
+        <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Toggle Sidebar
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Invoices
+            GetInvoicesSubmissions();
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Invoices
+        var GetInvoicesSubmissions = function () {
+
+            var _data = {
+                "branch_ids": $('#s_app_branch').val().toString(),
+                "ic_codes": $('#s_ic_name').val().toString(),
+                "ip_codes": $('#s_payer').val().toString(),
+                "inv_date_from": $('#s_date_from').val(),
+                "inv_date_to": $('#s_date_to').val(),
+                "inv_no": $('#s_inv_no').val(),
+                "patient": $('#s_patient').val(),
+                "inv_estatus": $('#s_inv_estatus').val(),
+                "dept_ids": $('#select_dept').val().toString(),
+                "emp_ids": $('#s_app_doctor').val().toString(),
+                "inv_coder_status": $('#s_inv_coder_status').val(),
+                "inv_sub_status": $('#s_inv_sub_status').val(),
+                "app_category": "DHA"
+            }
+            console.log(_data);
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetInvoicesSubmissions", "EClaims", new { area = "EClaims" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    $('#progress-loader').hide();
+
+                    //#region Load Datatable
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_invoicesSub')) {
+                        table = $('#tbl_invoicesSub').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        BindDataTable(response);
+                    }
+
+                    setTimeout(function () {
+                        $('#tbl_invoicesSub').DataTable().columns.adjust().draw();
+                    }, 450);
+                    //#endregio
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                //resizedt();
+            });
+        }
+        // Bind Datatable
+        var BindDataTable = function (response) {
+            var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_invoicesSub").DataTable({
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "invId" },
+                    { "mData": "inv_ic_code" },
+                    { "mData": "app_ip_code" },
+                    { "mData": "inv_pi_polocyno" },
+                    { "mData": "inv_pi_insno" },
+                    { "mData": "pt_auth_code" },
+                    { "mData": "inv_insurance_name" },
+                    { "mData": "inv_payer" },
+                    { "mData": "emp_name" },
+                    { "mData": "pat_code" },
+                    { "mData": "inv_no" },
+                    { "mData": "inv_date" },
+                    { "mData": "ic_share_yes_no" },
+                    { "mData": "inv_estatus" },
+                    { "mData": "inv_total" },
+                    { "mData": "inv_disc" },
+                    { "mData": "pat_share" },
+                    { "mData": "inv_net" },
+                    { "mData": "pt_net" },
+                    { "mData": "invId" },
+                    { "mData": "inv_status" },
+                    { "mData": "inv_status2" },
+                    { "mData": "patId" },
+                    { "mData": "appId" },
+                    { "mData": "inv_type" },
+
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        },
+                        "render": function (data, type, full, meta) {
+                            // Check if full.inv_net is not equal to full.pt_net
+                            var alertSymbol = (full.inv_net !== full.pt_net) ? '<i class="fa fa-exclamation-triangle text-danger" title="Mismatch between Claim and Activity net"></i>' : '';
+
+                            // Create the checkbox with the alert symbol
+                            var checkboxHtml = '<div class="select-checkbox"><input type="checkbox" class="dt-checkboxes"/></div>';
+
+                            return checkboxHtml + ' ' + alertSymbol;
+                        }
+                    },
+                    {
+                        "aTargets": [8],
+                        "render": function (data, type, full, meta) {
+                        // Check if emp_license is null or empty
+                        var tdColor = (!full.emp_license) ? 'background-color: orange;' : '';
+
+                            var app_info = '<div class="tag tag-success font-weight-semibold mt-2">' + data + '</div><br/>' +
+                                '<div class="tag tag-secondary font-weight-semibold mt-2">' + full.emp_dept_name + '<span class="tag-addon"><i class="fe fe-activity"></i></span></div></br>';
+
+                        if (!full.emp_license) {
+                            app_info += '<div class="tag tag-default border-dark text-dark font-weight-semibold mt-2" style="' + tdColor + '">No License</div><br/>';
+                        } else {
+                            app_info += '<div class="tag tag-default border-dark text-dark font-weight-semibold mt-2" style="' + tdColor + '">' + full.emp_license + '</div><br/>';
+                        }
+
+                        var html = '<td style="' + tdColor + '">' + app_info + '</td>';
+
+                        return html;
+                        }
+                    },
+                    {
+                        "aTargets": [9],
+                        "render": function (data, type, full, meta) {
+                            var pat_det = '';
+                            var pat_class = full.pat_class;
+                            var gender = full.pat_gender;
+                            var emid = full.pat_emirateid;
+
+                            if (emid == "") {
+                                emid = "999-9999-9999999-9";
+                            }
+
+                            pat_det += '<span class="btn-indigo btn-sm mt-2">' + full.pat_code + '</span></br>'
+                            // Check Patient Class
+                            if (pat_class === 'VIP') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 mt-2">' + full.pat_name + '</span>&nbsp;<span title="Patient is a VIP"><i class="fa fa-star text-orange"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Employee Related') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 mt-2">' + full.pat_name + '</span>&nbsp;<span title="This Patient is related with an Employee"><i class="fa fa-street-view text-info"></i></span></a> ';
+                            }
+                            else if (pat_class === 'Management Related') {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 mt-2">' + full.pat_name + '</span>&nbsp;<span title="This Patient is related to the Management"><i class="fa fa-handshake-o text-primary"></i></span></a> ';
+                            }
+                            else {
+                                pat_det += '<a onclick="patientDetails(\'' + data + '\',\'' + full.pat_name + '\')"><span class="text-dark font-weight-semibold text-capitalize fs-14 mt-2">' + full.pat_name + '</span></a> ';
+                            }
+
+
+                            // Check EMID Expiry
+                            if (emid != null && emid != "" && emid != undefined) {
+
+                                let id_card_edate = moment(full.id_card_edate);
+                                if (id_card_edate.isValid()) {
+                                    let today = moment();
+                                    if (id_card_edate.diff(today, 'days') <= 0) {
+                                        pat_det += ' <div class="badge bg-danger-transparent font-weight-semibold mt-2" style="margin-left:5px;font-size: 0.9em">' + emid + '<span class="tag-addon"><i class="fa fa-exclamation-circle" title="EMID Expired on ' + moment(id_card_edate).format("DD-MMMM-YYYY") + '" style="color:#ff0000;"></i></span></div>';
+                                    }
+                                    else {
+                                        pat_det += '<span class="badge bg-primary-transparent text-dark ms-2 font-weight-bold" style="font-size: 0.9em;">' + emid + '</span>';
+                                    }
+                                }
+                            }
+
+                            var html = pat_det;
+
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [11],
+                        "render": function (data) {
+                            return moment(data).format("DD-MM-YYYY");
+                        }
+                    },
+                    {
+                        "aTargets": [14],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [15],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [16],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [17, 18],
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": function (data, type, full, meta) {
+                            // Format numbers with commas and decimals
+                            var formattedData = $.fn.dataTable.render.number(',', '.', 2).display(data);
+                            // Check the condition for background color
+                            var backgroundColor = (full.inv_net !== full.pt_net) ? 'background-color: red !important;' : '';
+                            // Combine the formatted data with the background color
+                            var html = '<div style="' + backgroundColor + '" class="tag tag-default border-red text-dark font-weight-semibold ms-2">' + formattedData + '</div>';
+                            return html;
+                        }
+                    },
+                    {
+                        "aTargets": [19],
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (invId, type, full, meta) {
+                            var inv_status = full.inv_status;
+                            var inv_status2 = full.inv_status2;
+                            var patId = full.patId;
+                            var appId = full.appId;
+                            var inv_type = full.inv_type;
+
+                            var more = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (inv_status != "Deleted" && inv_status2 != "Verified" && inv_status2 != "Posted") {
+                                more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="editInvoice(\'' + invId + '\', \'' + patId + '\', \'' + appId + '\', \'' + inv_type + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Edit</a>';
+                                if (inv_status == "Cash") {
+                                    more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="printInvoice(\'' + invId + '\')"><i class="fe fe-printer text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Print</a>';
+                                }
+                                else {
+                                    more += '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="printInsInvoice(\'' + invId + '\')"><i class="fe fe-printer text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Print</a>';
+                                }
+                            }
+
+                            more += '</div>' +
+                                '</div>';
+
+                            return more;
+                        }
+                    },
+                    {
+                        "aTargets": [20],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [21],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [22],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [23],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [24],
+                        "visible": false
+                    },
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[18, 'asc']],
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Invoices',
+                        footer: 'false',
+                        exportOptions: {
+                            columns: [1,2,3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,17,18]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Invoices to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Invoices',
+                        footer: 'false',
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Invoices to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Invoices',
+                        footer: 'false',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Invoices to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Invoices',
+                        footer: 'false',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Invoices!");
+                        }
+                    },
+                    {
+                        text: '<i class="fa fa-cloud-download"></i> Selected XML(Download Manual)',
+                        className: 'btn btn-outline-success ms-2',
+                        action: function (e, dt, node, config) {
+                            console.log(e);
+                            btn_generate_selected_xml2_Click()
+                        }
+                    },
+
+                    {
+                        text: '<i class="fa fa-external-link-square"></i> Selected XML(Direct)',
+                        className: 'btn btn-outline-success ms-2',
+                        action: function (e, dt, node, config) {
+                            console.log(e);
+                            btn_generate_selected_xml_Click()
+                        }
+                    },
+                    {
+                        text: '<i class="fa fa-cloud-download"></i> Full XML(Download Manual)',
+                        className: 'btn btn-outline-success ms-2',
+                        action: function (e, dt, node, config) {
+                            console.log(e);
+                            btn_generate_Full_XML_Download_Click()
+                        }
+                    },
+                    {
+                        text: '<i class="fa fa-external-link-square"></i> Full XML(Direct)',
+                        className: 'btn btn-outline-success ms-2',
+                        action: function (e, dt, node, config) {
+                            console.log(e);
+                            btn_generate_Full_XML_Direct_Click()
+                        }
+                    },
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Invoice</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                searching: false,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+
+                rowCallback: function (row, data, index) {
+                    if (data.inv_status === "Deleted") {
+                        $('td:eq(0)', row).find("input[type='checkbox']").remove();
+                    }
+                },
+            });
+            table.buttons().container().appendTo('#tbl_invoicesSub_wrapper .col-md-6:eq(0)');
+
+
+        }
+        //#endregion
+
+        //#region Dropdown Bindings
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+            load_departments();
+            load_doctors();
+            load_patients();
+            load_tpa();
+            load_payer();
+            $("#s_flag").select2({
+                placeholder: 'Select Disposition Flag',
+                width: '100%',
+                dropdownParent: $('#formSubDHA')
+            });
+            $('#s_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#s_date_from").bootstrapdatepicker("setDate", "today");
+            $('#s_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#s_date_to").bootstrapdatepicker("setDate", "tomorrow");
+
+            $('#s_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#s_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+
+        // Load Branches
+        var load_branches = function () {
+            $('#s_app_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "Invoice", new { area = "Invoice" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#s_app_branch').html('');
+                $('#s_app_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                        $('#s_app_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#s_app_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+                pageLoad = false;
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#s_app_branch')[0].sumo.reload();
+            });
+        }
+
+        // Load Departments
+        var load_departments = function () {
+            $('#select_dept').SumoSelect({
+                placeholder: 'Select Department(s)',
+                captionFormat: '{0} Department(s) Selected',
+                captionFormatAllSelected: 'All {0} Department(s) selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetDepartments", "Invoice", new { area = "Invoice" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#select_dept').html('');
+                    $('#select_dept')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_dept')[0].sumo.add(response[j].id, response[j].text);
+                        //$('#select_dept')[0].sumo.selectItem([response[j].id]);
+                    });
+
+                    $('#select_dept')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+        // Load Doctors
+        var load_doctors = function () {
+            $("#s_app_doctor").SumoSelect({
+                placeholder: 'Select Doctor(s)',
+                captionFormat: '{0} Doctor(s) Selected',
+                captionFormatAllSelected: 'All {0} Doctors selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#s_app_doctor').html('');
+            $('#s_app_doctor')[0].sumo.reload();
+        }
+        // On Departments select
+        $('#select_dept').on('change', function (e) {
+            if ($(this).val() != "" && $('#s_app_branch').val() != "") {
+
+                var _data = {
+                    "Departments": $('#select_dept').val(),
+                    "Branches": $('#s_app_branch').val(),
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetDoctorsByDepartment", "Invoice", new { area = "Invoice" })',
+                    dataType: 'JSON',
+                    data: _data,
+                    success: function (response) {
+
+                        $('#s_app_doctor').html('');
+                        $('#s_app_doctor')[0].sumo.reload();
+
+                        $.each(response, function (j) {
+                            $('#s_app_doctor')[0].sumo.add(response[j].id, response[j].text);
+                            //$('#s_app_doctor')[0].sumo.selectItem([response[j].id]);
+                        });
+
+                        $('#s_app_doctor')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#s_app_doctor').html('');
+                $('#s_app_doctor')[0].sumo.reload();
+            }
+        });
+
+        // Load Patients
+        var load_patients = function () {
+
+            $('#s_patient').select2({
+                placeholder: 'Search Patient',
+                width: '100%',
+                allowClear: true,
+                minimumInputLength: 3,
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                ajax: {
+                    url: '@Url.Action("GetPatients", "AppointmentList", new { area = "Appointment" })',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (query) {
+                        return {
+                            query: query.term,
+                            type: 0
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+
+        // Load Doctors
+        var load_tpa = function () {
+            $("#s_ic_name").SumoSelect({
+                placeholder: 'Select Insurance TPA(s)',
+                captionFormat: '{0} Insurance TPA(s) Selected',
+                captionFormatAllSelected: 'All {0} Insurance TPAs selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetInsuranceTPAeClaim", "EClaims", new { area = "EClaims" })',
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#s_ic_name').html('');
+                    $('#s_ic_name')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#s_ic_name')[0].sumo.add(response[j].Value, response[j].Text);
+                    });
+
+                    $('#s_ic_name')[0].sumo.reload();
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            });
+        }
+
+        // Load Payers
+        var load_payer = function () {
+            $("#s_payer").SumoSelect({
+                placeholder: 'Select Insurance Payer(s)',
+                captionFormat: '{0} Insurance Payer(s) Selected',
+                captionFormatAllSelected: 'All {0} Insurance Payers selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#s_payer').html('');
+            $('#s_payer')[0].sumo.reload();
+        }
+        //#endregion
+
+        //#region Insurance Change Event
+        $('#s_ic_name').on('change', function (e) {
+            if ($(this).val() != "" && $(this).val() != null && $(this).val() != undefined) {
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("GetInsurancePayers", "Invoice", new { area = "Invoice" })?ip_ins=' + $(this).val(),
+                    dataType: 'json',
+                    success: function (response) {
+                        $('#s_payer').html('');
+                        $('#s_payer')[0].sumo.reload();
+
+                        $.each(response, function (j) {
+                            $('#s_payer')[0].sumo.add(response[j].Value, response[j].Text);
+                        });
+
+                        $('#s_payer')[0].sumo.reload();
+                    },
+                    error: function (xhr) {
+                        console.log("Failed! Error Message : " + xhr.statusText);
+                    }
+                });
+            }
+            else {
+                $('#s_payer').html('');
+                $('#s_payer')[0].sumo.reload();
+            }
+        });
+        //#endregion
+
+        //#region View Patient Details
+        var patientDetails = function (patId, pat_name) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("PatientDetail", "Patient", new { area = "Patient" })?patId=" + patId + "&pat_name=" + pat_name,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#patient_details_body").html(response);
+                    $("#patient_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Search Patients
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#s_ic_name").val() != null && $("#s_ic_name").val() != 0 && $("#s_ic_name").val() != "" && $("#s_ic_name").val() != undefined) {
+            if (($("#select_dept").val() != null && $("#select_dept").val() != 0 && $("#select_dept").val() != "" && $("#select_dept").val() != undefined) ||
+                ($("#s_app_doctor").val() != null && $("#s_app_doctor").val() != 0 && $("#s_app_doctor").val() != "" && $("#s_app_doctor").val() != undefined) ||
+                ($("#s_inv_no").val() != null && $("#s_inv_no").val() != 0 && $("#s_inv_no").val() != "" && $("#s_inv_no").val() != undefined) ||
+                ($("#s_patient").val() != null && $("#s_patient").val() != 0 && $("#s_patient").val() != "" && $("#s_patient").val() != undefined) ||
+                ($("#s_payer").val() != null && $("#s_payer").val() != 0 && $("#s_payer").val() != "" && $("#s_payer").val() != undefined) ||
+                ($("#s_date_from").val() != null && $("#s_date_from").val() != 0 && $("#s_date_from").val() != "" && $("#s_date_from").val() != undefined) ||
+                ($("#s_date_to").val() != null && $("#s_date_to").val() != 0 && $("#s_date_to").val() != "" && $("#s_date_to").val() != undefined)) {
+
+                let isValid = true;
+
+                let inv_frm = moment($("#s_date_from").val());
+                let inv_to = moment($("#s_date_to").val());
+
+
+                // Check if Date From is a valid Date
+                if ($("#s_date_from").val() != null && $("#s_date_from").val() != 0 && $("#s_date_from").val() != "" && $("#s_date_from").val() != undefined) {
+                    if (!inv_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Submission From"
+                        });
+                    }
+                }
+
+                // Check if Date To is a valid Date
+                if ($("#s_date_to").val() != null && $("#s_date_to").val() != 0 && $("#s_date_to").val() != "" && $("#s_date_to").val() != undefined) {
+                    if (!inv_to.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date Selection for Submission To"
+                        });
+                    }
+                }
+                // Check if Date Range is valid
+                if (($("#s_date_from").val() != null && $("#s_date_from").val() != 0 && $("#s_date_from").val() != "" && $("#s_date_from").val() != undefined) &&
+                    ($("#s_date_to").val() != null && $("#s_date_to").val() != 0 && $("#s_date_to").val() != "" && $("#s_date_to").val() != undefined)) {
+                    if (inv_frm.isValid() && inv_to.isValid()) {
+                        if (inv_to.diff(inv_frm, 'days') <= 0) {
+                            isValid = false;
+
+                            var index = [];
+                            index.push("s_date_from");
+                            index.push("s_date_to");
+
+                            $.each(index, function (i, v) {
+                                if (index[i] != null && index[i] != "") {
+                                    var elem = $("#" + index[i]);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                }
+                            });
+
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invoiced From Date should be less than To Date!"
+                            });
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    GetInvoicesSubmissions();
+                }
+
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Search by Either of the following filters : Department(s) / Doctor(s) / Invoiced Date / Invoice No. / Patient /Status(es) / Coder Status(es) / TPA(s) / Payer(s)",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Insurance TPA to Filter Invoices!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Print Cash Invoice
+        var printInvoice = function (invId) {
+            window.open("@Url.Action("PrintInvoice", "Invoice", new { area = "Invoice" })?invId=" + invId, "Invoice Print");
+        }
+        //#endregion
+
+        //#region Edit Cash Invoice
+            var editInvoice = function (invId, patId, appId,inv_type) {
+            $.ajax({
+            type: 'POST',
+            url: '@Url.Action("GetEMRPatientInfo", "Appointment", new { area = "Appointment" })' + "?appId=" + appId,
+            dataType: 'json',
+            success: function (response) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditCashInvoice", "Invoice", new { area = "Invoice" })?invId=" + invId + "&patId=" + patId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#edit_cash_invoice_body").html(response);
+                    $("#edit_cash_invoice").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+                },
+                error: function (xhr) {
+                    console.log(xhr.statusText);
+                },
+                complete: function () {
+                    $("#spinner2").hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Invoice
+        var deleteInvoice = function (invId) {
+            Swal.fire({
+            title: "Are you sure you want to delete this Invoice?",
+            html: "This action will delete this Invoice and will Change your Appointment status as <span class='text-danger'>Arrived</span>, and will Delete all the <span class='text-danger'>treatments and receipts</span> its included!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteInvoice", "Invoice", new { area = "Invoice" })?invId=' + invId ,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.isSuccess) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Invoice was Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetInvoicesSubmissions();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Delete the Invoice!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete this Invoice!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Invoice! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Invoice Logs
+        var invoiceLog = function (invId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("InvoiceLogs", "Invoice", new { area = "Invoice" })?invId=" + invId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#invoice_log_details_body").html(response);
+                    $("#invoice_log_details").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        var sendEmail = function (invId, inv_no, pat_mob, pat_email, patId, pat_name) {
+            var _obj = {
+                "id": parseInt(invId),
+                "ref_no": inv_no,
+                "mobile": pat_mob,
+                "email": pat_email,
+                "user": parseInt(patId),
+                "user_name": pat_name
+            }
+
+            $.ajax({
+                url: '@Url.Action("SendInvoiceInEmail", "Invoice", new { area = "Invoice" })',
+                type: "POST",
+                dataType: "json",
+                data: _obj,
+                async: false,
+                success: function (response) {
+                    if (response.isSuccess == true) {
+                        return $.growl.notice({
+                            title: "Success",
+                            message: response.message
+                        });
+                    }
+                    else {
+                        return $.growl.error({
+                            title: "Error",
+                            message: response.message
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+
+        var sendWhatsapp = function (invId, inv_no, pat_mob, pat_email, patId, pat_name) {
+            var _obj = {
+                "id": parseInt(invId),
+                "ref_no": inv_no,
+                "mobile": pat_mob,
+                "email": pat_email,
+                "user": parseInt(patId),
+                "user_name": pat_name
+            }
+
+            $.ajax({
+                url: '@Url.Action("SendInvoiceInWhatsapp", "Invoice", new { area = "Invoice" })',
+                type: "POST",
+                dataType: "json",
+                data: _obj,
+                async: false,
+                success: function (response) {
+                    if (response.isSuccess == true) {
+                        if (response.data["status"] == "success") {
+                            return $.growl.notice({
+                                title: "Success",
+                                message: response.message
+                            });
+                        }
+                        else {
+                            return $.growl.warning({
+                                title: "Pending",
+                                message: response.message
+                            });
+                        }
+                    }
+                    else {
+                        return $.growl.error({
+                            title: "Error",
+                            message: response.message
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#region newReceipt
+            var newReceipt = function (invId, patId) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("InvoiceReceipts", "Receipt", new { area = "Invoice" })?invId=" + invId + "&patId=" + patId + "&rec_date=" + moment().format("YYYY-MM-DD"),
+                    contentType: "application/json",
+                    dataType: "html",
+                    success: function (response) {
+                        $("#new_receipts_body").html(response);
+                        $("#new_receipts").modal("show");
+                        //localStorage.setItem("rec_from", "invoice_receipts");
+
+                        //$("#inv_tab_content").html('');
+
+                        //var _contents = '<div class="tab-pane active" id="' + inv_contentId + '">' +
+                        //    '<div class="card-body p-0" id="' + inv_contentId + '">' +
+                        //    response +
+                        //    '</div>' +
+                        //    '</div>';
+
+                        //$("#inv_tab_content").html(_contents);
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                    }
+                });
+            }
+        //#endregion
+
+        //#region Selected XML
+            function btn_generate_selected_xml2_Click() {
+             //event.preventDefault();
+            var inv_ids = "";
+            var no_of_claims = 0;
+            var permit_no = "";
+            var license = true;
+            var net_amount = "Yes";
+
+            var table = $("#tbl_invoicesSub").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            var invIdArray = [];
+            var icCodeArray = [];
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                if (_data) {
+                    invIdArray.push(_data.invId);
+                    icCodeArray.push(_data.inv_ic_code);
+                    no_of_claims = no_of_claims + 1;
+                    if (_data.emp_license == "") {
+                        license = false;
+                    }
+                    if (_data.inv_net != _data.pt_net) {
+                        net_amount = "No";
+                    }
+                    permit_no = _data.set_permit_no
+                }
+            });
+
+            var allSame = icCodeArray.every(function (item) {
+                return item === icCodeArray[0];
+            });
+            if (allSame) {
+                inv_ids = invIdArray.join(","); // Join values with commas
+                var selectedText = $('#s_ic_name option:selected').map(function () {
+                    return $(this).text();
+                }).get().join(',');
+                if (inv_ids != "") {
+                    if (permit_no != "") {
+                        if (license != false) {
+                            if (net_amount != "No") {
+                                var s_flag = $("#s_flag").val();
+                                $.ajax({
+                                    url: '@Url.Action("GenerateSelectedXmlManual", "EClaims", new { area = "EClaims" })?inv_ids=' + inv_ids + "&s_flag=" + s_flag + "&no_of_claims=" + no_of_claims,
+                                type: "GET",
+                                dataType: "text",
+                                    success: function (response) {
+                                    var currentDateTime = new Date();
+                                    var year = currentDateTime.getFullYear();
+                                    var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                                    var day = currentDateTime.getDate().toString().padStart(2, '0');
+                                    var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                                    var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                                    var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                                    var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+
+                                    var inputDatefrom = $('#s_date_from').val();
+                                    var dateObjectfrom = new Date(inputDatefrom);// Create a Date object using the input date
+                                    var yearfrom = dateObjectfrom.getFullYear();// Extract year, month, and day components
+                                    var monthfrom = ('0' + (dateObjectfrom.getMonth() + 1)).slice(-2); // Months are zero-based
+                                    var dayfrom = ('0' + dateObjectfrom.getDate()).slice(-2);
+                                    var formattedDatefrom = yearfrom + '-' + monthfrom + '-' + dayfrom; // Construct the year-month-day format
+
+                                    var inputDateto = $('#s_date_to').val();
+                                    var dateObjectto = new Date(inputDateto);// Create a Date object using the input date
+                                    var yearto = dateObjectto.getFullYear();// Extract year, month, and day components
+                                    var monthto = ('0' + (dateObjectto.getMonth() + 1)).slice(-2); // Months are zero-based
+                                    var dayto = ('0' + dateObjectto.getDate()).slice(-2);
+                                    var formattedDateto = yearto + '-' + monthto + '-' + dayto; // Construct the year-month-day format
+
+                                    // Create a hidden anchor element
+                                    var link = document.createElement('a');
+                                    link.href = 'data:application/xml;charset=utf-8,' + encodeURIComponent(response);
+                                    link.download = 'Sub_' + formattedDatefrom + '_' + formattedDateto + '_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xml';
+                                    // Trigger a click event on the anchor to initiate the download
+                                    link.click();
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                                });
+                            }
+                            else {
+                                var alertPlaceholder = document.getElementById("PRAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fa fa-warning text-white'></i> One of Claim Net Amount is not match with sum of Activities Net .. \n Please Check..!", "warning");
+                                window.setTimeout(function () {
+                                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                        $(this).remove();
+                                    });
+                                }, 4200);
+                            }
+                         }
+                         else {
+                             var alertPlaceholder = document.getElementById("PRAlert");
+                             function alert(e, t) {
+                                 var l = document.createElement("div");
+                                 l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                     '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                             }
+                             alert("<i class='fa fa-warning text-white'></i> One of Doctor doesn't have License, Please Fill Doctor License Id in \n Master --> Employees and security in order to generate XML!", "warning");
+                             window.setTimeout(function () {
+                                 $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                     $(this).remove();
+                                 });
+                             }, 4200);
+                         }
+                    }
+                    else {
+                        var alertPlaceholder = document.getElementById("PRAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fa fa-warning text-white'></i> Please fill Facility Id in \n Master --> Clinic Settings in order to generate XML!", "warning");
+                        window.setTimeout(function () {
+                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                $(this).remove();
+                            });
+                        }, 4200);
+                    }
+                  }
+                else {
+                      var alertPlaceholder = document.getElementById("PRAlert");
+                      function alert(e, t) {
+                          var l = document.createElement("div");
+                          l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                              '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                      }
+                    alert("<i class='fa fa-warning text-white'></i> Please select atleast one invoice to generate XML!!", "warning");
+                      window.setTimeout(function () {
+                          $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                              $(this).remove();
+                          });
+                      }, 4200);
+                    }
+            }
+            else {
+                var alertPlaceholder = document.getElementById("PRAlert");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-warning text-white'></i> Select Insurance with same Insurance code ", "warning");
+                window.setTimeout(function () {
+                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                        $(this).remove();
+                    });
+                }, 4200);
+            }
+         }
+        //#endregion
+
+        //#region Selected XML Direct
+            function btn_generate_selected_xml_Click() {
+             //event.preventDefault();
+            var inv_ids = "";
+            var no_of_claims = 0;
+            var permit_no = "";
+            var license = true;
+            var net_amount = "Yes";
+
+            var table = $("#tbl_invoicesSub").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            var invIdArray = [];
+            var icCodeArray = [];
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                if (_data) {
+                    invIdArray.push(_data.invId);
+                    icCodeArray.push(_data.inv_ic_code);
+                    no_of_claims = no_of_claims + 1;
+                    if (_data.emp_license == "") {
+                        license = false;
+                    }
+                    if (_data.inv_net != _data.pt_net) {
+                        net_amount = "No";
+                    }
+                    permit_no = _data.set_permit_no
+                }
+            });
+            var allSame = icCodeArray.every(function (item) {
+                return item === icCodeArray[0];
+            });
+            if (allSame) {
+                inv_ids = invIdArray.join(","); // Join values with commas
+                var selectedText = $('#s_ic_name option:selected').map(function () {
+                    return $(this).text();
+                }).get().join(',');
+
+                if (inv_ids.substring(1) != "") {
+                    if (permit_no != "") {
+                        if (license != false) {
+                            if (net_amount != "No") {
+                                $.ajax({
+                                url: '@Url.Action("GenerateSelectedXmlDirect", "EClaims", new { area = "EClaims" })?inv_ids=' + inv_ids + "&s_flag=" + $("#s_flag").val() + "&no_of_claims=" + no_of_claims + "&s_ic_id=" + $('#s_ic_name').val().toString() + "&ic_names=" + selectedText + "&s_date_from=" + $('#s_date_from').val() + "&s_date_to=" + $('#s_date_to').val(),
+                                type: "GET",
+                                dataType: "text",
+                                    success: function (response) {
+                                        var alertPlaceholder = document.getElementById("PRAlert");
+                                        function alert(e, t) {
+                                            var l = document.createElement("div");
+                                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                        }
+                                        if (response.includes("Error")) {
+                                        alert("<i class='fa fa-danger text-white'></i> eClaim transaction validation is failed with errors!! Please Open Downloaded Excel", "danger");
+                                        window.setTimeout(function () {
+                                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                $(this).remove();
+                                            });
+                                        }, 4200);
+                                        var currentDateTime = new Date();
+                                        var year = currentDateTime.getFullYear();
+                                        var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                                        var day = currentDateTime.getDate().toString().padStart(2, '0');
+                                        var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                                        var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                                        var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                                        var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+                                        console.log(response);
+                                        var eClaim_ErrorReport = response; // Assuming response is a string containing the Excel file data
+
+                                        var blob = new Blob([eClaim_ErrorReport], { type: 'application/vnd.ms-excel' });
+
+                                        var url = window.URL.createObjectURL(blob);
+                                        var link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = 'ERROR_REPORT_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xls';
+                                        document.body.appendChild(link);
+
+                                        link.click();
+                                        } else {
+                                                alert("<i class='fa fa-success text-white'></i> Submitted Successfully", "success");
+                                                window.setTimeout(function () {
+                                                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                        $(this).remove();
+                                                    });
+                                                }, 4200);
+                                        }
+                                  
+                                    },
+                                    error: function (xhr) {
+                                        console.log(xhr);
+                                    }
+                                });
+                            }
+                            else {
+                                var alertPlaceholder = document.getElementById("PRAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fa fa-warning text-white'></i> One of Claim Net Amount is not match with sum of Activities Net .. \n Please Check..!", "warning");
+                                window.setTimeout(function () {
+                                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                        $(this).remove();
+                                    });
+                                }, 4200);
+                            }
+                            }
+                            else {
+                                var alertPlaceholder = document.getElementById("PRAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fa fa-warning text-white'></i> One of Doctor doesn't have License, Please Fill Doctor License Id in \n Master --> Employees and security in order to generate XML!", "warning");
+                                window.setTimeout(function () {
+                                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                        $(this).remove();
+                                    });
+                                }, 4200);
+                            }
+                    }
+                    else {
+                        var alertPlaceholder = document.getElementById("PRAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fa fa-warning text-white'></i> Please fill Facility Id in \n Master --> Clinic Settings in order to generate XML!", "warning");
+                        window.setTimeout(function () {
+                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                $(this).remove();
+                            });
+                        }, 4200);
+                    }
+                    }
+                    else {
+                        var alertPlaceholder = document.getElementById("PRAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                        }
+                    alert("<i class='fa fa-warning text-white'></i> Please select atleast one invoice to generate XML!", "warning");
+                        window.setTimeout(function () {
+                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                $(this).remove();
+                            });
+                        }, 4200);
+                        }
+            }
+            else {
+                var alertPlaceholder = document.getElementById("PRAlert");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-warning text-white'></i> Select Insurance with same Insurance code ", "warning");
+                window.setTimeout(function () {
+                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                        $(this).remove();
+                    });
+                }, 4200);
+            }
+         }
+         //#endregion
+
+        //#region Download Full XML Manually
+        function btn_generate_Full_XML_Download_Click() {
+            //event.preventDefault();
+            var inv_ids = "";
+            var no_of_claims = 0;
+            var permit_no = "";
+            var license = true;
+            var net_amount = "Yes";
+
+            var table = $("#tbl_invoicesSub").DataTable();
+            var rows = table.rows().nodes();
+
+            var invIdArray = [];
+            var icCodeArray = [];
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                if (_data) {
+                    invIdArray.push(_data.invId);
+                    icCodeArray.push(_data.inv_ic_code);
+                    no_of_claims = no_of_claims + 1;
+                    if (_data.emp_license == "") {
+                        license = false;
+                    }
+                    if (_data.inv_net != _data.pt_net) {
+                        net_amount = "No";
+                    }
+                    permit_no = _data.set_permit_no
+                }
+            });
+            var allSame = icCodeArray.every(function (item) {
+                return item === icCodeArray[0];
+            });
+            if (allSame) {
+               inv_ids = invIdArray.join(","); // Join values with commas
+                var selectedText = $('#s_ic_name option:selected').map(function () {
+                    return $(this).text();
+                }).get().join(',');
+                if (permit_no != "") {
+                    if (license != false) {
+                        if (net_amount != "No") {
+                            var s_flag = $("#s_flag").val();
+                            $.ajax({
+                                url: '@Url.Action("GenerateFullXmlManual", "EClaims", new { area = "EClaims" })?inv_ids=' + inv_ids + "&s_flag=" + s_flag + "&no_of_claims=" + no_of_claims + "&s_ic_id=" + $('#s_ic_name').val().toString() + "&ic_names=" + selectedText + "&s_date_from=" + $('#s_date_from').val() + "&s_date_to=" + $('#s_date_to').val(),
+                            type: "GET",
+                            dataType: "text",
+                                success: function (response) {
+                                var currentDateTime = new Date();
+                                var year = currentDateTime.getFullYear();
+                                var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                                var day = currentDateTime.getDate().toString().padStart(2, '0');
+                                var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                                var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                                var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                                var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+
+                                var inputDatefrom = $('#s_date_from').val();
+                                var dateObjectfrom = new Date(inputDatefrom);// Create a Date object using the input date
+                                var yearfrom = dateObjectfrom.getFullYear();// Extract year, month, and day components
+                                var monthfrom = ('0' + (dateObjectfrom.getMonth() + 1)).slice(-2); // Months are zero-based
+                                var dayfrom = ('0' + dateObjectfrom.getDate()).slice(-2);
+                                var formattedDatefrom = yearfrom + '-' + monthfrom + '-' + dayfrom; // Construct the year-month-day format
+
+                                var inputDateto = $('#s_date_to').val();
+                                var dateObjectto = new Date(inputDateto);// Create a Date object using the input date
+                                var yearto = dateObjectto.getFullYear();// Extract year, month, and day components
+                                var monthto = ('0' + (dateObjectto.getMonth() + 1)).slice(-2); // Months are zero-based
+                                var dayto = ('0' + dateObjectto.getDate()).slice(-2);
+                                var formattedDateto = yearto + '-' + monthto + '-' + dayto; // Construct the year-month-day format
+
+                                // Create a hidden anchor element
+                                var link = document.createElement('a');
+                                link.href = 'data:application/xml;charset=utf-8,' + encodeURIComponent(response);
+                                link.download = 'Sub_' + formattedDatefrom + '_' + formattedDateto + '_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xml';
+                                // Trigger a click event on the anchor to initiate the download
+                                link.click();
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                            });
+                        }
+                        else {
+                            var alertPlaceholder = document.getElementById("PRAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                    '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fa fa-warning text-white'></i> One of Claim Net Amount is not match with sum of Activities Net .. \n Please Check..!", "warning");
+                            window.setTimeout(function () {
+                                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                    $(this).remove();
+                                });
+                            }, 4200);
+                        }
+
+                     }
+                     else {
+                         var alertPlaceholder = document.getElementById("PRAlert");
+                         function alert(e, t) {
+                             var l = document.createElement("div");
+                             l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                 '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                         }
+                         alert("<i class='fa fa-warning text-white'></i> One of Doctor doesn't have License, Please Fill Doctor License Id in \n Master --> Employees and security in order to generate XML!", "warning");
+                         window.setTimeout(function () {
+                             $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                 $(this).remove();
+                             });
+                         }, 4200);
+                     }
+                }
+                else {
+                    var alertPlaceholder = document.getElementById("PRAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fa fa-warning text-white'></i> Please fill Facility Id in \n Master --> Clinic Settings in order to generate XML!", "warning");
+                    window.setTimeout(function () {
+                        $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                            $(this).remove();
+                        });
+                    }, 4200);
+                }
+              }
+              else {
+                  var alertPlaceholder = document.getElementById("PRAlert");
+                  function alert(e, t) {
+                      var l = document.createElement("div");
+                      l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                          '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                  }
+                alert("<i class='fa fa-warning text-white'></i> Please select atleast one invoice to generate XML!!", "warning");
+                  window.setTimeout(function () {
+                      $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                          $(this).remove();
+                      });
+                  }, 4200);
+              }
+         }
+        //#endregion
+
+        //#region Selected XML Direct
+            function btn_generate_selected_xml_Click() {
+             //event.preventDefault();
+            var inv_ids = "";
+            var no_of_claims = 0;
+            var permit_no = "";
+            var license = true;
+            var net_amount = "Yes";
+
+            var table = $("#tbl_invoicesSub").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            var invIdArray = [];
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                if (_data) {
+                    invIdArray.push(_data.invId);
+                    no_of_claims = no_of_claims + 1;
+                    if (_data.emp_license == "") {
+                        license = false;
+                    }
+                    if (_data.inv_net != _data.pt_net) {
+                        net_amount = "No";
+                    }
+                    permit_no = _data.set_permit_no
+                }
+            });
+
+            inv_ids = invIdArray.join(","); // Join values with commas
+            var selectedText = $('#s_ic_name option:selected').map(function () {
+                return $(this).text();
+            }).get().join(',');
+
+            if (inv_ids.substring(1) != "") {
+                if (permit_no != "") {
+                    if (license != false) {
+                        if (net_amount != "No") {
+                            $.ajax({
+                            url: '@Url.Action("GenerateSelectedXmlDirect", "EClaims", new { area = "EClaims" })?inv_ids=' + inv_ids + "&s_flag=" + $("#s_flag").val() + "&no_of_claims=" + no_of_claims + "&s_ic_id=" + $('#s_ic_name').val().toString() + "&ic_names=" + selectedText + "&s_date_from=" + $('#s_date_from').val() + "&s_date_to=" + $('#s_date_to').val(),
+                            type: "GET",
+                            dataType: "text",
+                                success: function (response) {
+                                    var alertPlaceholder = document.getElementById("PRAlert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    if (response.includes("Error")) {
+                                        alert("<i class='fa fa-danger text-white'></i> eClaim transaction validation is failed with errors!! Please Open Downloaded Excel", "danger");
+                                        window.setTimeout(function () {
+                                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                $(this).remove();
+                                            });
+                                        }, 4200);
+                                        var currentDateTime = new Date();
+                                        var year = currentDateTime.getFullYear();
+                                        var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                                        var day = currentDateTime.getDate().toString().padStart(2, '0');
+                                        var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                                        var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                                        var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                                        var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+                                        console.log(response);
+                                        var eClaim_ErrorReport = response; // Assuming response is a string containing the Excel file data
+
+                                        var blob = new Blob([eClaim_ErrorReport], { type: 'application/vnd.ms-excel' });
+
+                                        var url = window.URL.createObjectURL(blob);
+                                        var link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = 'ERROR_REPORT_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xls';
+                                        document.body.appendChild(link);
+
+                                        link.click();
+                                    } else {
+                                            alert("<i class='fa fa-success text-white'></i> Submitted Successfully", "success");
+                                            window.setTimeout(function () {
+                                                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                    $(this).remove();
+                                                });
+                                            }, 4200);
+                                    }
+
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                        else {
+                            var alertPlaceholder = document.getElementById("PRAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                    '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fa fa-warning text-white'></i> One of Claim Net Amount is not match with sum of Activities Net .. \n Please Check..!", "warning");
+                            window.setTimeout(function () {
+                                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                    $(this).remove();
+                                });
+                            }, 4200);
+                        }
+                     }
+                     else {
+                         var alertPlaceholder = document.getElementById("PRAlert");
+                         function alert(e, t) {
+                             var l = document.createElement("div");
+                             l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                 '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                         }
+                         alert("<i class='fa fa-warning text-white'></i> One of Doctor doesn't have License, Please Fill Doctor License Id in \n Master --> Employees and security in order to generate XML!", "warning");
+                         window.setTimeout(function () {
+                             $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                 $(this).remove();
+                             });
+                         }, 4200);
+                     }
+                }
+                else {
+                    var alertPlaceholder = document.getElementById("PRAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fa fa-warning text-white'></i> Please fill Facility Id in \n Master --> Clinic Settings in order to generate XML!", "warning");
+                    window.setTimeout(function () {
+                        $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                            $(this).remove();
+                        });
+                    }, 4200);
+                }
+              }
+              else {
+                  var alertPlaceholder = document.getElementById("PRAlert");
+                  function alert(e, t) {
+                      var l = document.createElement("div");
+                      l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                          '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                  }
+                alert("<i class='fa fa-warning text-white'></i> Please select atleast one invoice to generate XML!", "warning");
+                  window.setTimeout(function () {
+                      $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                          $(this).remove();
+                      });
+                  }, 4200);
+              }
+         }
+         //#endregion
+
+        //#region Download Full XML Manually
+            function btn_generate_Full_XML_Download_Click() {
+
+
+            //event.preventDefault();
+           var inv_ids = "";
+           var no_of_claims = 0;
+           var permit_no = "";
+           var license = true;
+           var net_amount = "Yes";
+
+           //var table = $("#tbl_invoicesSub").DataTable();
+           //var rows = $(table.$('input[type="checkbox"]').map(function () {
+           //    return $(this).prop("checked") ? $(this).closest('tr') : null;
+           //}));
+
+
+        var table = $("#tbl_invoicesSub").DataTable();
+        var rows = table.rows().nodes();
+
+           var invIdArray = [];
+           $.each(rows, function (index, rowId) {
+               var _data = table.row(rowId).data();
+               if (_data) {
+                   invIdArray.push(_data.invId);
+                   no_of_claims = no_of_claims + 1;
+                   if (_data.emp_license == "") {
+                       license = false;
+                   }
+                   if (_data.inv_net != _data.pt_net) {
+                       net_amount = "No";
+                   }
+                   permit_no = _data.set_permit_no
+               }
+           });
+
+           inv_ids = invIdArray.join(","); // Join values with commas
+            var selectedText = $('#s_ic_name option:selected').map(function () {
+                return $(this).text();
+            }).get().join(',');
+            if (permit_no != "") {
+                if (license != false) {
+                    if (net_amount != "No") {
+                        var s_flag = $("#s_flag").val();
+                        $.ajax({
+                            url: '@Url.Action("GenerateFullXmlManual", "EClaims", new { area = "EClaims" })?inv_ids=' + inv_ids + "&s_flag=" + s_flag + "&no_of_claims=" + no_of_claims + "&s_ic_id=" + $('#s_ic_name').val().toString() + "&ic_names=" + selectedText + "&s_date_from=" + $('#s_date_from').val() + "&s_date_to=" + $('#s_date_to').val(),
+                        type: "GET",
+                        dataType: "text",
+                            success: function (response) {
+                            var currentDateTime = new Date();
+                            var year = currentDateTime.getFullYear();
+                            var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                            var day = currentDateTime.getDate().toString().padStart(2, '0');
+                            var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                            var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                            var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                            var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+
+                            var inputDatefrom = $('#s_date_from').val();
+                            var dateObjectfrom = new Date(inputDatefrom);// Create a Date object using the input date
+                            var yearfrom = dateObjectfrom.getFullYear();// Extract year, month, and day components
+                            var monthfrom = ('0' + (dateObjectfrom.getMonth() + 1)).slice(-2); // Months are zero-based
+                            var dayfrom = ('0' + dateObjectfrom.getDate()).slice(-2);
+                            var formattedDatefrom = yearfrom + '-' + monthfrom + '-' + dayfrom; // Construct the year-month-day format
+
+                            var inputDateto = $('#s_date_to').val();
+                            var dateObjectto = new Date(inputDateto);// Create a Date object using the input date
+                            var yearto = dateObjectto.getFullYear();// Extract year, month, and day components
+                            var monthto = ('0' + (dateObjectto.getMonth() + 1)).slice(-2); // Months are zero-based
+                            var dayto = ('0' + dateObjectto.getDate()).slice(-2);
+                            var formattedDateto = yearto + '-' + monthto + '-' + dayto; // Construct the year-month-day format
+
+                            // Create a hidden anchor element
+                            var link = document.createElement('a');
+                            link.href = 'data:application/xml;charset=utf-8,' + encodeURIComponent(response);
+                            link.download = 'Sub_' + formattedDatefrom + '_' + formattedDateto + '_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xml';
+                            // Trigger a click event on the anchor to initiate the download
+                            link.click();
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                        }
+                        });
+                    }
+                    else {
+                        var alertPlaceholder = document.getElementById("PRAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fa fa-warning text-white'></i> One of Claim Net Amount is not match with sum of Activities Net .. \n Please Check..!", "warning");
+                        window.setTimeout(function () {
+                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                $(this).remove();
+                            });
+                        }, 4200);
+                    }
+                }
+                else {
+                    var alertPlaceholder = document.getElementById("PRAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fa fa-warning text-white'></i> One of Doctor doesn't have License, Please Fill Doctor License Id in \n Master --> Employees and security in order to generate XML!", "warning");
+                    window.setTimeout(function () {
+                        $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                            $(this).remove();
+                        });
+                    }, 4200);
+                }
+            }
+            else {
+                var alertPlaceholder = document.getElementById("PRAlert");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-warning text-white'></i> Please fill Facility Id in \n Master --> Clinic Settings in order to generate XML!", "warning");
+                window.setTimeout(function () {
+                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                        $(this).remove();
+                    });
+                }, 4200);
+            }
+
+        }
+        //#endregion
+
+        //#region Full XML Direct
+            function btn_generate_Full_XML_Direct_Click() {
+             //event.preventDefault();
+            var inv_ids = "";
+            var no_of_claims = 0;
+            var permit_no = "";
+            var license = true;
+            var net_amount = "Yes";
+
+            var table = $("#tbl_invoicesSub").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+
+            var invIdArray = [];
+            var icCodeArray = [];
+            $.each(rows, function (index, rowId) {
+                var _data = table.row(rowId).data();
+                if (_data) {
+                    icCodeArray.push(_data.inv_ic_code);
+                    invIdArray.push(_data.invId);
+                    no_of_claims = no_of_claims + 1;
+                    if (_data.emp_license == "") {
+                        license = false;
+                    }
+                    if (_data.inv_net != _data.pt_net) {
+                        net_amount = "No";
+                    }
+                    permit_no = _data.set_permit_no
+                }
+            });
+
+            inv_ids = invIdArray.join(","); // Join values with commas
+            var selectedText = $('#s_ic_name option:selected').map(function () {
+                return $(this).text();
+            }).get().join(',');
+            console.log(selectedText);
+            var allSame = icCodeArray.every(function (item) {
+                return item === icCodeArray[0];
+            });
+            if (allSame) {
+                if (permit_no != "") {
+                    if (license != false) {
+                        if (net_amount != "No") {
+                            var s_flag = $("#s_flag").val();
+                            $.ajax({
+                                url: '@Url.Action("GenerateFullXmlDirect", "EClaims", new { area = "EClaims" })?inv_ids=' + inv_ids + "&s_flag=" + s_flag + "&no_of_claims=" + no_of_claims + "&s_ic_id=" + $('#s_ic_name').val().toString() + "&ic_names=" + selectedText + "&s_date_from=" + $('#s_date_from').val() + "&s_date_to=" + $('#s_date_to').val(),
+                                type: "GET",
+                                dataType: "text",
+                                success: function (response) {
+                                    var alertPlaceholder = document.getElementById("PRAlert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    if (response.includes("Error")) {
+                                        alert("<i class='fa fa-danger text-white'></i> eClaim transaction validation is failed with errors!! Please Open Downloaded Excel", "danger");
+                                        window.setTimeout(function () {
+                                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                $(this).remove();
+                                            });
+                                        }, 4200);
+                                        var currentDateTime = new Date();
+                                        var year = currentDateTime.getFullYear();
+                                        var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                                        var day = currentDateTime.getDate().toString().padStart(2, '0');
+                                        var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                                        var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                                        var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                                        var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+                                        console.log(response);
+                                        var eClaim_ErrorReport = response; // Assuming response is a string containing the Excel file data
+
+                                        var blob = new Blob([eClaim_ErrorReport], { type: 'application/vnd.ms-excel' });
+
+                                        var url = window.URL.createObjectURL(blob);
+                                        var link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = 'ERROR_REPORT_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xls';
+                                        document.body.appendChild(link);
+
+                                        link.click();
+                                    } else {
+                                        alert("<i class='fa fa-success text-white'></i> Submitted Successfully", "success");
+                                        window.setTimeout(function () {
+                                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                $(this).remove();
+                                            });
+                                        }, 4200);
+                                    }
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                        else {
+                            var alertPlaceholder = document.getElementById("PRAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                    '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fa fa-warning text-white'></i> One of Claim Net Amount is not match with sum of Activities Net .. \n Please Check..!", "warning");
+                            window.setTimeout(function () {
+                                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                    $(this).remove();
+                                });
+                            }, 4200);
+                        }
+                    }
+                    else {
+                        var alertPlaceholder = document.getElementById("PRAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fa fa-warning text-white'></i> One of Doctor doesn't have License, Please Fill Doctor License Id in \n Master --> Employees and security in order to generate XML!", "warning");
+                        window.setTimeout(function () {
+                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                $(this).remove();
+                            });
+                        }, 4200);
+                    }
+                }
+                else {
+                    var alertPlaceholder = document.getElementById("PRAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fa fa-warning text-white'></i> Please fill Facility Id in \n Master --> Clinic Settings in order to generate XML!", "warning");
+                    window.setTimeout(function () {
+                        $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                            $(this).remove();
+                        });
+                    }, 4200);
+                }
+            }
+            else {
+                var alertPlaceholder = document.getElementById("PRAlert");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-warning text-white'></i> Select Insurance with same Insurance code ", "warning");
+                window.setTimeout(function () {
+                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                        $(this).remove();
+                    });
+                }, 4200);
+            }
+        }
+        //#endregion
+
+        //#region Full XML Direct
+            function btn_generate_Full_XML_Direct_Click() {
+             //event.preventDefault();
+                var inv_ids = "";
+                var no_of_claims = 0;
+                var permit_no = "";
+                var license = true;
+                var net_amount = "Yes";
+
+                var table = $("#tbl_invoicesSub").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+                    var icCodeArray = [];
+                var invIdArray = [];
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+                    if (_data) {
+                        icCodeArray.push(_data.inv_ic_code);
+                        invIdArray.push(_data.invId);
+                        no_of_claims = no_of_claims + 1;
+                        if (_data.emp_license == "") {
+                            license = false;
+                        }
+                        if (_data.inv_net != _data.pt_net) {
+                            net_amount = "No";
+                        }
+                        permit_no = _data.set_permit_no
+                    }
+                });
+                var allSame = icCodeArray.every(function (item) {
+                    return item === icCodeArray[0];
+                });
+                if (allSame) {
+                    inv_ids = invIdArray.join(","); // Join values with commas
+                    var selectedText = $('#s_ic_name option:selected').map(function () {
+                        return $(this).text();
+                    }).get().join(',');
+                    console.log(selectedText);
+
+                    if (permit_no != "") {
+                        if (license != false) {
+                            if (net_amount != "No") {
+                                var s_flag = $("#s_flag").val();
+                                $.ajax({
+                                    url: '@Url.Action("GenerateFullXmlDirect", "EClaims", new { area = "EClaims" })?inv_ids=' + inv_ids + "&s_flag=" + s_flag + "&no_of_claims=" + no_of_claims + "&s_ic_id=" + $('#s_ic_name').val().toString() + "&ic_names=" + selectedText + "&s_date_from=" + $('#s_date_from').val() + "&s_date_to=" + $('#s_date_to').val(),
+                                type: "GET",
+                                dataType: "text",
+                                    success: function (response) {
+                                        var alertPlaceholder = document.getElementById("PRAlert");
+                                        function alert(e, t) {
+                                            var l = document.createElement("div");
+                                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                        }
+                                        if (response.includes("Error")) {
+                                            alert("<i class='fa fa-danger text-white'></i> eClaim transaction validation is failed with errors!! Please Open Downloaded Excel", "danger");
+                                            window.setTimeout(function () {
+                                                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                    $(this).remove();
+                                                });
+                                            }, 4200);
+                                            var currentDateTime = new Date();
+                                            var year = currentDateTime.getFullYear();
+                                            var month = (currentDateTime.getMonth() + 1).toString().padStart(2, '0');
+                                            var day = currentDateTime.getDate().toString().padStart(2, '0');
+                                            var hour = currentDateTime.getHours().toString().padStart(2, '0');
+                                            var minute = currentDateTime.getMinutes().toString().padStart(2, '0');
+                                            var second = currentDateTime.getSeconds().toString().padStart(2, '0');
+                                            var millisecond = currentDateTime.getMilliseconds().toString().padStart(3, '0');
+                                            console.log(response);
+                                            var eClaim_ErrorReport = response; // Assuming response is a string containing the Excel file data
+
+                                            var blob = new Blob([eClaim_ErrorReport], { type: 'application/vnd.ms-excel' });
+
+                                            var url = window.URL.createObjectURL(blob);
+                                            var link = document.createElement('a');
+                                            link.href = url;
+                                            link.download = 'ERROR_REPORT_' + year + month + day + '_' + hour + minute + second + '_' + millisecond + '.xls';
+                                            document.body.appendChild(link);
+
+                                            link.click();
+                                        } else {
+                                            alert("<i class='fa fa-success text-white'></i> Submitted Successfully", "success");
+                                            window.setTimeout(function () {
+                                                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                                    $(this).remove();
+                                                });
+                                            }, 4200);
+                                        }
+                                    },
+                                    error: function (xhr) {
+                                        console.log(xhr);
+                                    }
+                                });
+                            }
+                            else {
+                                var alertPlaceholder = document.getElementById("PRAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fa fa-warning text-white'></i> One of Claim Net Amount is not match with sum of Activities Net .. \n Please Check..!", "warning");
+                                window.setTimeout(function () {
+                                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                        $(this).remove();
+                                    });
+                                }, 4200);
+                            }
+                            }
+                            else {
+                                var alertPlaceholder = document.getElementById("PRAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fa fa-warning text-white'></i> One of Doctor doesn't have License, Please Fill Doctor License Id in \n Master --> Employees and security in order to generate XML!", "warning");
+                                window.setTimeout(function () {
+                                    $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                        $(this).remove();
+                                    });
+                                }, 4200);
+                            }
+                    }
+                    else {
+                        var alertPlaceholder = document.getElementById("PRAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                                '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fa fa-warning text-white'></i> Please fill Facility Id in \n Master --> Clinic Settings in order to generate XML!", "warning");
+                        window.setTimeout(function () {
+                            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                $(this).remove();
+                            });
+                        }, 4200);
+                    }
+                }
+                else {
+                    var alertPlaceholder = document.getElementById("PRAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + '" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close">×</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fa fa-warning text-white'></i> Select Insurance with same Insurance code ", "warning");
+                    window.setTimeout(function () {
+                        $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                            $(this).remove();
+                        });
+                    }, 4200);
+                }
+         }
+        //#endregion
+
+        //#region update invoice estatus
+          $('#btn_update_status').on('click', function (e) {
+             /* e.preventDefault();*/
+              var table = $("#tbl_invoicesSub").DataTable();
+              var rows = $(table.$('input[type="checkbox"]').map(function () {
+                  return $(this).prop("checked") ? $(this).closest('tr') : null;
+              }));
+
+              var invIdArray = [];
+              $.each(rows, function (index, rowId) {
+                  var _data = table.row(rowId).data();
+                  if (_data) {
+                      invIdArray.push(_data.invId);
+                  }
+              });
+
+              inv_ids = invIdArray.join(",");
+              if (rows.length > 0) {
+                  if ($("#uinv_estatus").val() != null) {
+                      $.each(rows, function (index, rowId) {
+                          console.log(inv_ids);
+                          var _dataInsert = {
+                              "inv_ids": inv_ids,
+                              "inv_estatus": $("#uinv_estatus").val(),
+                          }
+                          $.ajax({
+                              type: "POST",
+                              url: "@Url.Action("UpdateInvoiceeestatus", "EClaims", new { area = "EClaims" })",
+                              dataType: 'JSON',
+                              data: _dataInsert,
+                              success: function (data) {
+                                  if (data.isSuccess) {
+                                      GetInvoicesSubmissions();
+                                      var alertPlaceholder = document.getElementById("PRAlert");
+                                      function alert(e, t) {
+                                          var l = document.createElement("div");
+                                          l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                              '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                      }
+                                      alert("<i class='fe fe-check-circle text-white'></i> Invoice estatus successfully created!", "success");
+                                      window.setTimeout(function () {
+                                         $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                             $(this).remove();
+                                         });
+                                     }, 4200);
+
+                                  }
+                                  else {
+                                      let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                                          "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                          "<strong>Error.. " + data.message + "</strong><br/>" +
+                                          "</div>";
+                                      $("#error").html(html);
+                                      window.setTimeout(function () {
+                                          $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                              $(this).remove();
+                                          });
+                                      }, 4200);
+                                  }
+                              },
+                              error: function (xhr) {
+                                  window.setTimeout(function () {
+                                      $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                                          $(this).remove();
+                                      });
+                                  }, 4200);
+                              }
+                          });
+                      });
+                  }
+                  else {
+                      let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                          "<div class='alert alert-danger' role='alert'>" +
+                          "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                          "<strong>Warning.. Select Any Status To Update..</strong><br/>" +
+                          "</div></div>";
+                      $("#error").html(html);
+                  }
+              }
+              else {
+                  let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                      "<div class='alert alert-danger' role='alert'>" +
+                      "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                      "<strong>Warning.. Select One Treatment..</strong><br/>" +
+                      "</div></div>";
+                  $("#error").html(html);
+              }
+          });
+           //#endregion
+
+        //#region Print Cash Invoice
+        var printInvoice = function (invId) {
+            window.open("@Url.Action("PrintInvoice", "Invoice", new { area = "Invoice" })?invId=" + invId, "Invoice Print");
+        }
+        //#endregion
+
+        //#region Print Insurance Invoice
+        var printInsInvoice = function (invId) {
+            window.open("@Url.Action("printInsInvoice", "Invoice", new { area = "Invoice" })?invId=" + invId, "Invoice Print");
+        }
+        //#endregion
+        </script>
+    }

@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "PhysicalExamEntNewIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">ENT Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="PhysicalExamEntNew_add" style="display:none">
+                </div>
+                <div id="PhysicalExamEntNew_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="PhysicalExamEntNew_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            GetPhysicalExamEntNewInfo();
+           PhysicalExamEntNewPreviousHistory();
+
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetPhysicalExamEntNewInfo
+        var GetPhysicalExamEntNewInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetPhysicalExamEntNewData", "PhysicalExamEntNew", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditPhysicalExamEntNew();
+                            $("#PhysicalExamEntNew_add").hide();
+                            $("#PhysicalExamEntNew_edit").show();
+
+                        }
+                        else {
+                            $("#PhysicalExamEntNew_add").show();
+                            $("#PhysicalExamEntNew_edit").hide();
+                            AddPhysicalExamEntNew();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load PhysicalExamEntNew
+
+        //#region Add PhysicalExamEntNew
+        function AddPhysicalExamEntNew() {
+            var x = $("#PhysicalExamEntNew_add");
+            x.load("@Url.Action("CreatePhysicalExamEntNew", "PhysicalExamEntNew", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add PhysicalExamEntNew
+
+        // #region Update PhysicalExamEntNew
+        function EditPhysicalExamEntNew() {
+            var x = $("#PhysicalExamEntNew_edit");
+            x.load("@Url.Action("UpdatePhysicalExamEntNew", "PhysicalExamEntNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update PhysicalExamEntNew
+
+          // #region Histroy of PhysicalExamEntNew
+        function PhysicalExamEntNewPreviousHistory() {
+            var x = $("#PhysicalExamEntNew_history");
+            x.load("@Url.Action("PhysicalExamEntNewPreviousHistory", "PhysicalExamEntNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of PhysicalExamEntNew
+
+
+    </script>
+}

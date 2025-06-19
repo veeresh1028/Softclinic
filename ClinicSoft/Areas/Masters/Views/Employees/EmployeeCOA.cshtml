@@ -1,0 +1,456 @@
+﻿
+@model BusinessEntities.Masters.EmployeeChartofAccount
+
+<style>
+    #tbl_employee_account_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 0px !important;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Chart of Account Detail - @Model.emp_name</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4">
+    <form id="form_employee_coa" enctype="multipart/form-data" >
+        @Html.AntiForgeryToken()
+        <div class="row  mb-5">
+            <div class="col-sm-7 border-light2 border-3 me-3">
+                <div class="row">
+                    <div class="col-sm-6 col-md-6 col-lg-5">
+                        <div class="form-group mb-3">
+                            <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                            @Html.DropDownList("coa_branch", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Please Select", new { @class = "form-select select2" })
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6 col-lg-5">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">Account Period</label>
+                            <select class="form-control" id="coa_period">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6 col-lg-2">
+                        <div class="form-group mb-3">
+                            <label class="form-label text-black">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary" id="btn_search_COA">Search</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4  border-light2 border-3">
+                <div class="row">
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="form-group mb-2">
+                            <label class="form-label font-weight-semibold">Account Types</label>
+                            <select id="acc_types" class="form-control mb-4" multiple="multiple"></select>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6 col-lg-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label text-black">&nbsp;</label>
+                            <button type="submit" class="btn btn-success" id="btn_create_COA">Create</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2 mb-2">
+            <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                <div id="EmployeeCOA_Alert"></div>
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="errorCreate_emp_coa"></div>
+        <div class="row">
+            <div class="table-responsive">
+                <table id="tbl_employee_account" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                            <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Account Name</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Group Name</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Category Name</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Account Type</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Period</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Category</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center" id="error"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseCreate" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $('#coa_branch').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#form_employee_coa'),
+            width: '100%'
+        });
+
+        $('#coa_branch').val('@Model.branch').trigger('change');
+        load_periods();
+        load_account_types();
+    });
+
+    var load_account_types = function () {
+        $('#acc_types').SumoSelect({
+            placeholder: 'Select Account',
+            captionFormat: '{0} Account(s) Selected',
+            captionFormatAllSelected: 'All {0} Accounts selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true
+        });
+
+        $('#acc_types').html('');
+        $('#acc_types')[0].sumo.reload();
+        $('#acc_types')[0].sumo.add("IN1-1", "Income Account");
+        $('#acc_types')[0].sumo.add("EX2-6", "Salary Account");
+        $('#acc_types')[0].sumo.add("EX2-5", "Commision Account");
+        $('#acc_types')[0].sumo.reload();
+    }
+    //#endregion
+
+    //#region Load Advanced Filters
+    var load_periods = function () {
+        $("#coa_period").select2({
+            placeholder: 'Select Period',
+            dropdownParent: $('#form_employee_coa'),
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $.ajax({
+            url: '@Url.Action("GetActiveAccountPeriods", "AccountPeriods", new { area = "Accounts" })',
+            dataType: 'json',
+            delay: 250,
+            data: function (query) {
+                return {
+                    query: query.term,
+                    type: 0
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        }).done(function (response) {
+            var select2 = $("#coa_period");
+            select2.empty();
+
+            $.each(response, function (index, item) {
+                select2.append(new Option(item.text, item.id, false, false));
+            });
+
+            var firstOption = response[0];
+            if (firstOption) {
+                select2.val(firstOption.id).trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: firstOption
+                    }
+                });
+            }
+            getEmployeeAccounts();
+        });
+    }
+
+    //#endregion
+
+    //#region Search Filter
+    $("#btn_search_COA").click(function (e) {
+        e.preventDefault();
+
+        if ($("#coa_branch").val() != null && $("#coa_branch").val() != 0 && $("#coa_branch").val() != "") {
+            if (($("#coa_period").val() != null && $("#coa_period").val() != 0 && $("#coa_period").val() != "")) {
+                getEmployeeAccounts();
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Search by the following filters : branch / Period / Date",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+        else {
+            Swal.fire({
+                title: "Attention!",
+                text: "You need to select atleast 1 Branch to Filter Accounts!",
+                icon: "warning",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+            });
+        }
+    });
+    function getEmployeeAccounts() {
+        var _data = {
+            "empId": '@Model.empId',
+            "branch": $('#coa_branch').val(),
+            "login_empId": '@Model.login_empId',
+            "acc_period": $('#coa_period').val()
+        }
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetEmployeeCOA", "Employees", new { area = "Masters" })',
+            data: _data,
+            dataType: "json",
+            success: function (response) {
+                if (response._list != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_employee_account')) {
+                        table = $('#tbl_employee_account').DataTable();
+                        table.clear();
+                        table.rows.add(response._list).draw();
+                    }
+                    else {
+                        BindDataTable(response._list);
+                    }
+                }
+            },
+            error: function (xhr) {
+                console.log("Error :" + xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_employee_account").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "account_code"
+                },
+                {
+                    "mData": "account_name"
+                },
+                {
+                    "mData": "group_name"
+                },
+                {
+                    "mData": "category_name"
+                },
+                {
+                    "mData": "acc_type"
+                },
+                {
+                    "mData": "acc_period",
+                    "orderable": false,
+                    "searchable": false,
+                },
+                {
+                    "mData": "acc_category",
+                    "orderable": false,
+                    "searchable": false,
+                    "visible": false
+                },
+                {
+                    "mData": "branch",
+                    "orderable": false,
+                    "searchable": false,
+                    "visible": false
+                }
+            ],
+            order: [[0, 'asc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Default Accounts',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Default Accounts',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                infoEmpty: "No Records Available",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Name / Code / Type</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_ ',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+            }
+        });
+        table.buttons().container().appendTo('#tbl_employee_account_wrapper .col-md-6:eq(0)');
+        resizedt_name('tbl_employee_account');
+    }
+    //#endregion
+
+    //#region Depreciation Month Posting onClick
+    $('#btn_create_COA').on('click', function (e) {
+        e.preventDefault();
+        //if (id !== null && id !== undefined && id !== "") {
+
+        if ($('#acc_types').val().length > 0) {
+            let account_branch = $('#coa_branch').val();
+            let account_period = $('#coa_period').val();
+            let acc_types = $('#acc_types').val();
+
+            //$(acc_types).each(function (val) {
+            //    console.log(acc_types[val]);
+            //})
+
+            let isSequential = false;
+
+
+            // Check if Sequence is true or false
+            if (account_period.length > 0 && account_branch.length > 0) {
+                console.log('@Model.empId');
+                Swal.fire({
+                    title: "Are you sure you want to Create?",
+                    html: "This action will create the selected chart of account!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _dataInsert = {
+                            "empId": '@Model.empId',
+                            "branch": account_branch,
+                            "account_code": '',
+                            "account_name": '@Model.emp_name',
+                            "acc_type": $('#acc_types').val().toString(),
+                            "acc_period": account_period,
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            type: "POST",
+                            url: "@Url.Action("CreateEmployeeCOA", "Employees", new { area = "Masters" })",
+                            dataType: "json",
+                            data: _dataInsert,
+                            success: function (data) {
+                                $('#btn_search_COA').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_search_COA').addClass("btn btn-success");
+                                $('#btn_search_COA').html("Create");
+
+                                if (data.isAuthorized) {
+                                    if (data._list != "") {
+                                        var table;
+                                        if ($.fn.dataTable.isDataTable('#tbl_employee_account')) {
+                                            table = $('#tbl_employee_account').DataTable();
+                                            table.clear();
+                                            table.rows.add(data._list).draw();
+                                        }
+                                        else {
+                                            BindDataTable(data._list);
+                                        }
+                                    }
+
+                                    customAlert("<i class='fe fe-check-circle text-white'></i> Chart of Account Created Successfully!", "success");
+                                    Timeout();
+                                }
+                                else {
+                                    $("#errorCreate_emp_coa").html('');
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-light-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong><i class='fe fe-alert-triangle text-warning'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+
+                                    $("#errorCreate_emp_coa").html(html);
+
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_search_COA').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_search_COA').addClass("btn btn-success");
+                                $('#btn_search_COA').html("Create");
+                                console.log(xhr);
+                                Timeout();
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Error!",
+                    text: "Select Branch & Account Period",
+                    icon: "error",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+
+        }
+        else {
+            Swal.fire({
+                title: "Warning!",
+                text: "Select at least one account type to create chart of account.",
+                icon: "warning",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+            });
+        }
+
+        //}
+    });
+    //#endregion
+
+    //#region Alter Holder
+    var _alertPlaceholder = document.getElementById("EmployeeCOA_Alert");
+    function customAlert(e, t) {
+        var l = document.createElement("div");
+        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', _alertPlaceholder.append(l)
+    }
+    //#endregion
+
+</script>

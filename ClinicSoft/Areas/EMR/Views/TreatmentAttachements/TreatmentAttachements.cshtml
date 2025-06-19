@@ -1,0 +1,1487 @@
+﻿@model BusinessEntities.EMR.TreatmentAttachments
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<style type="text/css">
+    .form-help:hover, .form-help[aria-describedby] {
+        background: #fff;
+    }
+
+    #tbl_treatmentattach_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: auto;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h4 class="text-secondary font-weight-semibold">Dental Insurance Treatments (Attachments/Ezada)</h4>
+    <button type="button" class="btn-close close-tiattach-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Treatment_Attachments_Create" autocomplete="off">
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <h4 class=""><span class="badge bg-secondary col-md-12">Attachments/Ezada : Note : Only .pdf (Max Size : 4 MB only as per DHA / HAAD)</span></h4>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-3 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">Doc 1 #</label>
+                    <div class="input-group file-browser">
+                        @Html.TextBoxFor(model => model.ti_image, new { @class = "form-control browse-file", @placeholder = "Choose", @id = "ti_image", @readonly = "readonly" })
+                        <label class="input-group-text btn btn-secondary">
+                            Browse <input type="file" name="ti_img" id="ti_img" class="file-browserinput" style="display: none;" accept=".pdf" onchange="document.getElementById('ti_image').value = this.value.split('\\').pop().split('/').pop()">
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-3 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label">&nbsp;</label>
+                    @Html.DropDownListFor(m => m.ti_image_1_type, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Text="Claims", Value = "Claims" },
+                        new SelectListItem{ Text="Prior Request", Value = "Prior Request" },
+                        new SelectListItem{ Text="Resubmissions", Value = "Resubmissions" },
+                        new SelectListItem{ Text="X-ray", Value = "X-ray" }
+                    }, "Select Type", new { @class = "form-control select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-3 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">Doc 2 #</label>
+                    <div class="input-group file-browser">
+                        @Html.TextBoxFor(model => model.ti_image_2, new { @class = "form-control browse-file", @placeholder = "Choose", @id = "ti_image_2", @readonly = "readonly" })
+                        <label class="input-group-text btn btn-secondary">
+                            Browse <input type="file" name="ti_img_2" id="ti_img_2" class="file-browserinput" style="display: none;" accept=".pdf" onchange="document.getElementById('ti_image_2').value = this.value.split('\\').pop().split('/').pop()">
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-3 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label">&nbsp;</label>
+                    @Html.DropDownListFor(m => m.ti_image_2_type, new List<SelectListItem>
+                    {
+                        new SelectListItem{ Text="Claims", Value = "Claims" },
+                        new SelectListItem{ Text="Prior Request", Value = "Prior Request" },
+                        new SelectListItem{ Text="Resubmissions", Value = "Resubmissions" },
+                        new SelectListItem{ Text="X-ray", Value = "X-ray" }
+                    }, "Select Type", new { @class = "form-control select2" })
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">A1C</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_1" id="ti_lab_1" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000">
+                                %
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">CHOL</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_2" id="ti_lab_2" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mmol/L
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">HDL</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_3" id="ti_lab_3" class="form-control mb-2 text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mmol/L
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">NONHDL</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_4" id="ti_lab_4" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mg/dL
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">LDL</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_5" id="ti_lab_5" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mmol/L
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">TRIG</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_6" id="ti_lab_6" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mmol/L
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">UA</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_7" id="ti_lab_7" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mg
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">CR</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_8" id="ti_lab_8" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                µmol/L
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">BPS</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_9" id="ti_lab_9" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mg
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">BPD</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_10" id="ti_lab_10" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mmHg
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">Body Mass Index</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_11" id="ti_lab_11" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mmHg
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">Albumin</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_12" id="ti_lab_12" class="form-control text-right" />
+                        <span class="input-group-append">
+                            <span class="form-help" title="" style="color: #ff0000 ">
+                                mmHg
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">ALP</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_13" id="ti_lab_13" class="form-control text-right" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">ALT</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_14" id="ti_lab_14" class="form-control text-right" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">AST</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_15" id="ti_lab_15" class="form-control mb-2 text-right" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">Fasting Blood Sugar</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_16" id="ti_lab_16" class="form-control mb-2 text-right" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">Random Blood Sugar</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_17" id="ti_lab_17" class="form-control mb-2 text-right" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label">Total Bilirubin</label>
+                    <div class="input-group">
+                        <input type="text" name="ti_lab_18" id="ti_lab_18" class="form-control mb-2 text-right" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <h4 class=""><span class="badge bg-secondary col-md-12">LOINC CODES</span></h4>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Code #1</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-3">
+                <div class="form-group">
+                    <select name="ti_loinc_1" id="ti_loinc_1" class="form-select select2 mb-2"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Result #1</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_2" id="ti_loinc_2" class="form-control mb-2" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Unit</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_3" id="ti_loinc_3" class="form-control mb-2" maxlength="25" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-row">
+                    <label class="form-label col-md-11">(Ex. [mmol/l]/[mg/l])</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Code #2</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-3">
+                <div class="form-group">
+                    <select name="ti_loinc_4" id="ti_loinc_4" class="form-select select2 mb-2"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Result #2</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_5" id="ti_loinc_5" class="form-control mb-2" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Unit</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_6" id="ti_loinc_6" class="form-control mb-2" maxlength="25" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-row">
+                    <label class="form-label col-md-11">(Ex. [mmol/l]/[mg/l])</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Code #3</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-3">
+                <div class="form-group">
+                    <select name="ti_loinc_7" id="ti_loinc_7" class="form-select select2 mb-2"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Result #3</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_8" id="ti_loinc_8" class="form-control mb-2" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Unit</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_9" id="ti_loinc_9" class="form-control mb-2" maxlength="25" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-row">
+                    <label class="form-label col-md-11">(Ex. [mmol/l]/[mg/l])</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Code #4</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-3">
+                <div class="form-group">
+                    <select name="ti_loinc_10" id="ti_loinc_10" class="form-select select2 mb-2"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Result #4</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_11" id="ti_loinc_11" class="form-control mb-2" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Unit</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_12" id="ti_loinc_12" class="form-control mb-2" maxlength="25" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-row">
+                    <label class="form-label col-md-11">(Ex. [mmol/l]/[mg/l])</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Code #5</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-3">
+                <div class="form-group">
+                    <select name="ti_loinc_13" id="ti_loinc_13" class="form-select select2 mb-2"></select>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label col-md-11">Result #5</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_14" id="ti_loinc_14" class="form-control mb-2" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-1">
+                <div class="form-row">
+                    <label class="form-label">Unit</label>
+                    <label class="form-label">:</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <input type="text" name="ti_loinc_15" id="ti_loinc_15" class="form-control mb-2" maxlength="25" />
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-row">
+                    <label class="form-label">(Ex. [mmol/l]/[mg/l])</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+                <div id="div_item_error"></div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+                <label class="form-label mt-1">&nbsp;<span class="text-danger" id="error_msgAttach"></span></label>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <div class="btn-list">
+                    <button type="submit" class="btn btn-success" id="btnAddTreatAttach"><i class="fe fe-plus"></i> Add Attachment</button>
+                    <button type="button" class="btn btn-outline-dark" id="btn_ResetAttach">Reset</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" id="btn_CLoseAttach">Close</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive mt-2">
+                        <table id="tbl_treatmentattach" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                            <thead>
+                                <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                                    <th class="border-bottom-0 font-weight-semibold text-white">Document 1</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">Document 2</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">A1C</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white">CHOL</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">HDL</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-end">NONHDL</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">LDL</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">TRIG</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">UA</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">CR</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">BPS</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">BPD</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">BMI</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">ALBUMIN</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Fasting Blood Sugar</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Random Blood Sugar</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Total Bilirubin</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        $("#ti_image_1_type, #ti_image_2_type").select2({
+            placeholder: 'Select Type',
+            dropdownParent: $("#form_Treatment_Attachments_Create"),
+            width: '100%',
+            minimumResultsForSearch: -1,
+            maximumInputLength: 12,
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        loadCodes();
+
+        validation();
+
+        getAttachments();
+    });
+    //#endregion
+
+    //#region Load LOINC Codes Dropdown
+    var loadCodes = function () {
+        $("#ti_loinc_1, #ti_loinc_4, #ti_loinc_7, #ti_loinc_10, #ti_loinc_13").select2({
+            placeholder: 'Select Treatment Item',
+            width: '100%',
+            dropdownParent: $('#form_Treatment_Attachments_Create'),
+            minimumInputLength: 3,
+            allowClear:true,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("GetLOINCForDropdown", "TreatmentAttachements", new { area = "EMR" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+    }
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Treatment_Attachments_Create").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "ti_image_1_type": {
+                    required: function () {
+                        if ($("#ti_image").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_image_2_type": {
+                    required: function () {
+                        if ($("#ti_image_2").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_image": {
+                    required: function () {
+                        if ($("#ti_image_1_type").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_image_2": {
+                    required: function () {
+                        if ($("#ti_image_2_type").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_1": {
+                    required: function () {
+                        if ($("#ti_loinc_2").val() != "" || $("#ti_loinc_3").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_2": {
+                    required: function () {
+                        if ($("#ti_loinc_1").val() != null || $("#ti_loinc_3").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_3": {
+                    required: function () {
+                        if ($("#ti_loinc_1").val() != null || $("#ti_loinc_2").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_4": {
+                    required: function () {
+                        if ($("#ti_loinc_5").val() != "" || $("#ti_loinc_6").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_5": {
+                    required: function () {
+                        if ($("#ti_loinc_4").val() != null || $("#ti_loinc_6").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_6": {
+                    required: function () {
+                        if ($("#ti_loinc_4").val() != null || $("#ti_loinc_5").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_7": {
+                    required: function () {
+                        if ($("#ti_loinc_8").val() != "" || $("#ti_loinc_9").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_8": {
+                    required: function () {
+                        if ($("#ti_loinc_7").val() != null || $("#ti_loinc_9").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_9": {
+                    required: function () {
+                        if ($("#ti_loinc_7").val() != null || $("#ti_loinc_8").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_10": {
+                    required: function () {
+                        if ($("#ti_loinc_11").val() != "" || $("#ti_loinc_12").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_11": {
+                    required: function () {
+                        if ($("#ti_loinc_10").val() != null || $("#ti_loinc_12").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_12": {
+                    required: function () {
+                        if ($("#ti_loinc_10").val() != null || $("#ti_loinc_11").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_13": {
+                    required: function () {
+                        if ($("#ti_loinc_14").val() != "" || $("#ti_loinc_15").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_14": {
+                    required: function () {
+                        if ($("#ti_loinc_13").val() != null || $("#ti_loinc_15").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                },
+                "ti_loinc_15": {
+                    required: function () {
+                        if ($("#ti_loinc_13").val() != null || $("#ti_loinc_14").val() != "") {
+                            return true;
+                        }
+                        else {
+                            return false
+                        }
+                    }
+                }
+            },
+            messages: {
+                "ti_image_1_type": {
+                    required: "Select Type"
+                },
+                "ti_image_2_type": {
+                    required: "Select Type"
+                },
+                "ti_image": {
+                    required: "Choose Image"
+                },
+                "ti_image_2": {
+                    required: "Choose Image"
+                },
+                "ti_loinc_1": {
+                    required: "Select Treatment"
+                },
+                "ti_loinc_2": {
+                    required: "Enter Result"
+                },
+                "ti_loinc_3": {
+                    required: "Enter Unit"
+                },
+                "ti_loinc_4": {
+                    required: "Select Treatment"
+                },
+                "ti_loinc_5": {
+                    required: "Enter Result"
+                },
+                "ti_loinc_6": {
+                    required: "Enter Unit"
+                },
+                "ti_loinc_7": {
+                    required: "Select Treatment"
+                },
+                "ti_loinc_8": {
+                    required: "Enter Result"
+                },
+                "ti_loinc_9": {
+                    required: "Enter Unit"
+                },
+                "ti_loinc_10": {
+                    required: "Select Treatment"
+                },
+                "ti_loinc_11": {
+                    required: "Enter Result"
+                },
+                "ti_loinc_12": {
+                    required: "Enter Unit"
+                },
+                "ti_loinc_13": {
+                    required: "Select Treatment"
+                },
+                "ti_loinc_14": {
+                    required: "Enter Result"
+                },
+                "ti_loinc_15": {
+                    required: "Enter Unit"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#ti_lab_1, #ti_lab_2, #ti_lab_3, #ti_lab_4, #ti_lab_5, #ti_lab_6, #ti_lab_7, #ti_lab_8, #ti_lab_9, #ti_lab_10, #ti_lab_11, #ti_lab_12, #ti_lab_13, #ti_lab_14, #ti_lab_15, #ti_lab_16, #ti_lab_17, #ti_lab_18, #ti_loinc_2, #ti_loinc_5, #ti_loinc_8, #ti_loinc_11, #ti_loinc_14').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,2}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+
+            var numericValue = parseFloat(inputValue);
+
+            if (numericValue > 1000) {
+                return false;
+            }
+        });
+
+        $('#ti_lab_1, #ti_lab_2, #ti_lab_3, #ti_lab_4, #ti_lab_5, #ti_lab_6, #ti_lab_7, #ti_lab_8, #ti_lab_9, #ti_lab_10, #ti_lab_11, #ti_lab_12, #ti_lab_13, #ti_lab_14, #ti_lab_15, #ti_lab_16, #ti_lab_17, #ti_lab_18, #ti_image_1_type, #ti_image_2_type, #ti_loinc_1, #ti_loinc_4, #ti_loinc_7, #ti_loinc_10, #ti_loinc_13').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#ti_img').on('change', function () {
+            if (this.files.length > 0) {
+                const fileSize = this.files[0].size / 1024 / 1024;
+
+                if (fileSize > 4) {
+                    $("#ti_image").val('');
+                    $("#ti_img").val('');
+
+                    var alertPlaceholder = document.getElementById("div_item_error");
+
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close"><span aria-hidden="true">&times;</span></button></div>', alertPlaceholder.append(l)
+                    }
+
+                    alert("<i class='fa fa-times text-white'></i> File size shouldn't exceed 4 MB!", "warning");
+
+                    timeout();
+                }
+
+                var allowedTypes = ['application/pdf'];
+                var fileType = this.files[0].type;
+
+                if (!allowedTypes.includes(fileType)) {
+                    $("#ti_image").val('');
+                    $("#ti_img").val('');
+
+                    var alertPlaceholder = document.getElementById("div_item_error");
+
+                    function alert(message, type) {
+                        var div = document.createElement("div");
+                        div.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible" role="alert">' + message +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">&times;</button></div>';
+                        alertPlaceholder.appendChild(div);
+                    }
+
+                    alert("<i class='fa fa-times text-white'></i> Invalid file type! Allowed types: PDF", "danger");
+
+                    timeout();
+                }
+            }
+        });
+
+        $('#ti_img_2').on('change', function () {
+            if (this.files.length > 0) {
+                const fileSize = this.files[0].size / 1024 / 1024;
+
+                if (fileSize > 4) {
+                    $("#ti_image").val('');
+                    $("#ti_img_2").val('');
+
+                    var alertPlaceholder = document.getElementById("div_item_error");
+
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close"><span aria-hidden="true">&times;</span></button></div>', alertPlaceholder.append(l)
+                    }
+
+                    alert("<i class='fa fa-times text-white'></i> File size shouldn't exceed 4 MB!", "warning");
+
+                    timeout();
+                }
+
+                var allowedTypes = ['application/pdf'];
+                var fileType = this.files[0].type;
+
+                if (!allowedTypes.includes(fileType)) {
+                    $("#ti_image").val('');
+                    $("#ti_img").val('');
+
+                    var alertPlaceholder = document.getElementById("div_item_error");
+
+                    function alert(message, type) {
+                        var div = document.createElement("div");
+                        div.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible" role="alert">' + message +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">&times;</button></div>';
+                        alertPlaceholder.appendChild(div);
+                    }
+
+                    alert("<i class='fa fa-times text-white'></i> Invalid file type! Allowed types: PDF", "danger");
+
+                    timeout();
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion
+
+    //#region Add Treatment Attachment
+    $('#btnAddTreatAttach').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Treatment_Attachments_Create").valid()) {
+            var anyFieldFilled = false;
+
+            $("#form_Treatment_Attachments_Create :input").each(function () {
+                var value = $(this).val();
+
+                if (value !== null && value !== undefined && value.trim() !== '') {
+                    anyFieldFilled = true;
+
+                    return false;
+                }
+            });
+
+            if (anyFieldFilled) {
+                var formData = new FormData();
+                var files = $('input[type=file]');
+
+                formData.append("ti_image_1_type", $("#ti_image_1_type").val());
+                formData.append("ti_image_2_type", $("#ti_image_2_type").val());
+                formData.append("ti_ptId", @Model.ptId);
+                formData.append("ti_appId", @emr.appId);
+                formData.append("ti_category", "@emr.app_category");
+                formData.append("ti_lab_1", $("#ti_lab_1").val().trim());
+                formData.append("ti_lab_2", $("#ti_lab_2").val().trim());
+                formData.append("ti_lab_3", $("#ti_lab_3").val().trim());
+                formData.append("ti_lab_4", $("#ti_lab_4").val().trim());
+                formData.append("ti_lab_5", $("#ti_lab_5").val().trim());
+                formData.append("ti_lab_6", $("#ti_lab_6").val().trim());
+                formData.append("ti_lab_7", $("#ti_lab_7").val().trim());
+                formData.append("ti_lab_8", $("#ti_lab_8").val().trim());
+                formData.append("ti_lab_9", $("#ti_lab_9").val().trim());
+                formData.append("ti_lab_10", $("#ti_lab_10").val().trim());
+                formData.append("ti_lab_11", $("#ti_lab_11").val().trim());
+                formData.append("ti_lab_12", $("#ti_lab_12").val().trim());
+                formData.append("ti_lab_13", $("#ti_lab_13").val().trim());
+                formData.append("ti_lab_14", $("#ti_lab_14").val().trim());
+                formData.append("ti_lab_15", $("#ti_lab_15").val().trim());
+                formData.append("ti_lab_16", $("#ti_lab_16").val().trim());
+                formData.append("ti_lab_17", $("#ti_lab_17").val().trim());
+                formData.append("ti_lab_18", $("#ti_lab_18").val().trim());
+                formData.append("ti_loinc_1", ($("#ti_loinc_1").val() != null) ? $("#ti_loinc_1").val() : '');
+                formData.append("ti_loinc_2", $("#ti_loinc_2").val().trim());
+                formData.append("ti_loinc_3", $("#ti_loinc_3").val().trim());
+                formData.append("ti_loinc_4", ($("#ti_loinc_4").val() != null) ? $("#ti_loinc_4").val() : '');
+                formData.append("ti_loinc_5", $("#ti_loinc_5").val().trim());
+                formData.append("ti_loinc_6", $("#ti_loinc_6").val().trim());
+                formData.append("ti_loinc_7", ($("#ti_loinc_7").val() != null) ? $("#ti_loinc_7").val() : '');
+                formData.append("ti_loinc_8", $("#ti_loinc_8").val().trim());
+                formData.append("ti_loinc_9", $("#ti_loinc_9").val().trim());
+                formData.append("ti_loinc_10", ($("#ti_loinc_10").val() != null) ? $("#ti_loinc_10").val() : '');
+                formData.append("ti_loinc_11", $("#ti_loinc_11").val().trim());
+                formData.append("ti_loinc_12", $("#ti_loinc_12").val().trim());
+                formData.append("ti_loinc_13", ($("#ti_loinc_13").val() != null) ? $("#ti_loinc_13").val() : '');
+                formData.append("ti_loinc_14", $("#ti_loinc_14").val().trim());
+                formData.append("ti_loinc_15", $("#ti_loinc_15").val().trim());
+
+                for (var i = 0; i < files.length; i++) {
+                    if (files[i].value == "" || files[i].value == null) {
+                        if (files[i].name === "ti_img") {
+                            formData.append("ti_image", $("#ti_image").val());
+                        }
+                        else if (files[i].name === "ti_img_2") {
+                            formData.append("ti_image_2", $("#ti_image_2").val());
+                        }
+                    }
+                    else {
+                        formData.append(files[i].name, files[i].files[0]);
+                    }
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("InsertTreatmentAttachment", "TreatmentAttachements", new { area = "EMR" })",
+                    dataType: 'json',
+                    contentType: false,
+                    processData: false,
+                    data: formData,
+                    success: function (data) {
+                        $("#div_item_error").html('');
+
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("error_msgAttach");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close"><span aria-hidden="true">&times;</span></button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> " + data.message + "", "success");
+
+                                clearControls();
+
+                                getAttachments();
+
+                                timeout();
+                            }
+                            else {
+                                let html = "<div class='alert alert-light-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16 text-warning' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong><i class='fa fa-exclamation-triangle text-warning'></i> " + data.message + "</strong><br/>" +
+                                    "</div>";
+
+                                $("#div_item_error").html(html);
+                            }
+                        }
+                        else {
+                            var alertPlaceholder = document.getElementById("div_item_error");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-light-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close text-danger" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+
+                            alert("<i class='fa fa-times text-danger'></i> " + data.max_users, "danger");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Failed to Add Attachment! Error : " + xhr.statusText);
+                        timeout();
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Form Submission",
+                    text: "You can't submit an empty form!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonText: 'OK',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    buttonsStyling: !1
+                });
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Reset Click
+    $('#btn_ResetAttach').on('click', function (e) {
+        clearControls();
+    });
+    //#endregion
+
+    //#region Clear Controls
+    var clearControls = function () {
+        $("#ti_image_1_type").val("");
+        $("#ti_image_2_type").val("");
+        $("#ti_lab_1").val("");
+        $("#ti_lab_2").val("");
+        $("#ti_lab_3").val("");
+        $("#ti_lab_4").val("");
+        $("#ti_lab_5").val("");
+        $("#ti_lab_6").val("");
+        $("#ti_lab_7").val("");
+        $("#ti_lab_8").val("");
+        $("#ti_lab_9").val("");
+        $("#ti_lab_10").val("");
+        $("#ti_lab_11").val("");
+        $("#ti_lab_12").val("");
+        $("#ti_lab_13").val("");
+        $("#ti_lab_14").val("");
+        $("#ti_lab_15").val("");
+        $("#ti_lab_16").val("");
+        $("#ti_lab_17").val("");
+        $("#ti_lab_18").val("");
+        $("#ti_loinc_1").val("").trigger("change");
+        $("#ti_loinc_2").val("");
+        $("#ti_loinc_3").val("");
+        $("#ti_loinc_4").val("").trigger("change");
+        $("#ti_loinc_5").val("");
+        $("#ti_loinc_6").val("");
+        $("#ti_loinc_7").val("").trigger("change");
+        $("#ti_loinc_8").val("");
+        $("#ti_loinc_9").val("");
+        $("#ti_loinc_10").val("").trigger("change");
+        $("#ti_loinc_11").val("");
+        $("#ti_loinc_12").val("");
+        $("#ti_loinc_13").val("").trigger("change");
+        $("#ti_loinc_14").val("");
+        $("#ti_loinc_15").val("");
+        $("#ti_image").val("");
+        $("#ti_image_2").val("");
+        $("#ti_img").val("").trigger("change");
+        $("#ti_img_2").val("").trigger("change");
+        $("#ti_image_1_type").val("").trigger("change");
+        $("#ti_image_2_type").val("").trigger("change");
+    }
+    //#endregion
+
+    //#region Load Attachment Items
+    var getAttachments = function () {
+        var ptId = "@Model.ptId";
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetTreatmentAttachments", "TreatmentAttachements", new { area = "EMR" })?ptId=" + ptId,
+            success: function (response) {
+                var table;
+                if ($.fn.dataTable.isDataTable('#tbl_treatmentattach')) {
+                    table = $('#tbl_treatmentattach').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    bindAttachmentsTable(response);
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        }).done(function () {
+            resizedt();
+        });
+    }
+    //#endregion
+
+    //#region Bind DataTable
+    var bindAttachmentsTable = function (response) {
+        var table = $("#tbl_treatmentattach").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "searching": false,
+            "bPaginate": false,
+            "ordering": false,
+            "bFilter": false,
+            "bInfo": false,
+            "retrieve": true,
+            lengthChange: false,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "ti_image",
+                    "className":"text-center",
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (ti_image) {
+                        if (ti_image != '') {
+                            return '<a class="fw-bold" href="../../images/treatment_images/' + ti_image + '" download><i class="fe fe-download text-success fs-16"></i></a>';
+                        }
+                        else {
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                    }
+                },
+                {
+                    "mData": "ti_image_2",
+                    "className": "text-center",
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (ti_image_2) {
+                        if (ti_image_2 != '') {
+                            return '<a class="fw-bold" href="../../images/treatment_images/' + ti_image_2 + '" download><i class="fe fe-download text-success fs-16"></i></a>';
+                        }
+                        else {
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                    }
+                },
+                {
+                    "mData": "ti_lab_1",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_2",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_3",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_4",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_5",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_6",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_7",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_8",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_9",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_10",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_11",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_12",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_16",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_17",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ti_lab_18",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "tiId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (tiId, type, full, meta) {
+                        return '<a onclick="deleteTreatmentAttachment(' + tiId + ')"><i class="fe fe-trash text-danger" style="font-size: 15px;"></i></a>';
+                    }
+                }
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true
+        });
+
+        table.buttons().container().appendTo('#tbl_treatmentattach_wrapper .col-md-6:eq(0)');
+    };
+    //#endregion
+
+    //#region Delete Attachment
+    var deleteTreatmentAttachment = function (tiId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Treatment Attachment ?",
+            text: "This action will delete selected Treatment Attachment!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: '@Url.Action("DeleteTreatmentAttachment", "TreatmentAttachements", new { area = "EMR" })?tiId=' + tiId,
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                getAttachments();
+
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Treatment Attachment Deleted Successfully!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to Delete Treatment Attachment!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to delete this Treatment Attachment!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Delete Treatment Attachment! Please refresh the page and try again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Export General Logs
+    var exportLogs = function (desc) {
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+            contentType: "application/json",
+            dataType: "json"
+        });
+    }
+    //#endregion
+
+    //#region UI/UX Functions
+    function timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+
+    function resizedt() {
+        setTimeout(function () {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }, 350);
+    }
+    //#endregion
+</script>

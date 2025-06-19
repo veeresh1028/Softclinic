@@ -1,0 +1,197 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.EMR.DermatologyNotes
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_DermaNote" autocomplete="off" name="DermatologyNotes" ondrop="return false;" onpaste="return false;" oncut="return false;">
+    @Html.AntiForgeryToken()
+    <div class="row mt-2">
+
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Notes&nbsp;<span class="text-danger">*</span></label>
+                <div class="form-label mt-2"></div>
+                <div id="notes">
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-sm btn-success" id="btn_Insert_DermaNote">Add Derma Notes</button>
+                <button type="button" class="btn btn-sm btn-outline-dark" id="btn_Reset_DermaNote">Reset</button>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Partial View Onload
+        $(function () {
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                    $("#btn_Insert_DermaNote").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Insert_DermaNote").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Insert_DermaNote").show();
+                    }
+                    else {
+                        $("#btn_Insert_DermaNote").hide();
+                    }
+                }
+            }
+            var icons = Quill.import('ui/icons');
+            icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+            icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+            icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+            icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+            icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+            icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+            var toolbarOptions = [
+                [{
+                    'header': [1, 2, 3, 4, 5, 6, false]
+                }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{
+                    'list': 'ordered'
+                }, {
+                    'list': 'bullet'
+                }]
+
+            ];
+
+            quill = new Quill('#notes', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+            });
+           
+
+        });
+    //#endregion Partial View Onload
+
+
+
+    //#region Add  Click
+        $('#btn_Insert_DermaNote').on('click', function (e) {
+            e.preventDefault();
+            var isvalid = true;
+
+            if (quill.getText().trim().length == 0) {
+                $("#notes").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#notes"));
+                isvalid = false;
+            }
+            if (isvalid) {
+                $('#btn_Insert_DermaNote').removeClass("btn btn-sm btn-success");
+                $('#btn_Insert_DermaNote').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+                $('#btn_Insert_DermaNote').html("Saving the Record....");
+                var _dateInsert = {
+                    "dnId": "0",
+                    "dn_appId": @emr.appId,
+                    "dn_notes": quill.root.innerHTML,
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                console.log(_dateInsert);
+                $.ajax({
+                    type: "Post",
+                    url: "@Url.Action("InsertDermaNotes", "Dermatology", new {area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dateInsert,
+                    success: function (response) {
+                        $('#btn_Insert_DermaNote').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_DermaNote').addClass("btn btn-sm btn-success");
+                        $('#btn_Insert_DermaNote').html("Add Derma Notes");
+                        if (response.isSuccess) {
+                            if (response.isInserted) {
+                            var alertPlaceholder = document.getElementById("Alert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Justification Letter Saved Successfully!", "success");
+                            GetDermaNotes();
+                            Timeout();
+                        }
+                        else {
+
+                            let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                                "<div class='alert alert-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Warning..Justification Letter Alredy Exists..</strong><br/>" +
+                                "</div></div>";
+                            $("#Alert").html(html);
+                        }
+                        }
+                        else {
+                        let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                        "<div class='alert alert-danger' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                        "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(response.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+                        html += "</ul></div></div>";
+                        $("#error").html(html);
+                        }
+                    },
+                        error: function (xhr) {
+                            $('#btn_Insert_DermaNote').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_DermaNote').addClass("btn btn-sm btn-warning");
+                            $('#btn_Insert_DermaNote').html("Add Derma Notes");
+                        Timeout();
+                    }
+                });
+            }
+
+        });
+    //#endregion Add Click
+
+    //#region Reset
+    $('#btn_Reset_DermaNote').on('click', function (e) {
+        e.preventDefault();
+        clearControls();
+    });
+    //#endregion Reset
+    //#region Clear Controls
+    var clearControls = function () {
+        quill.root.innerHTML = "";
+    }
+    //#endregion Clear Controls
+
+</script>
+
+

@@ -1,0 +1,108 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "AdultPsychotherapyConsentIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Adult Psychotherapy Consent Form
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="AdultPsychotherapyConsent_add" style="display:none">
+                </div>
+                <div id="AdultPsychotherapyConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="AdultPsychotherapyConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        GetAdultPsychotherapyConsentInfo();
+       AdultPsychotherapyConsentPreviousHistory();
+
+    });
+    //#endregion Page Load
+
+    //#region Load GetAdultPsychotherapyConsentInfo
+    var GetAdultPsychotherapyConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetAdultPsychotherapyConsentData", "AdultPsychotherapyConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditAdultPsychotherapyConsent();
+                        $("#AdultPsychotherapyConsent_add").hide();
+                        $("#AdultPsychotherapyConsent_edit").show();
+
+                    }
+                    else {
+                        $("#AdultPsychotherapyConsent_add").show();
+                        $("#AdultPsychotherapyConsent_edit").hide();
+                        AddAdultPsychotherapyConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load AdultPsychotherapyConsent
+
+    //#region Add AdultPsychotherapyConsent
+    function AddAdultPsychotherapyConsent() {
+        var x = $("#AdultPsychotherapyConsent_add");
+        x.load("@Url.Action("CreateAdultPsychotherapyConsent", "AdultPsychotherapyConsent", new { area = "ConsentForms" })", function () {
+      });
+    }
+    //#endregion Add AdultPsychotherapyConsent
+
+    //#region Update AdultPsychotherapyConsent
+    function EditAdultPsychotherapyConsent() {
+        var x = $("#AdultPsychotherapyConsent_edit");
+        x.load("@Url.Action("UpdateAdultPsychotherapyConsent", "AdultPsychotherapyConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion Update AdultPsychotherapyConsent
+
+    //#region History of AdultPsychotherapyConsent
+    function AdultPsychotherapyConsentPreviousHistory() {
+        var x = $("#AdultPsychotherapyConsent_history");
+        x.load("@Url.Action("AdultPsychotherapyConsentPreviousHistory", "AdultPsychotherapyConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion History of AdultPsychotherapyConsent
+
+
+</script>

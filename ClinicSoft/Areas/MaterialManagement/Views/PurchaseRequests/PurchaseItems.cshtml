@@ -1,0 +1,168 @@
+﻿@model List<BusinessEntities.Accounts.MaterialManagement.PurchaseRequestItems>
+
+<style type="text/css">
+    #tbl_purchase_items_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: auto;
+    }
+</style>
+
+<div class="card" id="myPartialViewContainer">
+    <div class="card-body p-1">
+        <div class="table-responsive" style="min-height:unset;">
+            <table id="tbl_purchase_items" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr class="bg-secondary text-white">
+                        <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Item</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Description</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Batch No.</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Expiry Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty-UoM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Free Qty-UoM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Unit Price</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Disc. / Type</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Disc. Value</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">NET + VAT</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        getPurchaseRequestItems();
+    });
+    //#endregion
+
+    //#region Load Purchase Request Items
+    var getPurchaseRequestItems = function () {
+            var response = @Html.Raw(Json.Encode(Model));
+
+            if (response != null && response != undefined) {
+                var table;
+                if ($.fn.dataTable.isDataTable('#tbl_purchase_items')) {
+                    table = $('#tbl_purchase_items').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindItemsDataTable(response);
+                }
+            }
+        }
+    //#endregion
+
+    //#region Bind DataTable
+    var BindItemsDataTable = function (response) {
+        var table = $("#tbl_purchase_items").DataTable({
+            processing: true,
+            "deferRender": true,
+            "pageLength": 50,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "prqiId" },
+                { "mData": "item_code" },
+                {
+                    "mData": "item_name",
+                    "className": "text-wrap text-justify"
+                },
+                {
+                    "mData": "prqi_desc",
+                    "className": "td_max_width"
+                },
+                {   "visible" : false,
+                    "mData": "prqi_batch"
+                },
+                {
+                    "visible": false,
+                    "mData": "prqi_edate"
+                },
+                {
+                    "mData": "prqi_oqty",
+                    "className": "fs-13 text-center",
+                    "render": function (prqi_oqty, type, full, meta) {
+                        return '<span>' + full.prqi_oqty + " - " + full.prqi_uom + '</span>'
+                    }
+                },
+                {
+                    "visible": false,
+                    "mData": "prqi_freeQty",
+                    "className": "fs-13 text-center",
+                    "render": function (prqi_freeQty, type, full, meta) {
+                        return '<span>' + full.prqi_freeQty + " - " + full.prqi_freeUOM + '</span>'
+                    }
+                },
+                { "visible": false, "mData": "prqi_uprice" },
+                { "visible": false, "mData": "prqi_total" },
+                {
+                    "visible": false,
+                    "mData": "prqi_disc",
+                    "className": "fs-13 text-center",
+                    "render": function (prqi_disc, type, full, meta) {
+                        return '<span>' + full.prqi_disc + " - " + full.prqi_disc_type + '</span>'
+                    }
+                },
+                { "visible": false, "mData": "prqi_disc_value" },
+                { "visible": false, "mData": "prqi_net" },
+                { "visible": false, "mData": "prqi_vat" },
+                { "visible": false, "mData": "prqi_netvat" }
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "visible": false
+                },
+                {
+                    "aTargets": [8],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [9],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [11],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [12],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [13],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [14],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                }
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            }
+        });
+
+        table.buttons().container().appendTo('#tbl_purchase_items_wrapper .col-md-6:eq(0)');
+    }
+    //#endregion
+</script>

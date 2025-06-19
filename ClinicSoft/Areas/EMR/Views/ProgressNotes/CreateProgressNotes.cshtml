@@ -1,0 +1,862 @@
+﻿@model BusinessEntities.EMR.ProgressNotes
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_Add_ProgNote" class="needs-validation" autocomplete="off">
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div style="display: flex; align-items: center;">
+                <button type="button" class="btn btn-purple me-5" id="btn-record">
+                    <i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Record
+                </button>
+
+                <span class="text-danger me-5" id="spn-recording">
+                    <i class="fa fa-microphone loader fs-15"></i>&nbsp;Recording ...&nbsp;
+                </span>
+
+                <div class="text-success  me-5 text-bold" id="spn-recording-timer">00:00:00</div>
+
+                <button type="button" class="btn btn-info me-5" id="btn-pause" value="pause">
+                    <i class="fa fa-pause" aria-hidden="true"></i>&nbsp;Pause
+                </button>
+
+                <button type="button" class="btn btn-danger me-5" id="btn-stop">
+                    <i class="fa fa-stop" aria-hidden="true"></i>&nbsp;Stop
+                </button>
+
+                <audio id="audio_file" class="me-5" controls>
+                    Your browser does not support the audio element.
+                </audio>
+
+                <button type="button" class="btn btn-success" id="btn-speech-to-text">
+                    <i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text
+                </button>
+
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-7">
+
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">
+                    ProgressNotes &nbsp;<span class="text-danger">*</span><span class="ms-2">
+                        <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addProgressNotes">
+                            <i class="fa fa-bullseye"></i>
+                            Add Notes
+                        </button>
+                    </span>
+                </label>
+                <span class="ms-2">  @Html.DropDownListFor(m => m.pnsm_title, new List<SelectListItem> { }, "Select Notes For", new { @class = "form-select  mb-2 select2", @id = "pnsm_title" })</span>
+
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <div class="ql-wrapper ql-wrapper-demo">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="prog_notes">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">
+                    Next visit plan&nbsp;<span class="ms-2">
+                        <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addNextvisitNotes">
+                            <i class="fa fa-bullseye"></i>
+                            Add Next Visit
+                        </button>
+                    </span>
+                </label>
+                @Html.DropDownListFor(m => m.pnsm1_title, new List<SelectListItem> { }, "Select Notes For", new { @class = "form-select  mb-2 select2", @id = "pnsm1_title" })
+                <div class="mt-2"></div>
+                <div class="ql-wrapper ql-wrapper-demo">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="nextvisit_plan">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">
+                    Add instructions&nbsp;<span class="ms-2">
+                        <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addInstrNotes">
+                            <i class="fa fa-bullseye"></i>
+                            Add Instructions
+                        </button>
+                    </span>
+                </label>
+                @Html.DropDownListFor(m => m.pnsm2_title, new List<SelectListItem> { }, "Select Notes For", new { @class = "form-select  mb-2 select2", @id = "pnsm2_title" })
+                <div class="mt-2"></div>
+                <div class="ql-wrapper ql-wrapper-demo">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="other_instr">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-success" id="btn_Insert_ProgNote">Add</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_Reset_ProgNote">Reset</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_ProgNote" style="display:none">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    'use strict';
+
+    var timerInterval;
+    var startTime;
+    var elapsedTime = 0;
+    var timerElement = $('#spn-recording-timer');
+    let audioElement = $("#audio_file");
+
+    let stream;
+    let mediaRecorder;
+    let recordedChunks = [];
+    let isRecording = false;
+    //#region Partial View Onload
+        var quillp;
+        var quill1;
+        var quill2;
+
+        $(function () {
+            $("#btn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Record');
+            $("#btn-record").show();
+            $("#spn-recording").hide();
+            $("#spn-recording-timer").hide();
+            $("#btn-pause").hide();
+            $("#btn-stop").hide();
+            $("#btn-speech-to-text").hide();
+            $("#audio_file").hide();
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                    $("#btn_Insert_ProgNote").show();
+                }
+                else {
+                    if ("@emr.set_emr_lock" == "NoLock") {
+                        $("#btn_Insert_ProgNote").show();
+
+                    }
+                    else {
+                        if ("@emr.app_ae_date" >= "@emr.today") {
+                            $("#btn_Insert_ProgNote").show();
+                        }
+                        else {
+                            $("#btn_Insert_ProgNote").hide();
+                        }
+                    }
+                }
+            var icons = Quill.import('ui/icons');
+
+            icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+            icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+            icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+            icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+            icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+            icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+            var toolbarOptions = [
+                [{
+                    'header': [1, 2, 3, 4, 5, 6, false]
+                }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{
+                    'list': 'ordered'
+                }, {
+                    'list': 'bullet'
+                }]
+
+            ];
+
+            quillp = new Quill('#prog_notes', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+            });
+            quill1 = new Quill('#nextvisit_plan', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+            });
+            quill2 = new Quill('#other_instr', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+            });          
+            /*clearControls();*/
+            load_Notes("");
+            load_Notes1("");
+            load_Notes2("");
+        });
+    //#endregion
+
+    //#region Reset
+        $('#btn_Reset_ProgNote').on('click', function (e) {
+            e.preventDefault();
+            clearControls();
+        });
+    //#endregion Reset
+
+    //#region Clear Controls
+        var clearControls = function () {
+            quillp.root.innerHTML = "";
+            quill1.root.innerHTML = "";
+            quill2.root.innerHTML = "";
+            $("#pnsm_title option:selected").val(0);
+            $("#pnsm1_title option:selected").val(0);
+            $("#pnsm2_title option:selected").val(0);
+        }
+    //#endregion Clear Controls
+
+    //#region Add NotesMaster
+        $('#addProgressNotes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NotesMaster", "NotesMaster", new { area = "EMR" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    //$('#create_diag_modal').attr("data-modal-from", "create-Notes");
+                    $("#notes_master_body").html(data);
+                    $("#notes_master_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+    //#endregion
+
+    //#region Create Notes On Modal Close
+        $('#notes_master_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newNotes") != null) {
+                var Notes = JSON.parse(localStorage.getItem("newNotes"));
+                //setNotes(Notes);
+                localStorage.removeItem("newNotes");
+            }
+
+        });
+    //#endregion
+
+    //#region set Notes
+        var setNotes = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#pnsm_title').append(newOption).trigger('change');
+
+            $('#pnsm_title').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion Set Notes
+
+    //#region load Notes
+        var load_Notes = function (query) {
+
+            var pnsm_title_ = "@Model.pnsm_title";
+            $.ajax({
+                url: '@Url.Action("GetNotes", "ProgressNotes", new { area = "EMR" })?query=' + query + "&nsm_flag=" + "Notes",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pnsm_title").select2({
+                        placeholder: 'Select Progress Notes Type ',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 3,
+                        dropdownParent: $('#form_Add_ProgNote'),
+
+                    });
+                    var newOption;
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption;
+
+                            if (pnsm_title_ != null && pnsm_title_ != "" && pnsm_title_ != undefined && pnsm_title_ != 0) {
+                                newOption = new Option(response[j].text, response[j].id, (response[j].text === pnsm_title_) ? true : false, (response[j].text === pnsm_title_) ? true : false);
+                            }
+                            else {
+                                newOption = new Option(response[j].text, response[j].id);
+                            }
+
+                            $('#pnsm_title').append(newOption).trigger('change');
+                        });
+                    }
+
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+    //#endregion
+
+    //#region load Notes to the textarea
+        $('#pnsm_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            var realHTML = $('<textarea />').html(data.id).text();
+            quillp.root.innerHTML = realHTML;
+        });
+    //#endregion
+
+    //#region Add NotesMaster
+        $('#addNextvisitNotes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NotesMasterNextVisit", "NotesMaster", new { area = "EMR" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    //$('#create_diag_modal').attr("data-modal-from", "create-Notes");
+                    $("#notes_master_nextvisit_body").html(data);
+                    $("#notes_master_nextvisit_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+    //#region Create Notes On Modal Close
+        $('#notes_master_nextvisit_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newnextvisitNotes") != null) {
+                var Notes1 = JSON.parse(localStorage.getItem("newnextvisitNotes"));
+                // setNotes1(Notes1);
+                localStorage.removeItem("newnextvisitNotes");
+            }
+        });
+    //#endregion Create Notes On Modal Close
+
+    //#region set Notes
+        var setNotes1 = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#pnsm1_title').append(newOption).trigger('change');
+
+            $('#pnsm1_title').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion Set Notes
+
+    //#region load Notes1
+        var load_Notes1 = function (query) {
+
+            var pnsm1_title_ = "@Model.pnsm1_title";
+            $.ajax({
+                url: '@Url.Action("GetNotes", "ProgressNotes", new { area = "EMR" })?query=' + query + "&nsm_flag=" + "Notes1",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pnsm1_title").select2({
+                        placeholder: 'Select Progress Notes Type ',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 3,
+                        dropdownParent: $('#form_Add_ProgNote'),
+
+                    });
+                    var newOption;
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption;
+
+                            if (pnsm1_title_ != null && pnsm1_title_ != "" && pnsm1_title_ != undefined && pnsm1_title_ != 0) {
+                                newOption = new Option(response[j].text, response[j].id, (response[j].text === pnsm1_title_) ? true : false, (response[j].text === pnsm1_title_) ? true : false);
+                            }
+                            else {
+                                newOption = new Option(response[j].text, response[j].id);
+                            }
+
+                            $('#pnsm1_title').append(newOption).trigger('change');
+                        });
+                    }
+
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+    //#endregion
+    
+    //#region load Notes to text area
+        $('#pnsm1_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            var realHTML = $('<textarea />').html(data.id).text();
+            quill1.root.innerHTML = realHTML;
+        });
+    //#endregion
+
+    //#region Add NotesMaster
+        $('#addInstrNotes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NotesMasterInstruction", "NotesMaster", new { area = "EMR" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    //$('#create_diag_modal').attr("data-modal-from", "create-Notes");
+                    $("#notes_master_Instr_body").html(data);
+                    $("#notes_master_Instr_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+    //#region Create Notes On Modal Close
+        $('#notes_master_Instr_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newInstrNotes") != null) {
+                var Notes2 = JSON.parse(localStorage.getItem("newInstrNotes"));
+                //setNotes2(Notes2);
+                localStorage.removeItem("newInstrNotes");
+            }
+        });
+    //#endregion
+
+    //#region set Notes
+        var setNotes2 = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#pnsm2_title').append(newOption).trigger('change');
+
+            $('#pnsm2_title').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion
+
+    //#region load Notes2
+        var load_Notes2 = function (query) {
+        var pnsm2_title_ = "@Model.pnsm2_title";
+            $.ajax({
+                url: '@Url.Action("GetNotes", "ProgressNotes", new { area = "EMR" })?query=' + query + "&nsm_flag=" + "Notes2",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#pnsm2_title").select2({
+                        placeholder: 'Select Progress Notes Type ',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 3,
+                        dropdownParent: $('#form_Add_ProgNote'),
+
+                    });
+                    var newOption;
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption;
+
+                            if (pnsm2_title_ != null && pnsm2_title_ != "" && pnsm2_title_ != undefined && pnsm2_title_ != 0) {
+                                newOption = new Option(response[j].text, response[j].id, (response[j].text === pnsm2_title_) ? true : false, (response[j].text === pnsm2_title_) ? true : false);
+                            }
+                            else {
+                                newOption = new Option(response[j].text, response[j].id);
+                            }
+
+                            $('#pnsm2_title').append(newOption).trigger('change');
+                        });
+                    }
+
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };        
+    //#endregion
+
+    //#region load Notes
+        $('#pnsm2_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            var realHTML = $('<textarea />').html(data.id).text();
+            quill2.root.innerHTML = realHTML;
+        });
+    //#endregion
+
+    //#region recording
+         $("#btn-record").on('click', function () {
+            startRecording();
+
+            $("#btn-pause").html('<i class="fa fa-pause" aria-hidden="true"></i> &nbsp;Pause');
+            $("#btn-pause").removeClass("btn btn-success me-5");
+            $("#btn-pause").addClass("btn btn-info me-5");
+
+            $("#spn-recording").removeClass("text-info me-5");
+            $("#spn-recording").addClass("text-danger me-5");
+            $("#spn-recording").html(' <i class="fa fa-microphone font-size-15"></i>&nbsp;Recording ...&nbsp;');
+
+            $("#btn-record").hide();
+            $("#spn-recording").show();
+            $("#spn-recording-timer").show();
+            $("#btn-pause").show();
+            $("#btn-stop").show();
+            $("#btn-speech-to-text").hide();
+            $("#audio_file").hide();
+
+            startTime = new Date().getTime();
+            timerInterval = setInterval(updateTimer, 1000);
+
+             clearControls();
+        });
+
+        $("#btn-pause").on('click', function () {
+            let btn_mode = $(this).val();
+            btn_mode = (btn_mode === "pause") ? "play" : "pause";
+            $(this).val(btn_mode);
+
+            if (btn_mode === "play") {
+                if (isRecording && mediaRecorder) {
+                    mediaRecorder.pause();
+                    isRecording = false;
+                }
+
+                $("#btn-pause").html('<i class="fa fa-play" aria-hidden="true"></i> &nbsp;Resume');
+                $("#btn-pause").removeClass("btn btn-info me-5");
+                $("#btn-pause").addClass("btn btn-success me-5");
+
+
+                // Pause the timer
+                $("#spn-recording").removeClass("text-danger me-5");
+                $("#spn-recording").addClass("text-info me-5");
+                $("#spn-recording").html('<i class="fa fa-microphone font-size-15"></i>&nbsp;Recorded ...&nbsp;');
+                clearInterval(timerInterval);
+                elapsedTime += new Date().getTime() - startTime;
+            }
+            else {
+                if (!isRecording && mediaRecorder) {
+                    mediaRecorder.resume();
+                    isRecording = true;
+                }
+
+                $("#btn-pause").html('<i class="fa fa-pause" aria-hidden="true"></i> &nbsp;Pause');
+                $("#btn-pause").removeClass("btn btn-success me-5");
+                $("#btn-pause").addClass("btn btn-info me-5");
+
+                // Resume the timer
+                $("#spn-recording").removeClass("text-info me-5");
+                $("#spn-recording").addClass("text-danger me-5");
+                $("#spn-recording").html(' <i class="fa fa-microphone font-size-15"></i>&nbsp;Recording ...&nbsp;');
+                startTime = new Date().getTime();
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+
+            $("#btn-record").hide();
+            $("#btn-pause").show();
+            $("#btn-stop").show();
+            $("#btn-speech-to-text").hide();
+            $("#audio_file").hide();
+        });
+
+        $("#btn-stop").on('click', function () {
+            stopRecording();
+            $("#btn-record").show();
+            $("#btn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Re-Record');
+            $("#spn-recording").hide();
+            $("#spn-recording-timer").hide();
+            $("#btn-pause").hide();
+            $("#btn-pause").val("pause");
+            $("#btn-stop").hide();
+            $("#btn-speech-to-text").show();
+            $("#audio_file").hide();
+
+            clearInterval(timerInterval);
+            timerElement.text("00:00:00");
+            elapsedTime = 0;
+        });
+
+        function updateTimer() {
+            var currentTime = new Date().getTime();
+            var totalMilliseconds = currentTime - startTime + elapsedTime;
+
+            // Calculate hours, minutes, and seconds
+            var hours = Math.floor(totalMilliseconds / 3600000);
+            var minutes = Math.floor((totalMilliseconds % 3600000) / 60000);
+            var seconds = Math.floor((totalMilliseconds % 60000) / 1000);
+
+            // Format the time as HH:MM:SS
+            var formattedTime = padNumber(hours) + ':' + padNumber(minutes) + ':' + padNumber(seconds);
+
+            // Update the timer element
+            timerElement.text(formattedTime);
+        }
+
+        function padNumber(number) {
+            return number.toString().padStart(2, '0');
+        }
+
+        $("#btn-speech-to-text").on('click', function () {
+            $("#btn-speech-to-text").html('<i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;Processing...');
+            // Create a Blob from the recorded chunks
+            const audioBlob = new Blob(recordedChunks, { type: 'audio/wav' });
+
+            var formData = new FormData();
+            formData.append('audio', audioBlob, 'audio.wav');
+
+            recordedChunks = [];
+            isRecording = false;
+            stream = null;
+            mediaRecorder = null;
+
+            // Send the FormData to the server using AJAX
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("SaveAudio", "SpeechToText", new { area = "RnD" })",
+                dataType: 'json',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    $("#btn-speech-to-text").html('<i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text');
+
+
+                    if (response.isConverted) {
+                        if (response.isSuccess) {
+                            quillp.root.innerHTML = response.data.speechtext
+                        }
+                    }
+                    //if (response.status == 200) {
+                    //    var editor = $find("<%=nurse_notes.ClientID%>"); //get a reference to RadEditor client object
+                    //    editor.set_html("<p>" + response.speechtext + "</p>");
+                    //    $("#voicenote_path").val(response.filepath + "/" + response.filename);
+
+                    //    $("#audio_file").show();
+                    //    var audioUrl = $("#voicenote_path").val();
+                    //    var audioPlayer = $("#audio_file")[0];
+                    //    audioPlayer.src = audioUrl;
+
+                    //    $("#btn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Re-Record');
+                    //    $("#btn-record").show();
+                    //    $("#spn-recording").hide();
+                    //    $("#spn-recording-timer").hide();
+                    //    $("#btn-pause").hide();
+                    //    $("#btn-stop").hide();
+                    //    $("#btn-speech-to-text").hide();
+                    //}
+                    //else {
+                    //    alert(response.error);
+                    //    console.error(response.error);
+                    //}
+
+
+                    console.log(response);
+                },
+                error: function (xhr, status, error) {
+                    $("#btn-speech-to-text").html('<i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text');
+                    console.error(error);
+                    console.log(error);
+                }
+            });
+        });
+
+        // Function to start recording
+        function startRecording() {
+            // Request access to the microphone
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function (audioStream) {
+                    // Store the microphone stream
+                    stream = audioStream;
+
+                    // Create a MediaRecorder instance
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    // Event handler for data available
+                    mediaRecorder.addEventListener('dataavailable', function (event) {
+                        if (event.data.size > 0) {
+                            recordedChunks.push(event.data);
+                        }
+                    });
+
+                    // Start recording
+                    mediaRecorder.start();
+                    isRecording = true;
+                })
+                .catch(function (err) {
+                    console.error('Error accessing microphone:', err);
+                });
+        }
+
+        function stopRecording() {
+            // Stop the MediaRecorder
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+            }
+
+            // Stop the microphone stream
+            if (stream) {
+                stream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+            }
+            isRecording = false;
+        }
+    //#endregion
+
+    //#region Insert Button Click
+        $('#btn_Insert_ProgNote').on('click', function (e) {
+            e.preventDefault();
+            var isvalid = true;
+
+            if (quillp.getText().trim().length == 0) {
+                $("#prog_notes").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#prog_notes"));
+                isvalid = false;
+            }
+
+            if ($("#form_Add_ProgNote").valid()) {
+
+                if (isvalid) {
+                    $('#btn_Insert_ProgNote').removeClass("btn btn-success");
+                    $('#btn_Insert_ProgNote').addClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_ProgNote').html("Saving the Record....");
+
+                        var _dataInsert = {
+                        "mnId": 0,
+                        "mn_appId": @emr.appId,
+                        "mn_notes": quillp.root.innerHTML,
+                        "mn_visitPlan": quill1.root.innerHTML,
+                        "mn_instructions": quill2.root.innerHTML,
+                        "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    }
+                    var quillContent = quillp.root.innerHTML.trim();
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("InsertProgressNotes", "ProgressNotes", new { area = "EMR" })",
+                        dataType: "json",
+                        async: false,
+                        data: _dataInsert,
+                        success: function (data) {
+                            $('#btn_Insert_ProgNote').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_ProgNote').addClass("btn btn-success");
+                            $('#btn_Insert_ProgNote').html("Add");
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> ProgressNotes Added Successfully!", "success");
+                                    clearControls();
+                                    Timeout();
+                                    GetProgressNotes();
+                                    GetPreviousProgressNotes();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. ProgressNotes Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#error").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+                                html += "</ul></div></div>";
+                                $("#error").html(html);
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btn_Insert_ProgNote').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_ProgNote').addClass("btn btn-success");
+                            $('#btn_Insert_ProgNote').html("Add");
+                            Timeout();
+                        }
+                    });
+
+                }
+
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+     //#endregion 
+</script>

@@ -1,0 +1,458 @@
+﻿@model IEnumerable<BusinessEntities.Masters.AppointmentStatusColor>
+@{
+    ViewBag.Title = "Appointment Status Color";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary" data-lang-key="appintment-status-color">Appointment Status Color</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <a data-bs-toggle="modal" data-bs-target="#apscolor_modal" class="btn btn-secondary" onclick="addAppointmentStatusColor()" data-lang-key="add-appointment-status-color"><i class="mdi mdi-plus"></i>&nbsp;Add Appointment Status Color</a>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="AppointmentStatusColorAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_colors" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">
+                                    <span data-lang-key="name">Name</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">
+                                    <span data-lang-key="color">Color</span></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">
+                                    <span data-lang-key="status">Status</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">
+                                    <span data-lang-key="edit">Edit</span>
+                                </th>
+                                <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">
+                                    <span data-lang-key="delete">Delete</span>
+                                </th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Appointment Status Color Modal -->
+<div class="modal fade" id="apscolor_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="apscolor_body">
+        </div>
+    </div>
+</div>
+<!-- End Appointment Status Color Modal -->
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            GetAppointmentStatusColor();
+        });
+        //#endregion
+
+        //#region Load Appointment Status Color
+        var GetAppointmentStatusColor = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllAppointmentStatusColor", "AppointmentStatusColor", new { area = "Masters" })",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_colors')) {
+                            table = $('#tbl_colors').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_colors").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "apsId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "className": 'text-capitalize',
+                        "mData": "aps_status"
+                    },
+                    {
+                        "mData": "aps_color",
+                        "className": 'text-center',
+                        "render": function (aps_color, type, full, meta) {
+                            return '<input class="colorpicker" type="color" value="' + aps_color +'" style="width: 60px;height: 20px" disabled>';
+                        }
+                    },
+                    {
+                        "className": 'text-center',
+                        "mData": "apsId",
+                        "render": function (apsId, type, full, meta) {
+                            var visible = full.actionvisible;
+                            var aps_activity_status = full.aps_activity_status;
+
+                            if (visible === "True") {
+                                if (full.aps_activity_status === "Active") {
+                                    return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateStatus(\'' + apsId + '\',\' Active \')">' + aps_activity_status + '</button>'
+
+                                }
+                                else if (full.aps_activity_status === "Inactive") {
+                                    return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateStatus(\'' + apsId + '\',\'Inactive\')">' + aps_activity_status + '</button>'
+
+                                }
+                                else if (full.aps_activity_status === "Deleted") {
+                                    return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateStatus(\'' + apsId + '\',\'Deleted\')">' + aps_activity_status + '</button>'
+                                }
+                                else {
+                                    return ''
+                                }
+                            }
+                            else {
+                                return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                            }
+                        }
+                    },
+                    {
+                        "mData": "apsId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (apsId, type, full, meta) {
+                            var status = full.aps_activity_status;
+
+                            if (status === "Active") {
+                                return '<button type="button" data-bs-toggle="modal" data-bs-target="#apscolor_modal" onclick="editAppointmentStatusColor(' + apsId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    },
+                    {
+                        "mData": "apsId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (apsId, type, full, meta) {
+                            var status = full.aps_activity_status;
+                            var visible = full.actionvisible;
+                            if (status === "Active" && visible === "True") {
+                                return '<button type="button" onclick="deleteAppointmentStatusColor(' + apsId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Status Name / Status</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Appointment Status Color',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Appointment Status Color to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Appointment Status Color',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Appointment Status Color to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Appointment Status Color',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Appointment Status Color to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Appointment Status Color',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Appointment Status Color!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_colors_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Add Appointment Status Color
+        function addAppointmentStatusColor() {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateAppointmentStatusColor", "AppointmentStatusColor", new { area = "Masters" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#apscolor_body").html(data);
+                    $("#apscolor_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Appointment Status Color : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Appointment Status Color
+        function editAppointmentStatusColor(apsId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditAppointmentStatusColor", "AppointmentStatusColor", new { area = "Masters" })?apsId=" + apsId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#apscolor_body").html(data);
+                    $("#apscolor_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Editing Appointment Status Color : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Update Status
+        var updateStatus = function (apsId, aps_activity_status) {
+            aps_activity_status = (aps_activity_status == "Deleted" || aps_activity_status == "Inactive") ? "Active" : "Inactive"
+
+            Swal.fire({
+                title: "Are you sure you want to change status ?",
+                text: "This action will change the status of the selected Appointment Status Color!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("UpdateAppointmentStatusColorStatus", "AppointmentStatusColor", new { area = "Masters" })?apsId=" + apsId + "&aps_activity_status=" + aps_activity_status,
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetAppointmentStatusColor();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to change Color Status!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Update Appointment Status Color Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Appointment Status Color
+        var deleteAppointmentStatusColor = function (apsId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Appointment Status Color ?",
+                text: "This action will delete this Appointment Status Color!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteAppointmentStatusColorStatus", "AppointmentStatusColor", new { area = "Masters" })?apsId=' + apsId +'&aps_activity_status=Deleted',
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    GetAppointmentStatusColor();
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete Appointment Status Color!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Appointment Status Color! Please refresh the Page and Try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region UI/UX Functions
+        var alertPlaceholder = document.getElementById("AppointmentStatusColorAlert");
+        function alert(e, t) {
+            var l = document.createElement("div");
+            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+        }
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+         //#endregion
+    </script>
+}
+
+

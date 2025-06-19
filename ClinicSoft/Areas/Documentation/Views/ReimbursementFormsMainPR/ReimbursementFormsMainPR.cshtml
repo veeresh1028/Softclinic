@@ -1,0 +1,55 @@
+﻿@model BusinessEntities.EMRForms.ReimbursementFormsMain
+@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/Documentation/Views/Shared/_Doc_layout.cshtml";
+}
+
+<div class="row mb-4">
+    <div class="col-sm-12 col-md-6 col-lg-4">
+        @Html.DropDownListFor(m => m.SelectedOption, new SelectList(Model.SelectedOptionList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uSelectedOption" })
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div id="selectedView">
+
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        $(function () {
+            $("#uSelectedOption").select2();
+
+            $("#uSelectedOption").change(function () {
+                var selectedValue = $(this).val();
+
+                $("#selectedView").html("");
+
+                if (selectedValue !== "") {
+                    // Load and display the selected view here using AJAX
+                    $.ajax({
+                        url: '/EMRForms/ReimbursementFormsMain/LoadView',
+                        type: 'GET',
+                        data: { viewName: selectedValue }, // Send the selected view name as a parameter
+                        success: function (data) {
+                            $("#selectedView").html(data); // Inject the loaded view content into the div
+                        },
+                        error: function () {
+                            $("#selectedView").html("<p>Error loading view.</p>");
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+
+}

@@ -1,0 +1,189 @@
+﻿@model BusinessEntities.Common.eSignature
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">S</h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <div id="div_signcontract">
+        <div class="row">
+            <div class="col-md-4">Signature Controlntrol</div>
+            <div class="col-md-4">Signature Action</div>
+            <div class="col-md-4">B64 Image</div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div id="signatureContainer" style="width: 60mm; height: 35mm" title="Double-click a signature to display its details">
+                    <object id="sigCtl1" style="width: 100%; height: 100%;" type="application/x-florentis-signature">
+                        <!-- Provide alternative content or instructions if the object is not supported -->
+                        Your browser does not support the signature capture feature. Please use a compatible browser.
+                    </object>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="button" value="Sign" style="height: 10mm; width: 48mm" onclick="CaptureSignature()" title="Starts signature capture" />
+                        <br />
+                        <input type="text" id="txtSignature" name="txtSignature" class="form-control" style="height: 16px;" />
+                    </div>
+                    <div class="col-md-12">
+                        <input type="button" value="Clear" style="height: 10mm; width: 48mm" onclick="ClearSignature()" title="Clears the signature" />
+                    </div>
+                    <div class="col-md-12">
+                        <input id="btnSubmitSign" type="button" value="Submit Sign" onclick="fun_submit()" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <img id="b64image" src="data:image/png;base64, @Model.Base64ImageData" style="width: 254px; height: 97px" />
+            </div>
+        </div>
+    </div>
+</div>
+<style type="text/css">
+    #div_signcontract {
+        width: 99%;
+    }
+
+    .popupHeader {
+        margin: 10px;
+    }
+</style>
+
+<script type="text/javascript">
+    var isSign = false;
+    var leftMButtonDown = false;
+
+    $(function () {
+        //Initialize sign pad
+        //init_Sign_Canvas();
+    });
+
+    function fun_submit() {
+        if (isSign) {
+            var canvas = $("#canvas").get(0);
+            var imgData = canvas.toDataURL();
+
+            var _data = {
+                "patId": @Model.patId,
+                "person": "@Model.person",
+                "form": "@Model.form",
+                "appId": @Model.appId,
+                "formname": "@Model.formname",
+                "formlink": "@Model.formlink",
+                "eSign":  imgData,
+                "txtSignature": $("#txtSignature").val()
+            }
+
+            console.log(_data);
+            console.log(imgData);
+            $.ajax({
+                type: "Post",
+                url: "@Url.Action("UploadSignature", "WacomSignaturePad", new {area = "Common" })",
+                dataType: 'JSON',
+                data: _data,
+                success: function (response) {
+                    Timeout();
+                    localStorage.setItem("sign", response);
+                    console.log(response);
+
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+
+            closePopUp(imgData);
+        } else {
+            alert('Please sign');
+        }
+    }
+
+    function closePopUp(imgData) {
+        $('#signature_pad').modal('hide');
+       /* $('#pat_sign').attr("src", imgData);*/
+    }
+
+    function Capture() {
+        try {
+            print("Capturing signature...");
+            var sigCtl = document.getElementById("sigCtl1");
+            var dc = new ActiveXObject("Florentis.DynamicCapture");
+            var rc = dc.Capture(sigCtl, "who", "whttty");
+
+            if (rc != 0)
+                print("Capture returned: " + rc);
+
+            switch (rc) {
+                case 0: // CaptureOK
+                    print("Signature captured successfully");
+                    var txtSignature = document.getElementById("txtSignature");
+                    flags = 0x2000 + 0x80000 + 0x400000; // Flags for rendering the signature
+                    b64 = sigCtl.Signature.RenderBitmap("", 300, 150, "image/png", 0.5, 0xff0000, 0xffffff, 0.0, 0.0, flags);
+                    txtSignature.value = b64;
+
+                    // Display the captured signature on an image element
+                    var imgSrcData = "data:image/png;base64," + b64;
+                    document.getElementById("b64image").src = imgSrcData;
+                    document.getElementById("Image2").src = imgSrcData;
+                    break;
+
+                case 1: // CaptureCancel
+                    print("Signature capture cancelled");
+                    break;
+                case 100: // CapturePadError
+                    print("No capture service available");
+                    break;
+                case 101: // CaptureError
+                    print("Tablet Error");
+                    break;
+                case 102: // CaptureIntegrityKeyInvalid
+                    print("The integrity key parameter is invalid (obsolete)");
+                    break;
+                case 103: // CaptureNotLicensed
+                    print("No valid Signature Capture licence found");
+                    break;
+                case 200: // CaptureAbort
+                    print("Error - unable to parse document contents");
+                    break;
+                default:
+                    print("Capture Error " + rc);
+                    break;
+            }
+        } catch (ex) {
+            Exception("Capture() error: " + ex.message);
+        }
+    }
+
+    $("#signatureContainer").on("dblclick", function () {
+        DisplaySignatureDetails();
+    });
+
+    function DisplaySignatureDetails() {
+        try {
+            var sigCtl = document.getElementById("sigCtl1");
+
+            if (sigCtl.Signature.IsCaptured) {
+                print("Signature Information:");
+                print("  Name:   " + sigCtl.Signature.Who);
+                print("  Date:   " + sigCtl.Signature.When);
+                print("  Reason: " + sigCtl.Signature.Why);
+            }
+        } catch (ex) {
+            Exception("DisplaySignatureDetails() error: " + ex.message);
+        }
+    }
+    function ClearSignature() {
+        try {
+            var sigCtl = document.getElementById("sigCtl1");
+            sigCtl.Signature.Clear();
+        } catch (ex) {
+            Exception("ClearSignature() error: " + ex.message);
+        }
+    }
+
+
+</script>

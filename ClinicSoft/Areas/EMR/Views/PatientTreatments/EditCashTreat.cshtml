@@ -1,0 +1,869 @@
+﻿@model BusinessEntities.EMR.PatientTreatments
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_quick_cash_edit">
+    @Html.AntiForgeryToken()
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="form-label">Treatments &amp; Procedures&nbsp;<span class="text-danger">*</span></label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="upt_treatment" name="upt_treatment">
+                </select>
+                <input type="hidden" value="0" id="uhi_pt_tr_code">
+                <input type="hidden" value="0" id="uhi_pt_tr_name">
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Qty&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_qty" id="upt_qty" name="upt_qty" oninput="validate(this,1000)">
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Session</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_ses" id="upt_ses" name="upt_ses" oninput="validate(this,100)">
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Unit Price&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_uprice" id="upt_uprice" name="upt_uprice" oninput="validate(this,100000)">
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Total&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_total" id="upt_total" name="upt_total" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Discount</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_disc" id="upt_disc" name="upt_disc" oninput="validate(this,100000)">
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Disc.Type</label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="upt_disc_type" name="upt_disc_type">
+                    <option value="0">%</option>
+                    <option value="1" selected>Fixed</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Disc.Value</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_disc" id="pt_disc" name="upt_disc_value" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-2">
+            <div class="form-group">
+                <label class="form-label">Coupon</label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="upt_coupon" name="upt_coupon">
+                </select>
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Coupon Disc.</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_coupon_disc" id="upt_coupon_disc" name="upt_coupon_disc" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Net&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_net" id="upt_net" name="upt_net" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">VAT %</label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="upt_vat_type" name="upt_vat_type">
+                    <option value="0">0 %</option>
+                    <option value="5">5 %</option>
+                    <option value="Exempt">Exempt</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group mt-4">
+                <div class="custom-controls-stacked">
+                    <label class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input" name="urdoVATType" value="Inclusive" id="urdoVATIn">
+                        <span class="custom-control-label">Inclusive</span>
+                    </label>
+                    <label class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input" name="urdoVATType" value="Exclusive" id="urdoVATEx" checked="checked">
+                        <span class="custom-control-label">Exclusive</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">VAT&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_vat" id="upt_vat" name="upt_vat" oninput="validate(this,0)" readonly>
+                <input type="hidden" value="0" id="uhi_pt_vat">
+                <input type="hidden" value="0" id="uhi_pt_vat2">
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">NET + VAT&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="@Model.pt_net_vat" id="upt_netvat" name="upt_netvat" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="form-label mt-1">&nbsp;<span class="text-danger" id="uerror_msg"></span></label>
+                <button type="submit" class="btn btn-warning" id="ubtnAddTreatment"><i class="fe fe-plus"></i> Save Changes</button>
+                <button type="button" class="btn btn-outline-dark" id="ubtn_Reset">Reset</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $("#upt_treatment").select2({
+            placeholder: 'Select Treatment/Procedure',
+            width: '100%',
+            dropdownParent: $('#form_quick_cash_edit'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchTreatments", "Invoice", new { area = "Invoice" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                        appId: '@emr.appId'
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#upt_vat_type").select2({
+            placeholder: 'Select VAT Type',
+            width: '100%',
+            dropdownParent: $('#form_quick_cash_edit')
+
+        });
+
+        $("#upt_disc_type").select2({
+            placeholder: 'Select Discount Type',
+            width: '100%',
+            dropdownParent: $('#form_quick_cash_edit')
+        });
+
+        $("#upt_coupon").select2({
+            placeholder: 'Select Coupon',
+            width: '100%',
+            dropdownParent: $('#form_quick_cash_edit')
+        });
+
+        validation();
+
+        load_PatientTreatments("@Model.pt_treatment");
+
+        $("#upt_disc_type").val(@Model.pt_barcode);
+
+        $("#upt_vat_type").val(@Model.pt_vat_type);
+
+        if (parseFloat(@Model.pt_vat) > 0) {
+            $('#upt_vat_type').val("5").trigger('change');
+            $('#urdoVATEx').prop('checked', true);
+        }
+        else {
+            $('#upt_vat_type').val("0").trigger('change');
+            $('#urdoVATEx').prop('checked', true);
+        }
+
+        $("#upt_treatment").prop("disabled", true);
+    });
+    //#endregion
+
+    //#region Load Patient Treatments
+    var load_PatientTreatments = function (pt_treatment) {
+        $.ajax({
+            url: '@Url.Action("SearchTreatmentsforEdit", "Invoice", new { area = "Invoice" })?trId=' + pt_treatment + "&appId=" + @emr.appId,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                var data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+
+                $('#upt_treatment').val(response[0].text);
+
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+
+                $('#upt_treatment').append(newOption).trigger('change');
+
+                $('#upt_treatment').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Validation
+    var validation = function () {
+        $('#upt_qty').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+        });
+
+        $('#upt_ses').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_uprice').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_total').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_disc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_disc_value').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_coupon_disc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_net').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_vat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#upt_netvat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $("#form_quick_cash_edit").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "upt_treatment": {
+                    required: true
+                },
+                "upt_qty": {
+                    required: true,
+                    minlength: 1,
+                    min: 1,
+                    max: 1000
+                },
+                "upt_ses": {
+                    required: true,
+                    minlength: 1,
+                    min: 1,
+                    max: 100
+                },
+                "upt_uprice": {
+                    required: true,
+                    minlength: 1,
+                    min: 0,
+                    max: 100000
+                },
+                "upt_total": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "upt_disc": {
+                    required: true,
+                    minlength: 1,
+                    min: 0,
+                    max: 100000
+                },
+                "upt_disc_type": {
+                    required: true
+                },
+                "upt_disc_value": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "upt_coupon_disc": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "upt_net": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "upt_vat": {
+                    required: true,
+                    minlength: 1
+                },
+                "upt_netvat": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                }
+            },
+            messages: {
+                "upt_treatment": {
+                    required: "Select Treatment"
+                },
+                "upt_qty": {
+                    required: "Enter Qty",
+                    minlength: "Give atleast 0",
+                    min: "Min. Qty is 1",
+                    max: "Max. Qty is 1000"
+                },
+                "upt_ses": {
+                    required: "Enter Session",
+                    minlength: "Min. 1 Digit",
+                    min: "Min. Value is 1",
+                    max: "Max. Value is 100"
+                },
+                "upt_uprice": {
+                    required: "Enter Unit Price",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0",
+                    max: "Max. Value is 100000"
+                },
+                "upt_total": {
+                    required: "Enter Total",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "upt_disc": {
+                    required: "Enter Discount",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0",
+                    max: "Max. Value is 100000"
+                },
+                "upt_disc_type": {
+                    required: "Select Discount Type"
+                },
+                "upt_disc_value": {
+                    required: "Enter Discount Value",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "upt_coupon_disc": {
+                    required: "Enter Coupon Value",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "upt_net": {
+                    required: "Enter Net",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "upt_vat": {
+                    required: "Enter VAT",
+                    minlength: "Give atleast 0"
+                },
+                "upt_netvat": {
+                    required: "Enter Net+VAT",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#upt_treatment').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_vat_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_qty').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_ses').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_uprice').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_total').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_disc').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_disc_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_disc_value').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_coupon').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_coupon_disc').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_net').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_vat').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#upt_netvat').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Treatment Select Event
+    $('#upt_treatment').on('select2:select', function (e) {
+        var data = e.params.data;
+        var isPackage = 0;
+
+        if (data.text.toLowerCase().includes("package")) { isPackage = 1; }
+
+        $.ajax({
+            url: '@Url.Action("SelectTreatment", "Invoice", new { area = "Invoice" })?trId=' + data.id + "&appId=" + @Model.pt_appId + "&isPackage=" + isPackage,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                var price = parseFloat($("#upt_uprice").val());
+
+                if (!price > 0) {
+                    $("#uhi_pt_tr_code").val(response["tr_values"].tr_code);
+                    $("#uhi_pt_tr_name").val(response["tr_values"].tr_name);
+                    $("#uhi_isPackage").val(isPackage);
+                    $("#upt_disc").val(response["tr_values"].tr_disc);
+                    $("#upt_uprice").val(response["tr_values"].tr_price);
+                    $("#uhi_pt_vat").val(response["tr_values"].tr_vat);
+                    $("#uhi_pt_vat2").val(response["tr_values"].tr_vat2);
+
+                    var type = response["tr_values"].tr_disc_type;
+
+                    if (type == "%") {
+                        type = 0;
+                    }
+                    else {
+                        type = 1;
+                    }
+
+                    $('#upt_disc_type').val(type).trigger('change');
+
+                    $('#upt_vat_type').val(response["tr_values"].tr_vat).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        }).done(function () {
+            calculation();
+        });
+    });
+    //#endregion
+
+    //#region Add Treatment
+        $('#ubtnAddTreatment').on('click', function (e) {
+            e.preventDefault();
+            if ($("#form_quick_cash_edit").valid()) {
+                var exists = false;
+
+
+
+                if (item_arr.length > 0) {
+                    exists = item_arr.some(function (check) {
+                        return check.ptId === $("#pt_treatment").val();
+                    });
+                }
+
+                if (exists) {
+                    var data = $("#uhi_pt_tr_name").val();
+                    data = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+
+                    Swal.fire({
+                        title: "Item Exists!",
+                        html: + "<strong style='color:red;'>" + data + "</strong>.<br/> is Already Exists in list Please remove existing one and add again.",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonText: 'OK',
+                        confirmButtonClass: "btn btn-success mt-2",
+                        buttonsStyling: !1
+                    })
+                }
+                else {
+                    Updatetreatment();
+                    clearData();
+                }
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Add Treatment
+
+    //#region Bind Treatment
+    var Updatetreatment = function () {
+        var data = {
+            "ptId": "@Model.ptId",
+            "pt_treatment": $("#upt_treatment").val(),
+            "pt_mode": "Edit",
+            "pt_tr_code": $("#uhi_pt_tr_code").val(),
+            "pt_tr_name": $("#uhi_pt_tr_name").val(),
+            "pt_vat_type": $("#upt_vat_type").val(),
+            "pt_qty": parseFloat($("#upt_qty").val()),
+            "pt_ses": parseFloat($("#upt_ses").val()),
+            "pt_uprice": parseFloat($("#upt_uprice").val()),
+            "pt_total": parseFloat($("#upt_total").val()),
+            "pt_disc": parseFloat($("#upt_disc").val()),
+            "pt_disc_type": $("#upt_disc_type option:selected").text(),
+            "pt_disc_value": parseFloat($("#upt_disc_value").val()),
+            "pt_coupon": $("#upt_coupon").val(),
+            "pt_coupon_value": $("#upt_coupon option:selected").text(),
+            "pt_coupon_disc": parseFloat($("#upt_coupon_disc").val()),
+            "pt_net": parseFloat($("#upt_net").val()),
+            "pt_vat": parseFloat($("#upt_vat").val()),
+            "pt_netvat": parseFloat($("#upt_netvat").val()),
+            "pt_sur": "",
+            "pt_teeth": "",
+        }
+
+        $.ajax({
+            url: '@Url.Action("UpdatePatientTreatments", "PatientTreatments", new { area = "EMR" })',
+            type: "POST",
+            dataType: "json",
+            data: data,
+            async: false,
+            success: function (data) {
+                if (data.isSuccess) {
+                    let html = "<div class='alert alert-success alert-dismissible' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                        "<strong>Success.. " + data.message + "</strong><br/>" +
+                        "</div>";
+                    GetCashTreatment();
+                    $("#cashtreatment_edit").hide();
+                    $("#cashtreatment_add").show();
+                    $("#error").html(html);
+                    Timeout();
+                }
+                else {
+                    let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                        "<strong>Error.. " + data.message + "</strong><br/>" +
+                        "</div>";
+                    $("#error").html(html);
+                    Timeout();
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //Coupon Change Event
+    $('#upt_coupon').on('select2:select', function (e) {
+        calculation();
+    });
+
+    //VAT Type Change Event
+    $('#upt_vat_type').on('select2:select', function (e) {
+        calculation();
+    });
+
+    //VAT Inclusive/Exclusive Event
+    $('input[type=radio][name=urdoVATType]').change(function () {
+        calculation();
+    });
+
+    //#region Calculation
+    var calculation = function () {
+        var pt_qty = $("#upt_qty").val();
+        var pt_uprice = $("#upt_uprice").val();
+
+        var pt_total = parseFloat(pt_qty) * parseFloat(pt_uprice);
+        $("#upt_total").val(pt_total);
+
+
+        var coupon_value = 0;
+        var pt_disc_value = 0;
+
+        if (parseInt($("#upt_coupon").val()) > 0) {
+            $("#upt_disc").val(pt_disc_value);
+
+            var coupon_name = $("#upt_coupon option:selected").text();
+            var coupon_arr = coupon_name.split("-");
+            var coupon_per = coupon_arr[1].trim().replace("%", "");
+            coupon_value = (parseFloat(pt_total) * parseFloat(coupon_per)) / 100;
+        }
+        else {
+            var pt_disc = $("#upt_disc").val();
+
+            if (parseInt($("#upt_disc_type").val()) == 1) {
+                pt_disc_value = parseFloat(pt_disc);
+            }
+            else if (parseInt($("#upt_disc_type").val()) == 0) {
+                pt_disc_value = (parseFloat(pt_total) * parseFloat(pt_disc)) / 100;
+            }
+        }
+
+        $("#upt_disc_value").val(pt_disc_value);
+        $("#upt_coupon_disc").val(coupon_value);
+
+        var pt_net = parseFloat(pt_total) - (parseFloat(pt_disc_value) + parseFloat(coupon_value));
+        $("#upt_net").val(pt_net);
+
+        var pt_vat = 0;
+
+        if ($("#upt_vat_type").val() == "5") {
+            pt_vat = (parseFloat(pt_net) * 5) / 100;
+            pt_vat = Math.floor(pt_vat * 100) / 100;
+        }
+
+        if (pt_vat > 0) {
+            var rdoVAT = $("input[name='urdoVATType']:checked").val();
+
+            if (rdoVAT === "Inclusive") {
+                if ($("#upt_vat_type").val() == "5") {
+                    pt_vat = parseFloat(pt_net) * (5 / 105);
+                    pt_vat = Math.floor(pt_vat * 100) / 100;
+                }
+                pt_net = parseFloat(pt_net) - parseFloat(pt_vat);
+                pt_net = Math.floor(pt_net * 100) / 100;
+                $("#upt_net").val(pt_net);
+
+            }
+        }
+
+        $("#upt_vat").val(pt_vat);
+
+        var pt_netvat = parseFloat(pt_net) + parseFloat(pt_vat);
+        pt_netvat = Math.floor(pt_netvat * 100) / 100;
+        $("#upt_netvat").val(pt_netvat);
+
+        if (!(pt_disc_value == 0 && pt_total == 0)) {
+            if (pt_disc_value > pt_total) {
+                $("#uerror_msg").html("Discount should be less than or equal to Total Amount");
+                $("#upt_total").attr("style", "border:1px solid red;color:red;");
+                $("#upt_disc_value").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#uerror_msg").html("");
+                $("#upt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#upt_disc_value").attr("style", "border:1px solid #ecebf1;color:#728096;");
+
+                if (!(coupon_value == 0 && pt_total == 0)) {
+                    if (coupon_value >= pt_total) {
+                        $("#upt_total").attr("style", "border:1px solid red;color:red;");
+                        $("#upt_coupon_disc").attr("style", "border:1px solid red;color:red;");
+                        $("#uerror_msg").html("Coupon Discount should be less than Total Amount");
+                    }
+                    else {
+                        $("#upt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#upt_coupon_disc").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#uerror_msg").html("");
+                    }
+                }
+                else {
+                    $("#upt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    $("#upt_coupon_disc").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    $("#uerror_msg").html("");
+                }
+            }
+        }
+        else {
+            $("#uerror_msg").html("");
+            $("#upt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            $("#upt_disc_value").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+    }
+    //#endregion Calculation
+
+    //#region Focus In/Out Events
+    $("#upt_qty").focusin(function () {
+        localStorage.setItem("temp_qty", $(this).val());
+    });
+
+    $("#upt_qty").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 1) {
+            localStorage.removeItem("temp_qty");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_qty"));
+            localStorage.removeItem("temp_qty");
+        }
+    });
+
+    $("#upt_ses").focusin(function () {
+        localStorage.setItem("temp_ses", $(this).val());
+    });
+
+    $("#upt_ses").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 1) {
+            localStorage.removeItem("temp_ses");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_ses"));
+            localStorage.removeItem("temp_ses");
+        }
+    });
+
+    $("#upt_uprice").focusin(function () {
+        localStorage.setItem("temp_uprice", $(this).val());
+    });
+
+    $("#upt_uprice").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_uprice");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_uprice"));
+            localStorage.removeItem("temp_uprice");
+        }
+    });
+
+    $("#upt_disc").focusin(function () {
+        localStorage.setItem("temp_disc", $(this).val());
+    });
+
+    $("#upt_disc").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_disc");
+            $('#upt_coupon').val(0).trigger('change');
+            $('#upt_coupon_disc').val("0.00");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_disc"));
+            localStorage.removeItem("temp_disc");
+        }
+    });
+    //#endregion Focus In/Out Events
+
+    //#region Discount Type Change Event
+    $('#upt_disc_type').on('select2:select', function (e) {
+        $('#upt_coupon').val(0).trigger('change');
+        $('#upt_coupon_disc').val("0.00");
+        calculation();
+    });
+    //#endregion Discount Type Change Event
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion Validate Max value for Controls
+</script>

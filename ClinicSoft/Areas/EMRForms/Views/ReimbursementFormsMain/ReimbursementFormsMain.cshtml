@@ -1,0 +1,49 @@
+﻿@model BusinessEntities.EMRForms.ReimbursementFormsMain
+@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<form id="form_Add_ReimbursementFormsMain" class="needs-validation">
+    @Html.AntiForgeryToken()
+    <div class="col-sm-12 col-md-6 col-lg-6">
+        <div class="form-group mb-3 text-uppercase">
+            @Html.DropDownListFor(m => m.SelectedOption, new SelectList(Model.SelectedOptionList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uSelectedOption" })
+        </div>
+    </div>
+
+    <div id="selectedView"></div>
+</form>
+
+@section myScripts{
+    <script type="text/javascript">
+        $(function () {
+            $("#uSelectedOption").select2();
+
+            $("#uSelectedOption").change(function () {
+                var selectedValue = $(this).val();
+                $("#selectedView").html("");
+
+                if (selectedValue !== "") {
+                    $.ajax({
+                        url: '/EMRForms/ReimbursementFormsMain/LoadView',
+                        type: 'GET',
+                        data: { viewName: selectedValue },
+                        success: function (data) {
+                            $("#selectedView").html(data);
+                        },
+                        error: function () {
+                            $("#selectedView").html("<p>Error loading view.</p>");
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

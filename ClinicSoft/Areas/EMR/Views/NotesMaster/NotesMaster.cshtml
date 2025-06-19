@@ -1,0 +1,561 @@
+﻿@model BusinessEntities.EMR.NotesMaster
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Notes Masters </h5>
+    <button type="button" class="btn-close close-titems-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_notes" autocomplete="off">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+           
+            <div class="col-sm-12 col-md-2 col-lg-12">
+                <div class="form-group">
+                    <label class="form-label">Tittle<span class="text-danger">*</span></label>
+                    <input type="text" name="nsm_title" id="nsm_title" class="form-control" placeholder="Eg:My Notes" />
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <div id="nsm_desc">
+
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+        <div class="row">
+            <div id="div_item_error"> </div>
+            <div class="col-sm-12 col-md-8 col-lg-8">
+                <label class="form-label mt-1">&nbsp;<span class="text-danger" id="error_msg"></span></label>
+            </div>
+            <div class="col-sm-12 col-md-4 col-lg-4">
+                <div class="pull-right">
+                    <button type="submit" class="btn btn-success" id="btnAddNotes"><i class="fe fe-plus"></i> Add Notes Master</button>
+                    <button type="button" class="btn btn-outline-dark" id="btn_ResetNote">Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive mt-2">
+                        <table id="tbl_notes" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                            <thead>
+                                <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:5%">#</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">Tittle</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap" style="width:40%">Description</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">Status</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:5%"></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer py-1 px-3">
+    <div class="form-group">
+        <button type="button" class="btn btn-outline-danger close-titems-modal" data-bs-dismiss="modal" aria-label="Close">
+            Close
+        </button>
+    </div>
+</div>
+
+<script>
+    'use strict';
+    //#region Document Load
+    var quill;
+    $(function () {
+
+        var icons = Quill.import('ui/icons');
+        icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+        icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+        icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+        icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+        icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+        icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+        var toolbarOptions = [
+            [{
+                'header': [1, 2, 3, 4, 5, 6, false]
+            }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{
+                'list': 'ordered'
+            }, {
+                'list': 'bullet'
+            }]
+
+        ];
+
+        quill = new Quill('#nsm_desc', {
+            modules: {
+                toolbar: toolbarOptions
+            },
+            theme: 'snow'
+        });
+      
+        getNotesMaster();
+        validation();
+        
+    });
+    //#endregion
+
+    //#region Load Notes Masters
+    var getNotesMaster = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetNotesMaster", "NotesMaster", new { area = "EMR" })?nsm_flag=Notes",
+            success: function (response) {
+                if (response.length > 0) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_notes')) {
+                        table = $('#tbl_notes').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        bindDataTable(response);
+                    }
+                }
+
+                setTimeout(function () {
+                    $('#tbl_notes').DataTable().columns.adjust().draw();
+                }, 450);
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind DataTable
+    var bindDataTable = function (response) {
+        var table = $("#tbl_notes").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "nsmId",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-center",
+                    "render": function (data, type, row, meta) {
+                        let _index = (meta.row) + 1;
+                        if (_index >= 10) {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                        }
+                        else {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                        }
+                    }
+                },
+                {
+                    "className": 'text-wrap',
+                    "mData": "nsm_title"
+                },
+                { "mData": "nsm_desc", "className": 'text-wrap text-justify' },
+                {
+                    "mData": "nsm_status",
+                    "className": 'text-center',
+                    "render": function (data, type, full, meta) {
+                        var nsmId = full.nsmId;
+
+                        if (data.toLowerCase() === "new") {
+                            return '<a onclick="updateNotesMastertatus(\'' + nsmId + '\',\' New \')"><span class="dot-label bg-primary me-2 w-2 h-2"></span>&nbsp;New</a>';
+                        }
+                        else if (data.toLowerCase() === "used") {
+                            return '<a onclick="updateNotesMastertatus(\'' + nsmId + '\',\' Used \')"><span class="dot-label bg-success me-2 w-2 h-2"></span>&nbsp;Used</a>';
+                        }
+                        else if (data.toLowerCase() === "deleted") {
+                            return '<a onclick="updateNotesMastertatus(\'' + nsmId + '\',\' Deleted \')"><span class="dot-label bg-danger me-2 w-2 h-2"></span>&nbsp;Deleted</a>';
+                        }
+                        else  {
+                            return '<span class="dot-label bg-dark me-2 w-2 h-2"></span>&nbsp;' + data;
+                        }
+                    }
+                },
+                {
+                    "mData": "nsmId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (data, type, full, meta) {
+                        var status = full.nsm_status;
+
+                        if (status !== "Deleted") {
+                            return '<a onclick="deleteTreatmentItem(' + data + ')"><i class="fe fe-trash text-danger" style="font-size: 15px;"></i></a>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                }
+
+            ],
+            order: [[0, 'asc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_ ',
+
+            },
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Notes Masters',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Notes Masters to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Notes Masters',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Notes Masters to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Notes Mastersr',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Notes Masters to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Notes Masters',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Notes Masters!");
+                    }
+                }
+            ]
+        });
+        table.buttons().container().appendTo('#tbl_notes_wrapper .col-md-6:eq(0)');
+    };
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        
+        $("#form_notes").validate({
+            focusInvalid: true,
+            rules:
+            {
+
+                "nsm_title": {
+                    required: true,
+                }
+            },
+            messages: {
+
+                "nsm_title": {
+                    required: "Enter Tittle",
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+               
+                $(element).parent().removeClass('has-error');
+            },
+            
+        });
+
+
+    }
+    //#endregion
+
+    //#region Add Treatment
+    $('#btnAddNotes').on('click', function (e) {
+        e.preventDefault();
+        if ($("#form_notes").valid()) {
+            $('#btnAddNotes').removeClass("btn btn-success");
+            $('#btnAddNotes').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btnAddNotes').html("Saving the Record....");
+
+
+            var _Notes = {
+                "nsmId": 0,
+                "nsm_title": $("#nsm_title").val(),
+                "nsm_desc": quill.root.innerHTML,
+                "nsm_flag": "Notes",
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+            $.ajax({
+                type: "Post",
+                url: "@Url.Action("AddNotesMaster", "NotesMaster", new {area = "EMR" })",
+                dataType: 'JSON',
+                data: _Notes,
+                success: function (data) {
+                    $('#btnAddNotes').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btnAddNotes').addClass("btn btn-success");
+                    $('#btnAddNotes').html('<i class="fe fe-plus"></i> Add Notes Master');
+                    if (data.isSuccess) {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-success' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Success..&nbsp;</strong> Notes Masters inserted successfully!</div></div>";
+
+                        $("#div_item_error").html(html);
+                        var Notes = {
+                            "id": quill.root.innerHTML,
+                            "text": $("#nsm_title").val()
+                        }
+                        localStorage.setItem("newNotes", JSON.stringify(Notes));
+                        //$('#notes_master_modal').modal('hide');
+
+                        timeout();
+
+                        getNotesMaster();
+
+                       /* clearControls();*/
+                        
+
+                    } else {
+
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Error..&nbsp;</strong> There is an error to create the Notes Master!</div></div>";
+                        $("#div_item_error").html(html);
+                        timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btnAddNotes').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btnAddNotes').addClass("btn btn-success");
+                    $('#btnAddNotes').html('<i class="fe fe-plus"></i> Add Notes Master');
+                    timeout();
+                }
+            })
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Delete Item
+    var deleteTreatmentItem = function (nsmId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Notes Master ?",
+            text: "This action will delete this Notes Master!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteNotesMaster", "NotesMaster", new { area = "EMR" })?nsmId=' + nsmId ,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Notes Master is Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+
+                                    getNotesMaster();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Delete Notes Master!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete this Notes Master!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Notes Master! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+    }
+    //#endregion
+
+    //#region Update Status Function
+    var updateNotesMastertatus = function (nsmId, status) {
+        console.log(status)
+        var _status = (status.trim() == "Deleted" || status.trim() == "Used") ? "New" : "Used";
+        console.log(_status)
+
+        Swal.fire({
+            title: "Are you sure you want to change status ?",
+            text: "This action will change the status of the selected Notes Master!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: "@Url.Action("UpdateNotesMastertatus", "NotesMaster", new { area = "EMR" })?nsmId=" + nsmId + "&nsm_status=" + _status,
+                    type: "POST",
+                    dataType: "JSON",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Status Changed Successfully!!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                })
+                                getNotesMaster();
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "You Can't Change the status! Already exist an active Item",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to perform this action!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Update Item Status! Please refresh the Page and Try Again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        })
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Export General Logs
+    var exportLogs = function (desc) {
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+            contentType: "application/json",
+            dataType: "json"
+        });
+    }
+    //#endregion
+
+    
+    //#region Reset
+    $('#btn_ResetNote').on('click', function (e) {
+        e.preventDefault();
+        clearControls();
+    });
+    //#endregion Reset
+
+    //#region Clear Controls
+    var clearControls = function () {
+        quill.root.innerHTML = "";
+        $("#nsm_title").val("");
+    }
+    //#endregion Clear Controls
+
+    //#region Alert Timeout
+    function timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion Alert Timeout
+</script>

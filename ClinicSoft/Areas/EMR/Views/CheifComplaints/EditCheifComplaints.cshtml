@@ -1,0 +1,305 @@
+﻿@model BusinessEntities.EMR.CheifComplaints
+<form id="form_EditComplaint" class="needs-validation"  >
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class='badge bg-danger'>Required</span>
+            <span class="text-info" style="font-size:smaller">Please Fill Complaints</span>
+        </div>
+    </div>
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.compId)
+    @Html.HiddenFor(m => m.comp_appId)
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-4">
+        <div class="form-group mb-3">
+            <label class="form-label text-black">Template&nbsp;</label>
+            @Html.DropDownListFor(m => m.cm_title, new List<SelectListItem> { }, "Select Template", new { @class = "form-select  mb-2 select2", @id = "ucm_title" })
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-2">
+        <div class="form-group mb-3">
+            <label class="form-label">Past History&nbsp;</label>
+            <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                <label class="custom-control custom-radio ms-sm-2 md-md-2 ms-lg-2">
+                    <input type="radio" class="custom-control-input" name="ucomp_severity" value="Chronic" id="Chronic">
+                    <span class="custom-control-label">Chronic</span>
+                </label>
+            </div>
+            <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                <label class="custom-control custom-radio ms-sm-2 md-md-2 ms-lg-2">
+                    <input type="radio" class="custom-control-input" name="ucomp_severity" value="Normal" id="Normal" checked >
+                    <span class="custom-control-label">Normal</span>
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="form-group mb-3">
+            <label class="form-label text-black">Complaints&nbsp;<span class="text-danger">*</span></label>
+            <div id="ucomplaint">
+            </div>
+
+        </div>
+    </div>
+</div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-warning" id="btn_Update_Complaint">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_Editcomp" >
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+        var uquillc;
+    $(function () {
+        $('#btn_Close_Editcomp').click(function () {
+            $("#complaints_add").show();
+            $('#complaints_edit').hide();
+            $("#complaint").val("");
+        });
+
+        $("#ucm_title").select2({
+            placeholder: 'Select Template',
+            width: '100%',
+            minimumInputLength: 3,
+            dropdownParent: $('#form_EditComplaint'),
+
+            ajax: {
+                url: '@Url.Action("GetComplaints", "CheifComplaints", new { area = "EMR" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                    };
+                },
+                processResults: function (data) {
+                    console.log(data);
+
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+        load_complaints("@Model.cm_title");
+        uquillc = new Quill('#ucomplaint', {
+            modules: {
+                toolbar:
+                    [[{
+                        'header': [1, 2, 3, 4, 5, 6, false]
+                    }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{
+                        'list': 'ordered'
+                    }, {
+                        'list': 'bullet'
+                    }]]
+            },
+            theme: 'snow',
+            placeholder: 'Write your Addendum here.....',
+        });
+        var realHTML = $('<textarea />').html("@Model.complaint").text();
+        uquillc.root.innerHTML = realHTML;
+        GetCheckedValues();
+    });
+    //#endregion Partial View Onload
+
+    //#region load CheifComplaints
+    var load_complaints = function (cm_title) {
+            $.ajax({
+                url: '@Url.Action("GetComplaints", "CheifComplaints", new { area = "EMR" })?query=' + cm_title,
+                type: "GET",
+                dataType: "json",
+                async: false,
+
+                success: function (response) {
+                    var data = {
+                        "id": response[0].id,
+                        "text": response[0].text,
+                    };
+                    //$('#ucomplaint').val(response[0].text);
+                    var newOption = new Option(response[0].text, response[0].id, true, true);
+                    $('#ucm_title').append(newOption).trigger('change');
+                    $('#ucm_title').trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    });
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+
+            });
+        };
+    //#endregion load CheifComplaints
+     //#region Get CheckedValues
+    var GetCheckedValues = function () {
+        var pd_1_ = "@Model.comp_severity";
+        if (pd_1_ !== "") {
+            var upd_1_ = $("input[name='comp_severity'][value='" + "@Model.comp_severity" + "']").attr("id");
+            $("#" + upd_1_).attr('checked', 'checked');
+            $("#" + upd_1_).prop("checked", true);
+        }
+    }
+
+    //#region load CheifComplaints
+        $('#ucm_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            console.log(data);
+            var realHTML = $('<textarea />').html(data.id).text();
+            uquillc.root.innerHTML = realHTML;
+        });
+    //#endregion load CheifComplaints
+
+    //#region Update  Button Click
+        $('#btn_Update_Complaint').on('click', function (e) {
+             e.preventDefault();
+            var isvalid = true;
+
+            if (uquillc.getText().trim().length == 0) {
+                $("#ucomplaint").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#ucomplaint"));
+                isvalid = false;
+            }
+            if (isvalid) {
+                $('#btn_Update_Complaint').removeClass("btn btn-success");
+                $('#btn_Update_Complaint').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_Update_Complaint').html("Updating the Record....");
+                var _dataInsert = {
+                    "compId": $("#compId").val(),
+                    "comp_appId": $("#comp_appId").val(),
+                    "complaint": uquillc.root.innerHTML,
+                    "comp_location": $("#ucm_title option:selected").text(),
+                    "comp_severity": $("input[name='ucomp_severity']:checked").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdateCheifComplaints", "CheifComplaints", new { area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                success: function (data) {
+                    $('#complaints_edit').hide();
+                    $('#btn_Update_Complaint').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_Complaint').addClass("btn btn-success");
+                    $('#btn_Update_Complaint').html("Save Changes");
+                    if (data.isSuccess) {
+                        if (data.isInserted) {
+                            var alertPlaceholder = document.getElementById("Alert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> " + data.message + "", "success");
+                            clearControls();
+                            Timeout();
+                            GetCheifComplaints();
+                            GetPreviousCheifComplaints();
+                            $('#complaints_add').show();
+                            $("#complaints_edit").hide()
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> " + data.message + "</strong><br/>" +
+                                "</div></div>";
+                            $("#error").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+                        html += "</ul></div></div>";
+                        $("#error").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update_Complaint').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_Complaint').addClass("btn btn-success");
+                    $('#btn_Update_Complaint').html("Save Changes");
+                    Timeout();
+                }
+                });
+            }
+
+        });
+    //#endregion Update  Button Click
+
+    //#region Clear Controls
+        var clearControls = function () {
+            uquillc.root.innerHTML = "";
+            $("#ucm_title").val("");
+        }
+    //#endregion Clear Controls
+
+    //#region Validation Initialization
+        var validate = function () {
+
+            $("#form_EditComplaint").validate({
+                rules: {
+                    ucomplaint: {
+                        required: true
+                    },
+                },
+                messages: {
+                    ucomplaint: {
+                        required: "Please Enter Location!"
+                    },
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+        }
+    //#endregion Validation Initialization
+</script>

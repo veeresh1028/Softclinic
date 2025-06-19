@@ -1,0 +1,277 @@
+﻿@model BusinessEntities.Masters.LinkCouponsToProcedure
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Link Coupon To Procedure</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Link_Coupons_Proc" autocomplete="off" ondrop="return false;" oncut="return false;">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label">Discount&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.dtl_discId, new List<SelectListItem> { }, "Select Discount", new { @class = "form-select mb-2 select2", @id = "dtl_discId" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Procedure&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.dtl_tr_code, new List<SelectListItem> { }, "Select Procedure", new { @class = "form-select mb-2 select2", @id = "dtl_tr_code" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="error"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert">Create Link</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseCreate" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $(document).on('select2:open', () => {
+            document.querySelector('.select2-search__field').focus();
+        });
+
+        load_discounts();
+        load_procedures();
+
+        validation();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Link_Coupons_Proc").validate({
+            focusInvalid: true,
+            rules:
+            {
+                dtl_discId: {
+                    required: true
+                },
+                dtl_tr_code: {
+                    required: true,
+                },
+            },
+            messages: {
+                dtl_discId: {
+                    required: "Select Discount"
+                },
+                dtl_tr_code: {
+                    required: "Select Procedure",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#dtl_discId').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#dtl_tr_code').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Load Discounts
+    var load_discounts = function () {
+        $("#dtl_discId").select2({
+            placeholder: 'Select Discount',
+            width: '100%',
+            minimumInputLength: '',
+            maximumInputLength: 8,
+            dropdownParent: $('#form_Link_Coupons_Proc'),
+            ajax: {
+                url: '@Url.Action("GetDiscounts", "LinkCouponsToProcedure", new { area = "Masters" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+    };
+    //#endregion
+
+    //#region Load Procedures
+    var load_procedures = function () {
+        $("#dtl_tr_code").select2({
+            placeholder: 'Select Procedure',
+            width: '100%',
+            minimumInputLength: 3,
+            maximumInputLength: 15,
+            dropdownParent: $('#form_Link_Coupons_Proc'),
+            ajax: {
+                url: '@Url.Action("GetCPTCodes", "CPTCodeItemsMapping", new { area = "Masters" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+    };
+    //#endregion
+
+    //#region Link Coupon To Procedure Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Link_Coupons_Proc").valid()) {
+
+            $('#btn_Insert').removeClass("btn btn-success");
+            $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Insert').parent().addClass("curdrop");
+            $('.btnCloseCreate').addClass("disabled");
+            $('#btn_Insert').html("Creating... Please Wait");
+
+            var _dataInsert = {
+                "dtlId": 0,
+                "dtl_tr_code": $("#dtl_tr_code").val(),
+                "dtl_discId": $("#dtl_discId").val(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertLinkCouponsToProcedure", "LinkCouponsToProcedure", new {area = "Masters" })",
+                dataType: 'json',
+                data: _dataInsert,
+                success: function (data) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Link");
+
+                    if (data.isSuccess) {
+                        if (data.isInserted) {
+                            var alertPlaceholder = document.getElementById("CouponsProcedureAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Coupon To Procedure Linked Successfully!", "success");
+                            $('#disc_link_modal').modal('toggle');
+                            GetCouponsProcedure();
+                            Timeout();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Coupon To Procedure Link Already Exists with the same details!</strong><br/>" +
+                                "</div></div>";
+                            $("#error").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.&nbsp;</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+
+                        $("#error").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Link");
+                    $('#disc_link_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

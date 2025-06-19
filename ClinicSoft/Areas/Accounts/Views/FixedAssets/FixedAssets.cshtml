@@ -1,0 +1,1047 @@
+﻿@model IEnumerable<BusinessEntities.Accounts.Accounting.FundsTransfer>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Accounts & Material Management - Funds Transfers";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Fixed Assets</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+            <a class="btn btn-secondary" onclick="createFixedAsset()"><i class="mdi mdi-plus"></i>&nbsp;Add Fixed Asset</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2 mb-2">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="FixedAssetsAlert"></div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch</label>
+                                @*<select class="form-control" id="select_branch">
+                                    </select>*@
+                                @Html.DropDownList("select_branch", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Any Branch", new { @class = "form-select select2" })
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Item<label id="lbl_item_message" class="fw-bold"></label></label>
+                                <select class="form-control" id="select_item">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Method<small>(s)</small></label>
+                                <select class="form-control" id="select_method" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Referrence #</label>
+                            </div>
+                            <div class="input-group">
+                                <input id="select_refno" class="form-control" placeholder="Enter Ref No." type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Purchase From Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Purchase To Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i>&nbsp;Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_fixedasset" class="table table-striped table-bordered table-hover text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Asset Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Asset Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Supplier</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">PO Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Purchase Price</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Residual Value</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Method</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Dep. Percentage / Life Span</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Accumulated Dep.</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Ending Value</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">P.Invoice Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white"><i class="fe fe-more-vertical" style="font-size: 1.75rem;"></i></th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-right fs-17 text-primary font-weight-bold">Total :</th>
+                                <th class="text-end fs-16 font-weight-bold"></th>
+                                <th class="text-end fs-16 font-weight-bold"></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-end fs-16 font-weight-bold"></th>
+                                <th class="text-end fs-16 font-weight-bold"></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Fixed Asset Modal-->
+<div class="modal fade" id="add_fixedasset_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="sizeCJ">
+        <div class="modal-content" id="create_fixedasset_modal_body">
+        </div>
+    </div>
+</div>
+
+<!-- Edit Fixed Asset Modal-->
+<div class="modal fade" id="edit_fixedasset_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="sizeCJ">
+        <div class="modal-content" id="edit_fixedasset_modal_body">
+        </div>
+    </div>
+</div>
+
+<!-- Edit Fixed Asset Depreciation Modal-->
+<div class="modal fade" id="depreciation_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeCJ">
+        <div class="modal-content" id="depreciation_modal_body">
+        </div>
+    </div>
+</div>
+
+<!-- Fund Transfer Audit Log Modal-->
+<div class="modal fade overflow-auto" id="audit_logs_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" data-modal-from="journal_logs" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeL">
+        <div class="modal-content" id="audit_logs_body">
+        </div>
+    </div>
+</div>
+
+@* popup Model Create Stock Group *@
+<div class="modal fade" id="StockGroup_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="StockGroup_body">
+        </div>
+    </div>
+</div>
+
+@* popup Model Create Item Location *@
+<div class="modal fade" id="ItemLocation_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="ItemLocation_body">
+        </div>
+    </div>
+</div>
+
+@* popup Model Create Item UOM *@
+<div class="modal fade" id="uom_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" data-modal-from="uom" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content" id="uom_body">
+        </div>
+    </div>
+</div>
+
+@* popup Model Create Stock Item*@
+<div class="modal fade overflow-auto" id="items_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="Items_body">
+        </div>
+    </div>
+</div>
+
+@* popup Model Create Supplier *@
+<div class="modal fade fade overflow-auto" id="Supplier_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeC">
+        <div class="modal-content" id="Supplier_body">
+        </div>
+    </div>
+</div>
+
+@* Supplier History popup Model *@
+<div class="modal fade" id="SupplierHistory_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" id="size">
+        <div class="modal-content" id="SupplierHistory_body">
+        </div>
+    </div>
+</div>
+
+@* Items History popup Model *@
+<div class="modal fade overflow-auto" id="ItemsHistory_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="ItemsHistory_body">
+        </div>
+    </div>
+</div>
+
+
+@section myScripts{
+    <style>
+    </style>
+
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            $('#select_branch').select2({
+                minimumResultsForSearch: '',
+                placeholder: 'Any Branch',
+                width: '100%'
+            });
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+
+            $('#select_date_to').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+
+            $('#select_date_to').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $("#select_date_to").bootstrapdatepicker("setDate", "tomorrow");
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+            var today_date = moment(new Date()).format('MM/DD/YYYY');
+
+            $('#select_branch').val(@emp_branch.ToString()).trigger('change');
+            load_filters();
+            if (@emp_branch != null) {
+                $('#select_branch').val('@emp_branch').trigger('change');
+            }
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_method();
+            setTimeout(function () {
+                $("#btnSearch").click();
+            }, 1000);
+        }
+
+        // load method of depreciation
+        var load_method = function () {
+            $('#select_method').SumoSelect({
+                placeholder: 'Any Method(s)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_method').html('');
+            $('#select_method')[0].sumo.reload();
+            $('#select_method')[0].sumo.add("Straight Line", "Straight Line");
+            $('#select_method')[0].sumo.add("Declining Balance", "Declining Balance");
+
+            $('#select_method')[0].sumo.reload();
+        };
+        //#endregion
+
+        //#region Get Items
+        $("#select_item").select2({
+            placeholder: 'Any Item',
+            width: '100%',
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchItems", "PurchaseOrders", new { area = "MaterialManagement" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    $('#lbl_item_message').text('');
+                    if ($('#select_branch').val() != null && $('#select_branch').val() != "" && $('#select_branch').val() != undefined) {
+                        return {
+                            query: query.term,
+                            branch: $('#select_branch').val()
+                        };
+                    }
+                    else {
+                        $('#lbl_item_message').text('Select Branch Name First');
+                        return {
+                            query: '',
+                            branch: 0
+                        }
+                    }
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+        //#endregion
+
+        //#region Search Fixed Asset
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#select_item").val() != null && $("#select_item").val() != 0 && $("#select_item").val() != "") ||
+                    ($("#select_refno").val() != null && $("#select_refno").val() != 0 && $("#select_refno").val() != "") ||
+                    (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "")
+                        && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "")) ||
+                    ($("#select_method").val() != null && $("#select_method").val() != 0 && $("#select_method").val() != "")) {
+
+                    let isValid = true;
+                    let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                    let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                        if (!date_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                        if (!date_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+
+                    // Check if Date Range is valid
+                    if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                        if (date_frm.isValid() && date_to.isValid()) {
+                            if (date_to.diff(date_frm, 'days') < 0) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from");
+                                index.push("select_date_to");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+
+                    // Check If Valid
+                    if (isValid) {
+                        GetFixedAssets();
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Search by Either of the following filters : Item / Method / Refrance / Purchase Date",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Fixed Assets!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Load Fixed Assets
+        function GetFixedAssets() {
+            var branch = "";
+            branch = $('#select_branch').val().toString();
+
+            var _data = {
+                "fa_branch": branch,
+                "fa_refno": $("#select_refno").val(),
+                "fa_method": $("#select_method").val(),
+                "fa_item": $("#select_item").val(),
+                "from_date": $("#select_date_from").val(),
+                "to_date": $("#select_date_to").val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetFixedAssets", "FixedAssets", new { area = "Accounts" })",
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                data: _data,
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_fixedasset')) {
+                            table = $('#tbl_fixedasset').DataTable();
+                            table.clear();
+                            table.rows.add(response.FT_list).draw();
+                        }
+                        else {
+                            BindDataTable(response.FT_list);
+                        }
+                    }
+                    $('#progress-loader').hide();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Fixed Assets into Datatable
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_fixedasset").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "paging": false,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "className": "td_max_width",
+                        "mData": "branch_name"
+                    },
+                    {
+                        "mData": "fa_pdate",
+                        "render": function (fa_pdate, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(fa_pdate).format("DD-MM-YYYY");
+                            }
+                            return moment(fa_pdate).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "fa_refno"
+                    },
+                    {
+                        "visible": false,
+                        "mData": "item_code"
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "item_name",
+                        "render": function (item_name, type, full, meta) {
+                            return '<a data-bs-toggle="modal" data-bs-target="#ItemsHistory_modal" onclick="ItemsHistory(\'' + full.fa_item + '\',\'' + full.item_code + '\',\'' + full.fa_branch + '\')"><span class="font-weight-bold text-info">' + full.item_code + " </span> </a> <br><span> " + full.item_name + '</span>'
+                        }
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "supplier_name",
+                        "className": "font-weight-bold text-info",
+                        "render": function (data, type, full, meta) {
+                            return '<a data-bs-toggle="modal" data-bs-target="#SupplierHistory_modal" onclick="SupplierHistory(\'' + full.fa_supplier + '\',\'' + full.fa_branch + '\')">' + data + '</a>';
+                        }
+                    },
+                    {
+                        "mData": "pur_ocode"
+                    },
+                    {
+                        "mData": "fa_price",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "fa_residual_value",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "fa_method",
+                    },
+                    {
+                        "mData": "fa_depreciation_per",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold td_max_width",
+                        "render": function (fa_depreciation_per, type, full, meta) {
+                            if (full.fa_method === "Straight Line")
+                                return full.fa_life_span;
+                            else
+                                return full.fa_depreciation_per;
+
+                        }
+
+                    },
+                    {
+                        "mData": "fa_Accumulated_depreciation",
+                        "className": "td_max_width",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "fa_ending_value",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "fa_status",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": 'text-center',
+                        "render": function (fa_status, type, full, meta) {
+                            var fa_status = full.fa_status;
+
+                            if (fa_status === "Active") {
+                                return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 3.75rem;">Active</button>';
+                            }
+                            else if (fa_status === "Inactive") {
+                                return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 4.375rem;">Inactive</button>';
+                            }
+                            else if (fa_status === "Deleted") {
+                                return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 3.75rem;">Deleted</button>';
+                            }
+                            else if (fa_status === "Sold Out") {
+                                return '<button type="button" class="badge rounded-pill bg-orange mt-2 border-danger" style="width: 3.75rem;">Sold</button>';
+                            }
+                            else if (fa_status === "Fully Depreciated") {
+                                return '<button type="button" class="badge rounded-pill bg-info mt-2 border-info" style="width: 5rem;">Depreciated</button>';
+                            }
+                            else {
+                                return ''
+                            }
+
+                        }
+                    },
+                    {
+                        "mData": "pinv_status",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": 'text-center td_max_width',
+                        "render": function (pinv_status, type, full, meta) {
+                            var pinv_status = full.pinv_status;
+
+                            if (pinv_status === "Paid") {
+                                return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 3.75rem;">Paid</button>';
+                            }
+                            else if (pinv_status === "Unpaid") {
+                                return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 4.375rem;">Unpaid</button>';
+                            }
+                            else if (pinv_status === "Partly Paid") {
+                                return '<button type="button" class="badge rounded-pill bg-info mt-2 border-info" style="width: 5rem;">Partly Paid</button>';
+                            }
+                            else {
+                                return ''
+                            }
+
+                        }
+                    },
+                    {
+                        "orderable": false,
+                        "searchable": false,
+                        "mData": "faId",
+                        "className": 'text-center',
+                        "render": function (faId, type, full, meta) {
+                            var fa_status = full.fa_status;
+                            var pinv_status = full.pinv_status;
+                            var more = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 1.25rem;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">';
+
+                            if (fa_status === "Active" && pinv_status === "Unpaid") {
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="editFixedAsset(\'' + full.faId + '\')"><i class="fe fe-edit-2 text-success" style="font-size: 1rem;margin-right: 0.5rem;"></i>&nbsp;Edit</a>';
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="GetAssetDepreciations(\'' + full.faId + '\')"><i class="fe fe-trending-down text-warning" style="font-size: 1rem;margin-right: 0.5rem;"></i>&nbsp;Depreciation</a>';
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="updateStatus(\'' + full.faId + '\',\'' + full.fa_branch + '\')"><i class="fe fe-trash text-danger" style="font-size: 1rem;margin-right: 0.5rem;"></i>&nbsp;Delete</a>';
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="viewAuditLogs(\'' + full.fa_refno + '\')"><i class="fe fe-eye" style="font-size: 1rem;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>';
+                            }
+                            else if (fa_status === "Active" && pinv_status !== "Unpaid") {
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="GetAssetDepreciations(\'' + full.faId + '\')"><i class="fe fe-trending-down text-warning" style="font-size: 1rem;margin-right: 0.5rem;"></i>&nbsp;Depreciation</a>';
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="viewAuditLogs(\'' + full.fa_refno + '\')"><i class="fe fe-eye" style="font-size: 1rem;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>';
+                            }
+                            else if (fa_status === "Sold Out" || fa_status === "Fully Depreciated") {
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="GetAssetDepreciations(\'' + full.faId + '\')"><i class="fe fe-trending-down text-warning" style="font-size: 1rem;margin-right: 0.5rem;"></i>&nbsp;Depreciation</a>';
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="viewAuditLogs(\'' + full.fa_refno + '\')"><i class="fe fe-eye" style="font-size: 1rem;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>';
+                            }
+                            else {
+                                more += '<a class="dropdown-item text-dark fw-bold" style="cursor:pointer" onclick="viewAuditLogs(\'' + full.fa_refno + '\')"><i class="fe fe-eye" style="font-size: 1rem;margin-right: 0.5rem;color:#046058 !important"></i>&nbsp;Logs</a>';
+                            }
+                            more += '</div></div>';
+
+                            return more;
+                        }
+                    }
+                ],
+                order: [[1, 'desc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Fixed Assets Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Fixed Assets to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Fixed Assets Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Fixed Assets to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Fixed Assets Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Fixed Assets to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Fixed Assets Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Fixed Assets!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    zeroRecords: "No Record(s) Found",
+                    infoEmpty: "No Record(s) Available",
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Branch / Refno / Item Name / Method</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                    sEmptyTable: '<span class="text-secondary">No Record(s) Available Based On Request</span>',
+                },
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    const total_price = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer(total_price.toFixed(2)));
+
+                    const total_resi_val = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(numberRenderer(total_resi_val.toFixed(2)));
+
+                    const total_acc_dep = api.column(11).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(11).footer()).html(numberRenderer(total_acc_dep.toFixed(2)));
+
+                    const total_end_val = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(12).footer()).html(numberRenderer(total_end_val.toFixed(2)));
+
+
+                },
+            });
+
+            table.buttons().container().appendTo('#tbl_fixedasset_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Create Fixed Asset
+        function createFixedAsset() {
+            $("#spinner2").show();
+           $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateFixedAsset", "FixedAssets", new { area = "Accounts" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function(data) {
+                    $("#create_fixedasset_modal_body").html(data);
+                    $("#add_fixedasset_modal").modal("show");
+                },
+                error : function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+               },
+                complete: function () {
+                   // Hide spinner when request is complete
+                   $("#spinner2").hide();
+               }
+            });
+        }
+        //#endregion
+
+        //#region Edit Fixed Asset
+        function editFixedAsset(faId) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditFixedAsset", "FixedAssets", new { area = "Accounts" })?faId=" + faId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function(data) {
+                    $("#edit_fixedasset_modal_body").html(data);
+                    $("#edit_fixedasset_modal").modal("show");
+                },
+                error : function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Update Fixed Asset Status
+        var updateStatus = function (faId, fa_branch) {
+            Swal.fire({
+                title: 'Are you sure you want to Delete ?',
+                html: 'This action will delete the all depreciation entries of this items !',
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2",
+                cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: "@Url.Action("ChangeFixedAssetStatus", "FixedAssets", new { area = "Accounts" })?faId=" + faId + "&fa_branch=" + fa_branch + "&status=Deleted",
+                        type: "POST",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.isUpdated) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Status Changed Successfully!!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+
+                                    load_filters();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: data.message + "!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to perform this action!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Change Status! Please refresh the Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        };
+        //#endregion
+
+        //#region Fixed Asset Depreciation
+        var GetAssetDepreciations = function (faId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAssetDepreciations", "FixedAssets", new { area = "Accounts" })?faId=" + faId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#depreciation_modal_body").html(data);
+                    $("#depreciation_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Fund Transfer Audit Logs
+        var viewAuditLogs = function (ft_code) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("FundTransferAuditLogs", "FundsTransfer", new { area = "Accounts" })?ft_code=" + ft_code,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#audit_logs_body").html(data);
+                    $("#audit_logs_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Supplier History
+        var SupplierHistory = function (supId, sup_branch) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("SupplierHistory", "Supplier", new { area = "MaterialManagement" })?supId=" + supId + "&sup_branch=" + sup_branch,
+                contentType: "application/json",
+                dataType: "html",
+                //data: app,
+                success: function (data) {
+                    $("#SupplierHistory_body").html(data);
+                    $("#SupplierHistory_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region Item History View
+        var ItemsHistory = function (itemId, item_code, item_branch) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ItemHistory", "CentralStore", new { area = "MaterialManagement" })?itemId=" + itemId + "&item_code=" + item_code + "&item_branch=" + item_branch,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#ItemsHistory_body").html(data);
+                    $("#ItemsHistory_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

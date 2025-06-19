@@ -1,0 +1,107 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "RefractionFormIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Refraction Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="RefractionForm_add" style="display:none">
+                </div>
+                <div id="RefractionForm_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="RefractionForm_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+            $(function () {
+               GetRefractionFormInfo();
+              RefractionFormPreviousHistory();
+
+            });
+            //#endregion Page Load
+        //#region Load GetRefractionFormInfo
+            var GetRefractionFormInfo = function () {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetRefractionFormData", "RefractionForm", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                    success: function (response) {
+                        if (response.isAuthorized != false) {
+                            if (response.length > 0) {
+                                EditRefractionForm();
+                                $("#RefractionForm_add").hide();
+                                $("#RefractionForm_edit").show();
+
+                            }
+                            else {
+                                $("#RefractionForm_add").show();
+                                $("#RefractionForm_edit").hide();
+                                AddRefractionForm();
+                            }
+                        }
+                        else {
+                            console.log("You are not Authorized!");
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                    }
+                })
+            }
+            //#endregion Load RefractionForm
+        //#region Add RefractionForm
+            function AddRefractionForm() {
+                var x = $("#RefractionForm_add");
+                x.load("@Url.Action("CreateRefractionForm", "RefractionForm", new { area = "ConsentForms" })", function () {
+              });
+            }
+            //#endregion Add RefractionForm
+        //#region Update RefractionForm
+            function EditRefractionForm() {
+                var x = $("#RefractionForm_edit");
+                x.load("@Url.Action("UpdateRefractionForm", "RefractionForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+              });
+            }
+              //#endregion Update RefractionForm
+        //#region Histroy of RefractionForm
+            function RefractionFormPreviousHistory() {
+                var x = $("#RefractionForm_history");
+                x.load("@Url.Action("RefractionFormPreviousHistory", "RefractionForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+              });
+            }
+       //#endregion History of RefractionForm
+    </script>
+@*}*@

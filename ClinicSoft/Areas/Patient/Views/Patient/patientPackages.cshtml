@@ -1,0 +1,318 @@
+﻿
+@model BusinessEntities.EMR.PatientPackage
+@*<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Add / Delete Packages for &nbsp;</h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>*@
+<div class="modal-body p-4">
+    
+    <div  id="ip_add" >
+        @Html.Action("CreatePatientPackage", "Packages", new { area = "EMR" })
+    </div>
+    <div id="ip_edit" style="display:none">
+    </div>
+    <div id="div_Packages_list">
+        <div class="table-responsive" style="min-height:unset;">
+            <table id="tbl_package_lists" class="table table-bordered text-nowrap" style="width:100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8; ">
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">#</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Package</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Services</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Purchase Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Expiry Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Notes</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Edit</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Delete</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    //#region Document Load
+    $(function () {
+         $('#ip_add').show();
+         $('#ip_edit').hide();
+        GetPackages(@Model.po_patId);
+    });
+    //#endregion
+
+
+    //#region Reset
+    $('#btn_Reset_Packages').on('click', function (e) {
+    });
+    //#endregion Reset
+
+    //#region Load Packages
+    var GetPackages = function (po_patId) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetPatientPackages", "Patient", new { area = "Patient" })?po_patId=" + po_patId,
+            dataType: 'json',
+            success: function (response) {
+                if (response.isSuccess) {
+                    $("#div_Packages_list").show();
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_package_lists')) {
+                        table = $('#tbl_package_lists').DataTable();
+                        table.clear();
+                        table.rows.add(response.message).draw();
+                    }
+                    else {
+                        BindDataTable(response.message);
+                    }
+                }
+            },
+            error: function (xhr) {
+                console.log("Error :" + xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind DataTable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_package_lists").DataTable({
+            processing: true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "poId" },
+                { "mData": "po_details" },
+                { "mData": "po_Servicesdetails" },
+                { "mData": "po_date" },
+                { "mData": "po_exp_date" },
+                { "mData": "po_notes" },
+                { "mData": "poId" },
+                { "mData": "poId" }
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "className": "fs-13 text-wrap"
+
+                },
+                {
+                    "aTargets": [1],
+                    "className": "fs-13 text-wrap"
+
+                },
+                {
+                    "aTargets": [2],
+                    "className": 'fs-13 text-justify text-wrap',
+                },
+                {
+                    "aTargets": [3],
+                    "className": "fs-13 text-center",
+                    "render": function (data) {
+                        return moment(data).format("DD/MM/YYYY");
+                    }
+                },
+                {
+                    "aTargets": [4],
+                    "className": "fs-13 text-center",
+                    "render": function (data) {
+                        return moment(data).format("DD/MM/YYYY");
+                    }
+                },
+                {
+                    "aTargets": [5],
+                    "className": "fs-13 text-center"
+                },
+                {
+                    "aTargets": [6],
+                    "className": 'text-center',
+                    "render": function (poId, type, full, meta) {
+
+                        var visible = full.actionvisible;
+                        var po_status = full.po_status;
+
+                        if (po_status === "Active") {
+
+                            return '<button type="button" id="btn_Edit" onclick="editPackage(' + poId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "aTargets": [7],
+                    "className": "text-center",
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (data) {
+                        return '<button type="button" onclick="deletePackages(' + data + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                    }
+                }
+            ],
+            order: [[2, 'desc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search Package(s)</span>',
+                lengthMenu: '_MENU_',
+            },
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            buttons: [
+                {
+                    extend: 'excel',
+                    className: 'btn-secondary',
+                    title: 'Patient Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Patient Packages with patId = @Model.po_patId to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn-secondary',
+                    title: 'Patient Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Patient Packages with patId = @Model.po_patId to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn-secondary',
+                    title: 'Patient Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Patient Packages with patId = @Model.po_patId to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    className: 'btn-secondary',
+                    title: 'Patient Packages',
+                    exportOptions: {
+                        columns: [0, 1, 2]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Patient Packages with patId = @Model.po_patId Packages!");
+                    }
+                }
+            ]
+        });
+        table.buttons().container().appendTo('#tbl_package_lists_wrapper .col-md-6:eq(0)');
+
+        setTimeout(function () {
+            table.columns.adjust().draw();
+        }, 350);
+    }
+    //#endregion
+
+  
+    //#region Edit Patient Package
+
+    function editPackage(poId) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("EditPackage", "Patient", new { area = "Patient" })?poId=" + poId,
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $("#ip_edit").html(data);
+                $("#ip_edit").show();
+            },
+            error: function (xhr) {
+                console.log("Error while Editing Patient Package : " + xhr.statusText);
+            }
+        }).done(function () {
+            $('#ip_add').hide();
+        });
+    }
+    //#endregion
+
+    //#region Delete Package
+    var deletePackages = function (arId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Package ?",
+            text: "This action will delete this Package!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: '@Url.Action("DeletePackage", "Patient", new { area = "Patient" })?arId=' + arId,
+                    type: "GET",
+                    dataType: "JSON",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Package is Deleted Successfully!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+
+                                GetPackages(@Model.po_patId);
+
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to Delete Packages!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to delete this Packages!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Delete Packages! Please refresh the page and try again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+</script>

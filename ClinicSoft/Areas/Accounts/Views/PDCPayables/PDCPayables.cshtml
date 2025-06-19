@@ -1,0 +1,1088 @@
+﻿
+@model IEnumerable<BusinessEntities.Accounts.MaterialManagement.Payment>
+
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Accounts & Material Management - PDC Payables";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<style>
+    @@media (min-width: 1124px) {
+        .dataTables_scrollHeadInner, .table {
+            width: 100% !important
+        }
+    }
+
+    .td_max_width {
+        max-width: 200px !important;
+        white-space: normal;
+    }
+</style>
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">PDC Payable</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+
+                        <div class="col-sm-6 col-md-3 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch</label>
+                                @Html.DropDownList("select_branch", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Please Select", new { @class = "form-select select2" })
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-12 col-lg-3">
+                            <div class="form-group mb-3">
+                                <label class="form-label text-black">Period</label>
+                                <select id="select_period" class="form-control"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Code</label>
+                            </div>
+                            <input id="txt_code" class="form-control" placeholder="Enter Payment Code" type="text" autocomplete="off">
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date From</label>
+                            </div>
+
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date To</label>
+                            </div>
+
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Status<small>(es)</small></label>
+                                <select id="select_status" class="form-control mb-4" multiple="multiple"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Type</label>
+                                <select id="select_type" class="form-control mb-4" multiple="multiple"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">	Chq. Date From</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_chq_date_from" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold"> Chq. Date To</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_chq_date_to" class="form-control" placeholder="DD-MM-YYYY" type="text" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-2 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="AdvancePaymentAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-status bg-blue"></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 col-lg-1">
+                        <div class="btn-group mb-2" style="margin-right : 13px!important;">
+                            <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
+                                Action <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="dropdown-plus-title">
+                                    Choose Any Action
+                                    <b class="fa fa-angle-up" aria-hidden="true"></b>
+                                </li>
+                                <li class="fs-13 text-dark"><a href="javascript:void(0);" onclick="action_change('Cleared');"><i class="fe fe-check-circle text-success fs-12 fw-bold"></i>&nbsp; Clear</a></li>
+                                <li class="fs-13 text-dark"><a href="javascript:void(0);" onclick="action_change('Bounced');"><i class="fe fe-slash text-danger fs-12 fw-bold"></i>&nbsp; Bounce</a></li>
+                                <li class="fs-13 text-dark"><a href="javascript:void(0);" onclick="action_change('Cancelled');"><i class="fe fe-x-circle text-warning fs-12 fw-bold"></i>&nbsp; Cancel</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-sm-12 col-md-6 col-lg-3 mb-2">
+                        @Html.DropDownList("debit_account", new List<SelectListItem>
+{ }, "Select Post A/C", new { @class = "form-control select2" })
+                    </div>
+                    <div class="col-sm-12 col-md-6 col-lg-1">
+                        <button class="btn btn-secondary ms-lg-2" type="button" id="btnPostAccount">
+                            <i class="fe fe-check-circle"></i> &nbsp;Post To Account
+                        </button>
+                    </div>
+                </div>
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_pdc_pay" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Creditor Account</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Chq.No</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Chq.Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Chq. Bank Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Amount</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Posted/Not ?</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-right fs-17 text-primary font-weight-bold"> Total : &nbsp;</th>
+                                <th class="text-end fs-16 font-weight-bold"></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+
+            $('#debit_account').select2({
+                minimumResultsForSearch: '',
+                placeholder: 'Select Account',
+                width: '100%'
+            });
+
+            $('#select_branch').select2({
+                minimumResultsForSearch: '',
+                placeholder: 'Any Branch',
+                width: '100%'
+            });
+             $('#select_branch').val(@emp_branch.ToString()).trigger('change');
+            load_status();
+            load_type();
+            load_periods()
+
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            $('#select_branch').trigger('select2:select');
+
+        });
+
+        // Load Periods
+        var load_periods = function () {
+            $("#select_period").select2({
+                placeholder: 'Select Period',
+                width: '100%',
+                minimumResultsForSearch: '',
+                maximumInputLength: 10,
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetActiveAccountPeriods", "AccountPeriods", new { area = "Accounts" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                        type: 0
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }).done(function (response) {
+                var select2 = $("#select_period");
+                select2.empty();
+
+                $.each(response, function (index, item) {
+                    select2.append(new Option(item.text, item.id, false, false));
+                });
+
+                var firstOption = response[0];
+                if (firstOption) {
+                    select2.val(firstOption.id).trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: firstOption
+                        }
+                    });
+                }
+            });
+        }
+
+        $('#select_period').on('select2:select', function (e) {
+            var inputString = e.params.data.text;
+
+            var datePattern = /\[(\d{2}\/[a-zA-Z]+\/\d{4}) - (\d{2}\/[a-zA-Z]+\/\d{4})\]/;
+
+            var matches = inputString.match(datePattern);
+
+            if (matches && matches.length === 3) {
+                var startDate = matches[1];
+                var endDate = matches[2];
+
+                startDate = moment(startDate, 'DD/MMM/YYYY');
+                endDate = moment(endDate, 'DD/MMM/YYYY');
+                $('#select_date_from').bootstrapdatepicker('destroy');
+                $('#select_chq_date_from').bootstrapdatepicker('destroy');
+                $('#select_date_to').bootstrapdatepicker('destroy');
+                $('#select_chq_date_to').bootstrapdatepicker('destroy');
+
+                $('#select_date_from').bootstrapdatepicker({
+                    format: "dd-MM-yyyy",
+                    viewMode: "date",
+                    todayHighlight: true,
+                    autoclose: true,
+                    multidate: false,
+                    multidateSeparator: "-",
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                });
+                $("#select_date_from").bootstrapdatepicker("setDate", moment(startDate).format("DD-MM-YYYY"));
+
+                $('#select_date_to').bootstrapdatepicker({
+                    format: "dd-MM-yyyy",
+                    viewMode: "date",
+                    todayHighlight: true,
+                    autoclose: true,
+                    multidate: false,
+                    multidateSeparator: "-",
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                });
+                $("#select_date_to").bootstrapdatepicker("setDate", moment(endDate).format("DD-MM-YYYY"));
+
+
+                $('#select_chq_date_from').bootstrapdatepicker({
+                    format: "dd-MM-yyyy",
+                    viewMode: "date",
+                    todayHighlight: true,
+                    autoclose: true,
+                    multidate: false,
+                    multidateSeparator: "-",
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                });
+
+                $('#select_chq_date_to').bootstrapdatepicker({
+                    format: "dd-MM-yyyy",
+                    viewMode: "date",
+                    todayHighlight: true,
+                    autoclose: true,
+                    multidate: false,
+                    multidateSeparator: "-",
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                });
+
+
+                $('#select_date_from').keypress(function (e) {
+                    var charCode = (e.which) ? e.which : e.keyCode
+                    if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                        return false;
+
+                    }
+                    else {
+                        if (e.target.value.length >= 18)
+                            return false;
+                    }
+                });
+
+                $('#select_chq_date_from').keypress(function (e) {
+                    var charCode = (e.which) ? e.which : e.keyCode
+                    if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                        return false;
+
+                    }
+                    else {
+                        if (e.target.value.length >= 18)
+                            return false;
+                    }
+                });
+
+                $('#select_date_to').keypress(function (e) {
+                    var charCode = (e.which) ? e.which : e.keyCode
+                    if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                        return false;
+
+                    }
+                    else {
+                        if (e.target.value.length >= 18)
+                            return false;
+                    }
+                });
+
+                $('#select_chq_date_to').keypress(function (e) {
+                    var charCode = (e.which) ? e.which : e.keyCode
+                    if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                        return false;
+
+                    }
+                    else {
+                        if (e.target.value.length >= 18)
+                            return false;
+                    }
+                });
+                search_PDC();
+                Load_Post_Account();
+            }
+            else {
+                console.log("Invalid A/C Period Date");
+            }
+
+        });
+        //#endregion
+
+        //#region load status
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Any Status(es)',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+            $('#select_status')[0].sumo.add("Cleared", "Cleared");
+            $('#select_status')[0].sumo.add("Submitted", "Submitted");
+            $('#select_status')[0].sumo.add("Cancelled", "Cancelled");
+
+            $('#select_status')[0].sumo.reload();
+        };
+        //#endregion
+
+        //#region load Types
+        var load_type = function () {
+            $('#select_type').SumoSelect({
+                placeholder: 'Any Type',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Enter here.',
+                selectAll: true
+            });
+
+            $('#select_type').html('');
+            $('#select_type')[0].sumo.reload();
+            $('#select_type')[0].sumo.add("Advance", "Advance");
+            $('#select_type')[0].sumo.add("Refund", "Refund");
+            $('#select_type')[0].sumo.reload();
+        };
+        //#endregion
+
+        //#region load Chart of account on Period Change
+        var Load_Post_Account = function () {
+            $('#debit_account').empty();
+            var branchId = $('#select_branch').val();
+            var period = $('#select_period').val();
+            if (branchId.length > 0) {
+                $.ajax({
+                    url: '@Url.Action("GetActiveChartOfAccountsDropdown", "ChartOfAccounts", new { area = "Accounts" })?acc_type=B&acc_period=' + period + '&acc_branch=' + branchId + '&acc_gtype=Assets',
+                    type: "GET",
+                    dataType: "json",
+                    async: false,
+                    success: function (response) {
+                        if (response.length > 0) {
+                            $('#debit_account').empty();
+                            $('#debit_account').append('<option value="">Select Account</option>');
+                            $('#debit_account').val('-1');
+                            $('#debit_account').trigger('change');
+                            $.each(response, function (j) {
+                                var newOption = new Option(response[j].text, response[j].id, (parseInt(response[j].id) === -1) ? true : false, (parseInt(response[j].id) === -1) ? true : false);
+                                $('#debit_account').append(newOption).trigger('change');
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        alert(xhr);
+                    }
+                });
+            }
+        }
+        //#endregion
+
+        //#region Filter on Button Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            let isValid = true;
+            var from_date = moment($('#select_date_from').val().trim(), 'DD-MMMM-YYYY');
+            var to_date = moment($('#select_date_to').val().trim(), 'DD-MMMM-YYYY');
+            // Check if Date From is a valid Date
+            if (from_date != null && from_date != 0 && from_date != "" && from_date != undefined) {
+                if (!from_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid From Date!"
+                    });
+                }
+            }
+            // Check if Date To is a valid Date
+            if (to_date != null && to_date != 0 && to_date != "" && to_date != undefined) {
+                if (!to_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid To Date!"
+                    });
+                }
+            }
+            if ((from_date != null && from_date != 0 && from_date != "" && from_date != undefined) && (to_date != null && to_date != 0 && to_date != "" && to_date != undefined)) {
+                if (from_date.isValid() && to_date.isValid()) {
+                    if (to_date.diff(from_date, 'days') < 0) {
+                        isValid = false;
+                        var index = [];
+                        index.push("select_date_from_app");
+                        index.push("select_date_to_app");
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+
+                        e.stopPropagation();
+
+                        return $.growl.error({
+                            title: "Error!",
+                            message: "Filter From Date should be less than To Date!"
+                        });
+                    }
+                }
+            }
+
+
+            var chq_from_date = $('#select_chq_date_from').val().trim();
+            var chq_to_date = $('#select_chq_date_to').val().trim();
+
+            // Check if Date From is a valid Date
+            if (chq_from_date != null && chq_from_date != 0 && chq_from_date != "" && chq_from_date != undefined) {
+                chq_from_date = moment($('#select_chq_date_from').val().trim(), 'DD-MMMM-YYYY');
+                if (!chq_from_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid Cheque From Date!"
+                    });
+                }
+            }
+            // Check if Date To is a valid Date
+            if (chq_to_date != null && chq_to_date != 0 && chq_to_date != "" && chq_to_date != undefined) {
+                chq_to_date = moment($('#select_chq_date_to').val().trim(), 'DD-MMMM-YYYY');
+                if (!chq_to_date.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid Cheque To Date!"
+                    });
+                }
+            }
+
+            if ((chq_from_date != null && chq_from_date != 0 && chq_from_date != "" && chq_from_date != undefined) && (chq_to_date != null && chq_to_date != 0 && chq_to_date != "" && chq_to_date != undefined)) {
+                if (chq_from_date.isValid() && chq_to_date.isValid()) {
+                    if (chq_to_date.diff(chq_from_date, 'days') <= 0) {
+                        isValid = false;
+                        var index = [];
+                        index.push("select_date_from_app");
+                        index.push("select_date_to_app");
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+
+                        e.stopPropagation();
+
+                        return $.growl.error({
+                            title: "Error!",
+                            message: "Cheque From Date should be less than To Date!"
+                        });
+                    }
+                }
+            }
+
+            if (isValid) {
+                search_PDC();
+            }
+        });
+        //#endregion
+
+        //#region Search PDC Payables
+        var search_PDC = function () {
+            var from_date = $('#select_date_from').val().trim();
+            var to_date = $('#select_date_to').val().trim();
+            GetPDCPayables(from_date, to_date);
+        }
+        //#endregion
+
+        //#region Load PDC Payables
+        function GetPDCPayables(fromdate, todate) {
+
+            var _data = {
+                "pay_branch": $('#select_branch').val().toString(),
+                "pay_supplier": '0',
+                "pay_code": $('#txt_code').val().trim(),
+                "pay_status": $('#select_status').val().toString(),
+                "pay_type": $('#select_type').val().toString(),
+                "from_date": fromdate,
+                "to_date": todate,
+                "chq_from_date": $('#select_chq_date_from').val().trim(),
+                "chq_to_date": $('#select_chq_date_to').val().trim()
+            }
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetPDCPayables", "PDCPayables", new { area = "Accounts" })",
+                dataType: 'json',
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_pdc_pay')) {
+                            table = $('#tbl_pdc_pay').DataTable();
+                           table.clear();
+                           table.rows.add(response).draw();
+                        }
+                        else {
+                            BindDataTable(response);
+                        }
+                    }
+                    $('#progress-loader').hide();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+
+            var table = $("#tbl_pdc_pay").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "payId",
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "set_company"
+                    },
+                    {
+                        "mData": "pay_code",
+                    },
+                    {
+                        "mData": "pay_date",
+                    },
+                    {
+                        "className": "td_max_width",
+                        "mData": "sup_name"
+                    },
+                    {
+                        "mData": "pay_chq_no"
+                    },
+                    {
+                        "mData": "pay_chq_date"
+                    },
+                    {
+                        "mData": "pay_chq_bank"
+                    },
+                    {
+                        "mData": "pay_chq",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "pay_status",
+                        "orderable": false,
+                        "searchable": false,
+                    },
+                    {
+                        "mData": "pay_status2",
+                        "orderable": false,
+                        "searchable": false,
+                    },
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    }
+                ],
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                order: [[3, 'desc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'PDC Payables Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'PDC Payables Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'PDC Payables Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'PDC Payables Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    zeroRecords: "No Record Match - Sorry",
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Date / Branch / Bank </span>',
+                    sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_',
+                },
+                "drawCallback": function () {
+                    $("#tbl_pdc_pay tr").each(function () {
+                        if ($(this).find("td:eq(9)").text() === "Deleted" || $(this).find("td:eq(10)").text() === "Verified" || $(this).find("td:eq(10)").text() === "Posted") {
+                            $($(this)).find("td:eq(0)").find("input[type='checkbox']").remove();
+                        }
+
+                    });
+                },
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+                    var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                    // Total Cheque
+                    _chq = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(8).footer()).html(numFormat(_chq));
+
+                }
+            });
+            table.buttons().container().appendTo('#tbl_pdc_pay_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion Bind Datatable
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion Alert Timeout
+
+        //#region Post To Account PDC Payables
+        $('#btnPostAccount').click(function () {
+            var _acc_code = $('#debit_account').val();
+            var table = $("#tbl_pdc_pay").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            if (rows.length > 0 && _acc_code !== null && _acc_code.length > 0) {
+                Swal.fire({
+                    title: "Are you sure you want to Post?",
+                    text: "This action will Post the selected Entries to Chart of Account",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _Ids = "";
+                        var _count = 0;
+                        $.each(rows, function (index, rowId) {
+                            var _data = table.row(rowId).data();
+                            if (_count == 0) {
+                                if (_data.pay_status2 === "Pending" && _data.pay_status !== "Submitted") {
+                                    _Ids = _data.payId;
+                                    _count++;
+                                }
+                            }
+                            else {
+                                if (_data.pay_status2 === "Pending" && _data.pay_status !== "Submitted") {
+                                    _Ids += "," + _data.payId;
+                                    _count++;
+                                }
+                            }
+                        });
+
+                        if (_Ids === null || _Ids === undefined || _Ids.length <= 0) {
+                            Swal.fire({
+                                title: "Alert!",
+                                text: "Row selection error or selected entries already posted or status is still submitted. Please Refresh Page And Try Again!",
+                                icon: "info",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                        else {
+                            Updatefunction(_Ids, 'Posted', _acc_code);
+                        }
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select at least one entry to post and Select bank account!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+        //#endregion
+
+        //#region Posting Entries Function
+        var Updatefunction = function (payId, pay_status, acc_code) {
+            payId = payId + ",";
+            $.ajax({
+                url: "@Url.Action("PostToAccountPDCPayables", "PDCPayables", new { area = "Accounts" })?data=" + payId + "&status=" + pay_status + "&acc_code=" + acc_code,
+                type: "POST",
+                dataType: "JSON",
+                success: function (data) {
+                    return_value = data.isUpdated;
+                    if (return_value > 0) {
+                        title = "Success!";
+                        text = "Posted To Account Successfully!";
+                        icon = "success";
+                    }
+                    else {
+                        title = "Error!";
+                        text = data.message;
+                        icon = "error";
+                    }
+
+                    if (title != '' && text != '' && icon != '') {
+                        Swal.fire({
+                            title: title,
+                            text: text,
+                            icon: icon,
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                        });
+                        search_PDC();
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    Swal.fire({
+                        title: "Error!",
+                        text: "Failed to Change Status! Please refresh the Page and Try Again.",
+                        icon: "error",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                    })
+                }
+            }).done(function () {
+            });
+        }
+        //#endregion
+
+        //#region Action Button Controls
+        var action_change = function (status) {
+            var _status = "";
+
+            if (status === "Cleared")
+                _status = "Clear";
+            else if (status === "Bounced")
+                _status = "Bounce";
+            else if (status === "Cancelled")
+                _status = "Cancel";
+            else
+                _status = status;
+
+            var table = $("#tbl_pdc_pay").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            var payIds = [];
+            if (rows.length > 0) {
+                Swal.fire({
+                    title: _status,
+                    text: "Are you sure you want to " + _status + " Selected Cheques!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        $.each(rows, function (index, rowId) {
+                            var _data = table.row(rowId).data();
+                            let current_status = _data.pay_status;
+                            if (current_status === "New" || current_status === "Submitted") {
+                                var _payId = _data.payId;
+                                payIds.push(_payId);
+                            }
+                        });
+                        if (payIds.length > 0) {
+                            $.ajax({
+                                url: '@Url.Action("PDCPayablesStatus", "PDCPayables", new { area = "Accounts" })?data=' + payIds + "&status=" + status,
+                                type: "POST",
+                                dataType: "json",
+                                async: false,
+                                success: function (response) {
+                                    if (response.isUpdated == true) {
+                                        search_PDC();
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        return $.growl.notice({
+                                            title: "Success",
+                                            message: response.message
+                                        });
+                                    }
+                                    else {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        return $.growl.error({
+                                            title: "Error",
+                                            message: response.message
+                                        });
+                                    }
+                                },
+                                error: function (xhr) {
+                                    console.log("Error : " + xhr.statusText);
+                                }
+                            });
+                        }
+                        else {
+                            return $.growl.error({
+                                title: "Warning",
+                                message: "No Cheque valid to chnage the status"
+                            });
+                        }
+                    }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select at least one Cheque for this Action!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        }
+        //#endregion
+
+        //#region Remove Valiate Error Class Timeout
+        function Error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 4200);
+        }
+    //#endregion
+
+        //#region UI Controls
+        function resizedt(tbl_name) {
+            setTimeout(function () {
+                var tables = $.fn.dataTable.tables({ visible: true, api: true });
+                if (tables) {
+                    $('#' + tbl_name).DataTable().columns.adjust();
+                }
+            }, 450);
+        }
+//#endregion
+    </script>
+}

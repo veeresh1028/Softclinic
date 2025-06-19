@@ -1,0 +1,148 @@
+﻿@model IEnumerable<BusinessEntities.Masters.AuditLogs.EmployeeLogs>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">
+        Employee Audit Logs For&nbsp;
+        @{
+            var emp_name = "";
+            foreach (var dr in Model)
+            {
+                emp_name = dr.empa_name;
+                <span class="badge bg-primary-light-1 text-uppercase">@dr.empa_name</span> break;
+            }
+        }
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            @if (Model.Any())
+            {
+                <div class="table-responsive" style="min-height:auto">
+                    <table id="tbl_emp_logs" class="table table-bordered text-nowrap resize-table" style="width: 100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Login</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">First Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Last Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">License</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Department</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Designation</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Mobile #</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Operation</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Log Date &amp; Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Made By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dr in Model)
+                            {
+                                <tr>
+                                    <td>@dr.empa_login</td>
+                                    <td>@dr.empa_name</td>
+                                    <td>@dr.empa_lname</td>
+                                    @if (string.IsNullOrEmpty(dr.empa_license))
+                                    {
+                                        <td class="text-muted">N/A</td>
+                                    }
+                                    else
+                                    {
+                                        <td>@dr.empa_license</td>
+                                    }
+                                    <td>@dr.empa_dept_name</td>
+                                    <td>@dr.empa_desig_name</td>
+                                    <td>@dr.empa_mob</td>
+                                    <td>@dr.empa_status</td>
+                                    @if (dr.empa_operation == "Inserted")
+                                    {
+                                        <td class="fs-13 bg-success-transparent-2 font-weight-semibold">@dr.empa_operation</td>
+                                        <td class="fs-13 bg-success-transparent-2 font-weight-semibold">@dr.empa_date_created.ToString("dd-MM-yyyy | hh:mm:ss")</td>
+                                        <td class="fs-13 bg-success-transparent-2 font-weight-semibold">@dr.empa_madeby_name</td>
+
+                                    }
+                                    else if (dr.empa_operation == "Updated")
+                                    {
+                                        <td class="fs-13 bg-warning-transparent-2 font-weight-semibold">@dr.empa_operation</td>
+                                        <td class="fs-13 bg-warning-transparent-2 font-weight-semibold">@dr.empa_date_modified.ToString("dd-MM-yyyy | hh:mm:ss")</td>
+                                        <td class="fs-13 bg-warning-transparent-2 font-weight-semibold">@dr.empa_madeby_name</td>
+                                    }
+                                    else
+                                    {
+                                        <td class="fs-13 bg-danger-transparent-2 font-weight-semibold">@dr.empa_operation</td>
+                                        <td class="fs-13 bg-danger-transparent-2 font-weight-semibold">@dr.empa_date_created.ToString("dd-MM-yyyy | hh:mm:ss")</td>
+                                        <td class="fs-13 bg-danger-transparent-2 font-weight-semibold">@dr.empa_madeby_name</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div class="alert alert-light-info alert-dismissiblefade show" role="alert">
+                        <strong><i class="fa fa-exclamation-circle pt-2"></i> Info!&nbsp;</strong> Employee Log(s) Not Available!
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    //#region Document Load
+    $(function () {
+        var table = $('#tbl_emp_logs').DataTable({
+            lengthChange: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    className: 'btn-secondary',
+                    title: 'Employee Audit Logs for @emp_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Employee Logs to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn-secondary',
+                    title: 'Employee Audit Logs for @emp_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Employee Logs to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn-secondary',
+                    title: 'Employee Audit Logs for @emp_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Employee Logs to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    className: 'btn-secondary',
+                    title: 'Employee Audit Logs for @emp_name',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Employee Logs!");
+                    }
+                }
+            ],
+            order: [[9, 'desc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search Logs</span>',
+                lengthMenu: '_MENU_ ',
+            }
+        });
+        table.buttons().container().appendTo('#tbl_emp_logs_wrapper .col-md-6:eq(0)');
+    });
+    //#endregion
+</script>

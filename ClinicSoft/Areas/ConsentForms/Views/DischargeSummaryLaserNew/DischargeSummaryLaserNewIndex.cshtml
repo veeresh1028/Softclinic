@@ -1,0 +1,114 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "DischargeSummaryLaserNewIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Discharge Summary For Laser
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargeSummaryLaserNew_add" style="display:none">
+                </div>
+                <div id="DischargeSummaryLaserNew_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DischargeSummaryLaserNew_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetDischargeSummaryLaserNewInfo();
+           DischargeSummaryLaserNewPreviousHistory();
+
+        });
+        //#endregion Page Load
+
+        //#region Load GetDischargeSummaryLaserNewInfo
+        var GetDischargeSummaryLaserNewInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetDischargeSummaryLaserNewData", "DischargeSummaryLaserNew", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditDischargeSummaryLaserNew();
+                            $("#DischargeSummaryLaserNew_add").hide();
+                            $("#DischargeSummaryLaserNew_edit").show();
+
+                        }
+                        else {
+                            $("#DischargeSummaryLaserNew_add").show();
+                            $("#DischargeSummaryLaserNew_edit").hide();
+                            AddDischargeSummaryLaserNew();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load DischargeSummaryLaserNew
+
+        //#region Add DischargeSummaryLaserNew
+        function AddDischargeSummaryLaserNew() {
+            var x = $("#DischargeSummaryLaserNew_add");
+            x.load("@Url.Action("CreateDischargeSummaryLaserNew", "DischargeSummaryLaserNew", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add DischargeSummaryLaserNew
+
+        //#region Update DischargeSummaryLaserNew
+        function EditDischargeSummaryLaserNew() {
+            var x = $("#DischargeSummaryLaserNew_edit");
+            x.load("@Url.Action("UpdateDischargeSummaryLaserNew", "DischargeSummaryLaserNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update DischargeSummaryLaserNew
+
+          //#region Histroy of DischargeSummaryLaserNew
+        function DischargeSummaryLaserNewPreviousHistory() {
+            var x = $("#DischargeSummaryLaserNew_history");
+            x.load("@Url.Action("DischargeSummaryLaserNewPreviousHistory", "DischargeSummaryLaserNew", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of DischargeSummaryLaserNew
+
+
+    </script>
+
+@*}*@

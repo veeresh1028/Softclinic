@@ -1,0 +1,345 @@
+﻿@model IEnumerable<BusinessEntities.Masters.InsuranceNetworkList>
+<style>
+    #sizeNW {
+        max-width: 1500px;
+    }
+
+    a:not([href]):not([tabindex]) {
+        color: #5a72e8;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Insurance Networks</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+            <div id="InNetworkAlert"></div>
+        </div>
+        <div class="col-12 col-sm-12 col-md-12 col-lg-12">
+            <p class="card-title-desc btn-group-justified d-flex justify-content-between">
+                Add / Edit / Delete Insurance Networks!
+                <a id="showAdd" class="btn btn-outline-secondary"><i class="mdi mdi-plus-circle"></i>&nbsp;Add Network</a>
+            </p>
+            <div style="display:none;" id="inw_add">
+                @Html.Action("CreateInsuranceNetwork", "InsuranceCompanies", new { area = "Masters" })
+            </div>
+            <div id="inw_edit">
+            </div>
+            <div class="table-responsive">
+                <table id="tbl_ins_Networks" class="table table-striped table-bordered text-nowrap" style="width:100%">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #5a72e8; border-color: #5a72e8;">
+                            <th class="border-bottom-0 font-weight-semibold text-white">Title</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Routine Dental Co.Pay</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">High Profile Dental Co.Pay</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">In Patient Dental Co.Pay</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Medical Co.Pay</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">General Consultation Ded</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Dental Consultation Ded</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Pharmacy Ded</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Lab Ded</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Radiology Ded</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Meternity Ded</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Allowed Limit</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        GetInsuranceNetworks();
+
+        $('#showAdd').click(function () {
+            $('#inw_add').show();
+            $('#inw_edit').hide();
+        });
+    });
+    //#endregion
+
+    //#region Get Insurance Networks
+    var GetInsuranceNetworks = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetInsuranceNetworks", "InsuranceCompanies", new { area="Masters"})",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (response) {
+                var table;
+                if ($.fn.dataTable.isDataTable('#tbl_ins_Networks')) {
+                    table = $('#tbl_ins_Networks').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindDataTable(response);
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr)
+            }
+        })
+    }
+    //#endregion
+
+    //#region BindData Table
+    var BindDataTable = function (response) {
+        $("#tbl_ins_Networks").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "is_title" },
+                { "mData": "is_dcopay" },
+                { "mData": "is_hp_dcopay" },
+                { "mData": "is_ip_dcopay" },
+                { "mData": "is_copay" },
+                { "mData": "is_cded" },
+                { "mData": "is_dded" },
+                { "mData": "is_pded" },
+                { "mData": "is_lded" },
+                { "mData": "is_rded" },
+                { "mData": "is_mded" },
+                {
+                    "mData": "is_allowed_limit",
+                    "className": "text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "className": 'text-center',
+                    "mData": "isId",
+                    "render": function (isId, type, full, meta) {
+                        var visible = full.actionvisible;
+                        var is_status = full.is_status;
+
+                        if (visible === "True") {
+                            if (is_status === "Active") {
+                                return '<button type="button" class="badge rounded-pill bg-success mt-2 border-success" style="width: 60px;" onclick="updateStatus(\'' + isId + '\',\' Active \')">Active</button>'
+                            }
+                            else if (is_status === "Inactive") {
+                                return '<button type="button" class="badge rounded-pill bg-warning mt-2 border-warning" style="width: 60px;" onclick="updateStatus(\'' + isId + '\',\'Inactive\')">Inactive</button>'
+                            }
+                            else if (is_status === "Deleted") {
+                                return '<button type="button" class="badge rounded-pill bg-danger mt-2 border-danger" style="width: 60px;" onclick="updateStatus(\'' + isId + '\',\'Deleted\')">Deleted</button>'
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                        else {
+                            return '<span class="badge rounded-pill text-danger mt-2 border-danger">Allocated</span>'
+                        }
+                    }
+                },
+                {
+                    "mData": "isId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (isId, type, full, meta) {
+                        var status = full.is_status;
+                        var visible = full.actionvisible;
+
+                        if (status === "Active" && visible === "True") {
+                            return '<button type="button" id="btn_Edit" onclick="editNetwork(' + isId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "mData": "isId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (isId, type, full, meta) {
+                        var status = full.is_status;
+                        var visible = full.actionvisible;
+
+                        if (status === "Active" && visible === "True") {
+                            return '<button type="button" id="btnDelete" onclick="deleteNetwork(' + isId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search Networks</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_ ',
+            }
+        });
+    }
+    //#endregion
+
+    //#region Edit Insurance Network
+    function editNetwork(isId) {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("EditInsuranceNetwork", "InsuranceCompanies", new { area = "Masters" })?isId=" + isId,
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $("#inw_edit").html(data);
+                $("#inw_edit").show();
+            },
+            error: function (xhr) {
+                console.log("Error while Editing Insurance Network : " + xhr.statusText);
+            }
+        }).done(function () {
+            $('#inw_add').hide();
+        });
+    }
+    //#endregion
+
+    //#region Update Status Function
+    var updateStatus = function (isId, is_status) {
+        is_status = (is_status == "Deleted" || is_status == "Inactive") ? "Active" : "Inactive"
+
+        Swal.fire({
+            title: "Are you sure you want to change status ?",
+            text: "This action will change the status of the selected Insurance Network!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: "@Url.Action("UpdateInsuranceNetworkStatus", "InsuranceCompanies", new { area = "Masters" })?isId=" + isId + "&is_status=" + is_status,
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                GetInsuranceNetworks();
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: data.message,
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Action Forbidden!",
+                                    text: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to change Insurance Network Status!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Update Insurance Network Status! Error : " + xhr.statusText,
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Delete Insurance Network
+    var deleteNetwork = function (isId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Network ?",
+            text: "This action will delete this Insurance Network!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: '@Url.Action("DeleteInsuranceNetwork", "InsuranceCompanies", new { area = "Masters" })?isId=' + isId +'&is_status=Deleted',
+                    type: "POST",
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                GetInsuranceNetworks();
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: data.message,
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Action Forbidden!",
+                                    text: data.message,
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197"
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to delete Insurance Network!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Delete Insurance Network! Error : " + xhr.statusText,
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+</script>

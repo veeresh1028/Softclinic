@@ -1,0 +1,287 @@
+﻿@model BusinessEntities.Masters.Coupons
+<style>
+    .placeholder {
+        display: inline-block;
+        cursor: wait;
+        background-color: white;
+        opacity: 1;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Create New Discount</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Add_Coupon" >
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+            @Html.AntiForgeryToken()
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black font-weight-semibold"> Branch(es) &nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.disc_branches, new SelectList(Model.BranchList, "id", "text"), new { @class = "form-select select2", @multiple = "multiple" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group g-md-3">
+                    <label class="form-label text-black font-weight-semibold"> Name &nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.disc_name, new { @class = "form-control", @placeholder = "Ex : WINMED", @maxlength = "100" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group g-md-3">
+                    <label class="form-label text-black font-weight-semibold"> Discount  &nbsp;<span class="text-danger">%</span></label>
+                    @Html.TextBoxFor(m => m.disc_float, new { @class = "form-control mb-2 text-right", @placeholder = "Ex : 50", @min = 0, @max = 100, @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorCreate"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert">Create Discount</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseCreate" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        validation();
+
+        $('#disc_branches').SumoSelect({
+            placeholder: "Select Branch(es)",
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Enter here.',
+            selectAll: true,
+            Selection:false
+        });
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Add_Coupon").validate({
+            focusInvalid: true,
+            rules:
+            {
+                disc_name: {
+                    required: true
+                },
+                disc_float: {
+                    required: true,
+                },
+                disc_branches: {
+                    required: true
+                }
+            },
+            messages: {
+                disc_name: {
+                    required: "Enter Discount Name"
+                },
+                disc_float: {
+                    required: "Enter Discount Amount",
+                },
+                disc_branches: {
+                    required: "Please Select Branch(es)"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#disc_float').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 100) {
+                return false;
+            }
+        });
+
+        $("#disc_float").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#disc_float").val(0.00);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Validate Decimal
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : evt.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Insert Discount Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Add_Coupon").valid()) {
+
+            $('#btn_Insert').removeClass("btn btn-success");
+            $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Insert').parent().addClass("curdrop");
+            $('.btnCloseCreate').addClass("disabled");
+            $('#btn_Insert').html("Creating... Please Wait");
+
+            var _dataInsert = {
+                "discId": 0,
+                "disc_name": $("#disc_name").val().trim(),
+                "disc_float": $("#disc_float").val(),
+                "disc_branches": $("#disc_branches").val().toString(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertCoupon","Coupons", new {area = "Masters" })",
+                dataType: 'json',
+                data: _dataInsert,
+                success: function (data) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Discount");
+
+                    if (data.isSuccess) {
+                        if (data.isInserted) {
+                            GetCoupons();
+                            alert("<i class='fe fe-check-circle text-white'></i> Discount Created Successfully!", "success");
+                            $('#coupon_modal').modal('toggle');
+                            Timeout();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Discount Already Exists with the same details!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorCreate").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.&nbsp;</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+
+                        $("#errorCreate").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Discount");
+
+                    $('#coupon_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

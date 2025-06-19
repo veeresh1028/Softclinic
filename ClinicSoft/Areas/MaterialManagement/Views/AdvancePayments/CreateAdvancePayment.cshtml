@@ -1,0 +1,976 @@
+﻿@model BusinessEntities.Accounts.MaterialManagement.Payment
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Add Advance/Refund Payment</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span><br />
+            <span class="text-secondary" style="font-size:smaller">Required atleat one payment mode *</span>
+        </div>
+    </div>
+    <form id="form_AddAdvancePayment" >
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="btn-list">
+                <div class="btn-group" role="group" aria-label="Advance and Refund Button Group">
+                    <input type="radio" class="btn-check" name="rdoType" id="radoAdvance" value="Advance" autocomplete="off" checked>
+                    <label class="btn btn-outline-info" for="radoAdvance">Advance</label>
+
+                    <input type="radio" class="btn-check" name="rdoType" id="radoRefund" value="Refund" autocomplete="off">
+                    <label class="btn btn-outline-info" for="radoRefund">Refund</label>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-2">
+            <div class="card-group">
+                <div class="card shadow-none border border-end-0 overflow-hidden">
+                    <div class="row m-2">
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                                @Html.DropDownList("pay_branch", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Please Select", new { @class = "form-select select2" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">
+                                    Supplier&nbsp;
+                                    <span class="text-danger">*&nbsp;</span> <a id="btnAddSupplier" style="cursor: pointer"><i class="fa fa-plus text-success"></i></a>
+                                </label>
+                                @Html.DropDownListFor(m => m.pay_supplier, new List<SelectListItem>
+                                                          { }, "Select Supplier", new { @class = "form-control select2" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Date&nbsp;<span class="text-danger">*</span></label>
+                                @Html.TextBoxFor(sup => sup.pay_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", maxlength = "18" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6" id="divRefund">
+                            <div class="form-group">
+                                <label class="form-label text-black">
+                                    Against Advance	&nbsp;
+                                    <span class="text-danger">*&nbsp;</span>
+                                </label>
+                                @Html.DropDownListFor(m => m.pay_advance, new List<SelectListItem>
+                                                          { }, "Select Advance", new { @class = "form-control select2" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card shadow-none border overflow-hidden">
+                    <div class="row m-2">
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Cash&nbsp;<span class="text-secondary">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" id="pay_cash" class="form-control" maxlength="7" onkeypress="return validateOneDecimalNumeric(this,event);" value="0.00" />
+                                    <div class="input-group-append" style="max-width: 75%; min-width: 65%;">
+                                        @Html.DropDownListFor(m => m.pay_cash_bank, new List<SelectListItem>
+                                                          { }, "Select Account", new { @class = "form-control select2" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Credit Card - Charges&nbsp;<span class="text-secondary">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" id="pay_cc" class="form-control" maxlength="7" onkeypress="return validateOneDecimalNumeric(this,event);" value="0.00" />
+                                    <div class="input-group-append" style="max-width: 15%; min-width: 13%;">
+                                        <input type="text" id="pay_cc_per" class="form-control" maxlength="7" onkeypress="return validateOneDecimalNumeric(this,event);" value="0" />                                                                            
+                                    </div>
+                                    <div class="input-group-append" style="max-width: 75%; min-width: 65%;">                                        
+                                        @Html.DropDownListFor(m => m.pay_cc_bank, new List<SelectListItem>
+                                                          { }, "Select Account", new { @class = "form-control select2" })
+                                    </div>
+                                </div>
+                            </div>                            
+                        </div>
+                        <div class="col-sm-12 col-md-12 col-lg-6">
+                            <div class="form-group">
+                                <label class="form-label text-black">Bank Transfer&nbsp;<span class="text-secondary">*</span></label>                                
+                                <div class="input-group">
+                                    <input type="text" id="pay_bt" class="form-control" maxlength="7" onkeypress="return validateOneDecimalNumeric(this,event);" value="0.00" />
+                                    <div class="input-group-append" style="max-width: 75%; min-width: 65%;">
+                                        @Html.DropDownListFor(m => m.pay_bt_bank, new List<SelectListItem>
+                                                         { }, "Select Account", new { @class = "form-control select2" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-3 col-lg-3">
+                            <div class="form-group">
+                                <label class="form-label text-black">Cheque Amount&nbsp;<span class="text-secondary">*</span></label>
+                                <input type="text" id="pay_chq" class="form-control" maxlength="7" onkeypress="return validateOneDecimalNumeric(this,event);" value="0.00" />
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-3 col-lg-3">
+                            <div class="form-group">
+                                <label class="form-label">Cheque No.</label>
+                                @Html.TextBoxFor(sup => sup.pay_chq_no, new { @class = "form-control", @placeholder = "", maxlength = "15" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-3 col-lg-3">
+                            <div class="form-group">
+                                <label class="form-label">Cheque Date</label>
+                                @Html.TextBoxFor(sup => sup.pay_chq_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", maxlength = "18" })
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-4 col-lg-4">
+                            <div class="form-group">
+                                <label class="form-label text-black">Cheque Bank</label>
+                                @Html.DropDownListFor(m => m.pay_chq_bank, new List<SelectListItem>
+                                                { }, "Select Cheque Bank", new { @class = "form-control select2" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group">
+                    <label class="form-label text-black">Notes</label>
+                    @Html.TextAreaFor(sup => sup.pay_notes, new { @class = "form-control", maxlength = "998", @placeholder = "Enter Notes", @rows = "3" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <label class="text-danger fw-bold" id="error_message"></label><br />
+                <button type="submit" class="btn btn-success" id="btn_Insert">Add Advance</button>
+                <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">Close</button>
+                <input type="hidden" id="hi_pending" value="0" />
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center text-center mt-4">
+            <div id="create_advance_error" class="text-center" style="max-width:800px"></div>
+        </div>
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center text-center mt-2">
+            <div id="DirectPayment_Alert"></div>
+        </div>
+        @if (TempData["ErrorMessage_Insert"] != null)
+        {
+            <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center text-center">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <strong>Error!&nbsp;</strong>@TempData["ErrorMessage_Insert"]
+                </div>
+            </div>
+        }
+    </form>
+</div>
+
+<script>
+
+    //#region Page Load
+    $(function () {
+
+        $('#pay_branch').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#add_advancepayment_body'),
+            width: '100%'
+        });
+        $('#pay_supplier').select2({
+            dropdownParent: $('#add_advancepayment_body'),
+            placeholder: 'Select Supplier',
+            width: '100%'
+        });
+        $('#pay_advance').select2({
+            dropdownParent: $('#add_advancepayment_body'),
+            placeholder: 'Select Advance',
+            width: '100%',
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+        $('#pay_chq_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#add_advancepayment_body'),
+            placeholder: 'Select Cheque Bank',
+            width: '100%'
+        });
+        $('#pay_cash_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#add_advancepayment_body'),
+            placeholder: 'Select Account',
+            width: '100%'
+        });
+        $('#pay_cc_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#add_advancepayment_body'),
+            placeholder: 'Select Account',
+            width: '100%'
+        });
+        $('#pay_bt_bank').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#add_advancepayment_body'),
+            placeholder: 'Select Bank',
+            width: '100%'
+        });
+
+        // Get the current date
+        var currentDate = new Date();
+        // Get last year date
+        var lastYearDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
+
+        $('#pay_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: lastYearDate,
+            endDate: currentDate
+        });
+
+        $("#pay_date").bootstrapdatepicker("setDate", "today");
+
+        $('#pay_chq_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        $("#divRefund").hide();
+
+        validation();
+    });
+    //#endregion
+
+    //#region Payment Mode Click
+    $("input[name='rdoType']").click(function () {
+        var rdo_type = $("input[name='rdoType']:checked").val();
+        if (rdo_type == "Refund") {
+            $("#divRefund").show();
+            $("#btn_Insert").text('Add Refund');
+            clearData();
+        }
+        else {
+            $("#divRefund").hide();
+            $("#btn_Insert").text('Add Advance');
+            clearData();
+        }
+    });
+    //#endregion
+
+    //#region Load Supplier, Cash, Credit, Bank and Cheque Bank Account on Branch Change
+    $('#pay_branch').on('select2:select', function (e) {
+        $('#pay_supplier').empty();
+        $('#pay_cash_bank').empty();
+        $('#pay_cc_bank').empty();
+        $('#pay_bt_bank').empty();
+        $('#pay_chq_bank').empty();
+        $('#pay_advance').empty();
+        $('#hi_pending').val("0");
+        $('#error_message').text('');
+        var branchId = $('#pay_branch').val();
+        var rdo_type = $("input[name='rdoType']:checked").val();
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetSupplierAndAccountsByBranch", "AdvancePayments", new { area = "MaterialManagement" })?branchId=' + branchId + "&type=" + rdo_type,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if ((response.SupplierList).length > 0) {
+                        $('#pay_supplier').empty();
+                        $('#pay_supplier').append('<option value="">Select Supplier</option>');
+                        $('#pay_supplier').val('-1');
+                        $('#pay_supplier').trigger('change');
+                        $.each(response.SupplierList, function (j) {
+                            var newOption = new Option(response.SupplierList[j].Text, response.SupplierList[j].Id, (response.SupplierList[j].Id === -1) ? true : false, (response.SupplierList[j].Id === -1) ? true : false);
+                            $('#pay_supplier').append(newOption).trigger('change');
+                        });
+                    }
+                    if ((response.CashAccount).length > 0) {
+                        $('#pay_cash_bank').empty();
+                        $('#pay_cash_bank').append('<option value="">Select Account</option>');
+                        $('#pay_cash_bank').val('-1');
+                        $('#pay_cash_bank').trigger('change');
+                        $.each(response.CashAccount, function (j) {
+                            var newOption = new Option(response.CashAccount[j].Text, response.CashAccount[j].Id, (response.CashAccount[j].Id === -1) ? true : false, (response.CashAccount[j].Id === -1) ? true : false);
+                            $('#pay_cash_bank').append(newOption).trigger('change');
+                        });
+                    }
+                    if ((response.CardAccount).length > 0) {
+                        $('#pay_cc_bank').empty();
+                        $('#pay_cc_bank').append('<option value="">Select Account</option>');
+                        $('#pay_cc_bank').val('-1');
+                        $('#pay_cc_bank').trigger('change');
+                        $.each(response.CardAccount, function (j) {
+                            var newOption = new Option(response.CardAccount[j].Text, response.CardAccount[j].Id, (response.CardAccount[j].Id === -1) ? true : false, (response.CardAccount[j].Id === -1) ? true : false);
+                            $('#pay_cc_bank').append(newOption).trigger('change');
+                        });
+                    }
+                    if ((response.BankAccount).length > 0) {
+                         $('#pay_bt_bank').empty();
+                         $('#pay_bt_bank').append('<option value="">Select Bank</option>');
+                         $('#pay_bt_bank').val('-1');
+                         $('#pay_bt_bank').trigger('change');
+
+                         $('#pay_chq_bank').empty();
+                         $('#pay_chq_bank').append('<option value="">Select Bank</option>');
+                         $('#pay_chq_bank').val('-1');
+                         $('#pay_chq_bank').trigger('change');
+
+                        $.each(response.BankAccount, function (j) {
+                            var newOption = new Option(response.BankAccount[j].Text, response.BankAccount[j].Id, (response.BankAccount[j].Id === -1) ? true : false, (response.BankAccount[j].Id === -1) ? true : false);
+                             $('#pay_chq_bank').append(newOption).trigger('change');
+                        });
+
+                        $.each(response.BankAccount, function (j) {
+                            var newOption = new Option(response.BankAccount[j].Text, response.BankAccount[j].Id, (response.BankAccount[j].Id === -1) ? true : false, (response.BankAccount[j].Id === -1) ? true : false);
+                            $('#pay_bt_bank').append(newOption).trigger('change');
+                        });
+
+                    }
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        }
+    });
+    //#endregion
+
+    //#region Load Refund Against on Supplier Change
+    $('#pay_supplier').on('select2:select', function (e) {
+        $('#pay_advance').empty();
+        $('#hi_pending').val("0");
+        $('#error_message').text('');
+        var pay_supplier = $('#pay_supplier').val();
+        if (pay_supplier.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetAdvanceWithSupplier", "AdvancePayments", new { area = "MaterialManagement" })?pay_supplier=' + pay_supplier,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $('#pay_advance').empty();
+                        $('#pay_advance').append('<option value="">Select Supplier</option>');
+                        $('#pay_advance').val('-1');
+                        $('#pay_advance').trigger('change');
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Id, (response[j].Id === -1) ? true : false, (response[j].Id === -1) ? true : false);
+                            $('#pay_advance').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        }
+    });
+    //#endregion
+
+    //#region Load Refund Amount on Refund Against Event Change
+    $('#pay_advance').on('select2:select', function (e) {
+        var pay_advance = $('#pay_advance').val();
+        $('#hi_pending').val("0");
+        clearPaymentMode();
+        $('#error_message').text('');
+        if (pay_advance.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetPendingAdvanceAmount", "AdvancePayments", new { area = "MaterialManagement" })?pay_advance=' + pay_advance,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.total_paid > 0) {
+                        var _allocated = response.pay_allocated;
+                        var _refunded = response.pay_refunded;
+                        var total = ((response.total_paid) - (_allocated + _refunded));
+                        $('#hi_pending').val(total);
+                    }
+                    else
+                        $('#hi_pending').val("0");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        }
+    });
+    //#endregion
+
+    //#region Validate Text Box with One Decimal and numeric only on Key Press
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : event.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+    //#endregion
+
+    //#region Adding Validation
+    var validation = function () {
+        $("#form_AddAdvancePayment").validate({
+            focusInvalid: true,
+            rules:
+            {
+                pay_branch: {
+                    required: true,
+                },
+                pay_supplier: {
+                    required: true,
+                },
+                pay_date: {
+                    required: true,
+                },
+                pay_advance: {
+                    required: function () {
+                        var rdo_type = $("input[name='rdoType']:checked").val();
+                        if (rdo_type == "Refund")
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_cash_bank: {
+                    required: function () {
+                        var _pay_cash = $('#pay_cash').val();
+                        if (_pay_cash != undefined && _pay_cash != "" && _pay_cash > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_cc_bank: {
+                    required: function () {
+                        var _pay_cc = $('#pay_cc').val();
+                        if (_pay_cc != undefined && _pay_cc != "" && _pay_cc > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_bt_bank: {
+                    required: function () {
+                        var _pay_bt = $('#pay_bt').val();
+                        if (_pay_bt != undefined && _pay_bt != "" && _pay_bt > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_chq_no: {
+                    required: function () {
+                        var _pay_chq = $('#pay_chq').val();
+                        if (_pay_chq != undefined && _pay_chq != "" && _pay_chq > 0 )
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_chq_date: {
+                    required: function () {
+                        var _pay_chq = $('#pay_chq').val();
+                        if (_pay_chq != undefined && _pay_chq != "" && _pay_chq > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+                pay_chq_bank: {
+                    required: function () {
+                        var _pay_chq = $('#pay_chq').val();
+                        if (_pay_chq != undefined && _pay_chq != "" && _pay_chq > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                },
+            },
+            messages: {
+                pay_branch: {
+                    required: "Select Branch",
+                },
+                pay_supplier: {
+                    required: "Select Supplier",
+                },
+                pay_date: {
+                    required: "Select Payment Date",
+                },
+                pay_advance: {
+                    required: "Select Against Advance",
+                },
+                pay_cash_bank: {
+                    required: "Select Cash Account",
+                },
+                pay_cc_bank: {
+                    required: "Select Card Account",
+                },
+                pay_bt_bank: {
+                    required: "Select Transfer Account",
+                },
+                pay_chq_no: {
+                    required: "Enter Cheque No#",
+                },
+                pay_chq_date: {
+                    required: "Enter Cheque Date",
+                },
+                pay_chq_bank: {
+                    required: "select Cheque Bank",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    $('#pay_date').keypress(function (e) {
+        var charCode = (e.which) ? e.which : e.keyCode
+        if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+            return false;
+
+        }
+        else {
+            if (e.target.value.length >= 18)
+                return false;
+        }
+    });
+    $('#pay_chq_date').keypress(function (e) {
+        var charCode = (e.which) ? e.which : e.keyCode
+        if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+            return false;
+
+        }
+        else {
+            if (e.target.value.length >= 18)
+                return false;
+        }
+    });
+
+    var AmountValid = function()
+    {
+        let count = 0;
+        if ($("#pay_cash").val().length !== 0 && $("#pay_cash").val() !== "" && $("#pay_cash").val() !== null)
+        {
+            if ($("#pay_cash").val() > 0)
+                count++;
+        }
+        if ($("#pay_cc").val().length !== 0 || $("#pay_cc").val() !== "" || $("#pay_cc").val() !== null)
+        {
+            if ($("#pay_cc").val() > 0)
+                count++;
+        }
+        if ($("#pay_chq").val().length !== 0 || $("#pay_chq").val() !== "" || $("#pay_chq").val() !== null)
+        {
+            if ($("#pay_chq").val() > 0)
+                count++;
+        }
+        if ($("#pay_bt").val().length !== 0 || $("#pay_bt").val() !== "" || $("#pay_bt").val() !== null)
+        {
+            if ($("#pay_bt").val() > 0)
+                count++;
+        }
+
+        if (count > 0)
+            return true;
+        else {
+
+            return false;
+        }
+    }
+
+    //#endregion
+
+    //#region TextBox on Focus Out Event
+    $("#pay_cash").focusout('input', function () {
+        if ($("#pay_cash").val().length === 0 || $("#pay_cash").val() === "" || $("#pay_cash").val() === null)
+            $("#pay_cash").val("0.00");
+        CheckRefundAmount('pay_cash');
+    });
+    $("#pay_cc").focusout('input', function () {
+        if ($("#pay_cc").val().length === 0 || $("#pay_cc").val() === "" || $("#pay_cc").val() === null)
+            $("#pay_cc").val("0.00");
+        CheckRefundAmount('pay_cc');
+    });
+    $("#pay_chq").focusout('input', function () {
+        if ($("#pay_chq").val().length === 0 || $("#pay_chq").val() === "" || $("#pay_chq").val() === null)
+            $("#pay_chq").val("0.00");
+        CheckRefundAmount('pay_chq');
+    });
+    $("#pay_bt").on('change', function () {
+        if ($("#pay_bt").val().length === 0 || $("#pay_bt").val() === "" || $("#pay_bt").val() === null)
+            $("#pay_bt").val("0.00");
+        CheckRefundAmount('pay_bt');
+    });
+    $("#pay_cc_per").on('change', function () {
+        if ($("#pay_cc_per").val().length === 0 || $("#pay_cc_per").val() === "" || $("#pay_cc_per").val() === null)
+            $("#pay_cc_per").val("0");
+    });
+
+    var CheckRefundAmount = function (id) {
+        var rdo_type = $("input[name='rdoType']:checked").val();
+        $("#error_message").text('');
+        if (rdo_type == "Refund") {
+            let total_pending = $("#hi_pending").val();
+            let _cash = $("#pay_cash").val();
+            let _chq = $("#pay_chq").val();
+            let _bt = $("#pay_bt").val();
+            let _cc = $("#pay_cc").val();
+            let total_pay = 0;
+            if (_cash === "" || _cash === undefined || _cash === null)
+                _cash = 0;
+            if (_chq === "" || _chq === undefined || _chq === null)
+                _chq = 0;
+            if (_bt === "" || _bt === undefined || _bt === null)
+                _bt = 0;
+            if (_cc === "" || _cc === undefined || _cc === null)
+                _cc = 0;
+
+            total_pay = (parseFloat(_cash) + parseFloat(_chq) + parseFloat(_bt) + parseFloat(_cc));
+
+            if (parseFloat(total_pay) > parseFloat(total_pending)) {
+                $('#' + id).parent().addClass('has-error');
+                 Error_Timeout(id);
+                $("#error_message").text('Payment should be less than Advance Amount');
+                return false;
+            }
+            else {
+                $("#error_message").text('');
+               return true;
+            }
+        }
+        else {
+            $("#error_message").text('');
+            return true;
+        }
+    }
+    //#endregion
+
+    //#region Insert Advacne Payment on Button Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+        var t = 0;
+        if ($('#form_AddAdvancePayment').valid()) {
+            if (AmountValid() && CheckRefundAmount()) {
+                var rdo_type = $("input[name='rdoType']:checked").val();
+                Swal.fire({
+                    title: "Save",
+                    text: "Are you sure you want to Add " + rdo_type + " Payment!.",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        var _data = {
+                            "payId": 0,
+                            "pay_code": "",
+                            "pay_type": rdo_type,
+                            "pay_date": $('#pay_date').val().trim(),
+                            "pay_supplier": $('#pay_supplier').val(),
+                            "pay_cash": $('#pay_cash').val().trim(),
+                            "pay_cc": $('#pay_cc').val().trim(),
+                            "pay_cc_per": $('#pay_cc_per').val().trim(),
+                            "pay_chq": $('#pay_chq').val().trim(),
+                            "pay_chq_no": $('#pay_chq_no').val().trim(),
+                            "pay_chq_date": $('#pay_chq_date').val().trim(),
+                            "pay_bt": $('#pay_bt').val().trim(),
+                            "pay_chq_bank": $('#pay_chq_bank').val(),
+                            "pay_bt_bank": $('#pay_bt_bank').val(),
+                            "pay_advance": $('#pay_advance').val(),
+                            "pay_notes": $('#pay_notes').val().trim(),
+                            "pay_cash_bank": $('#pay_cash_bank').val(),
+                            "pay_cc_bank": $('#pay_cc_bank').val(),
+                            "pay_branch": $('#pay_branch').val(),
+                            "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        }
+                        $.ajax({
+                            url: '@Url.Action("InsertAdvancePayment", "AdvancePayments", new { area = "MaterialManagement" })',
+                            type: "POST",
+                            dataType: "json",
+                            data: _data,
+                            beforeSend: function () {
+                                $('#btn_Insert').removeClass("btn btn-success");
+                                $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Insert').parent().addClass("curdrop");
+                                $('#btn_Insert').html("Saving.. Please Wait");
+                                $('.btn-close').addClass("disabled");
+                            },
+                            async: false,
+                            success: function (data) {
+                                $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Insert').addClass("btn btn-success");
+                                $('#btn_Insert').parent().removeClass("curdrop");
+                                if(rdo_type == "Refund")
+                                    $('#btn_Insert').html(" Add Refund");
+                                else
+                                $('#btn_Insert').html(" Add Advance");
+                                $('.btn-close').removeClass("disabled");
+                                if (data.isInserted) {
+                                    Get_AdvancePayments($('#pay_date').val().trim(), $('#pay_date').val().trim());
+                                    var alertPlaceholder = document.getElementById("AdvancePaymentAlert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i>" + rdo_type + " Payment Inserted Successfully!", "success");
+                                    $('#add_advancepayment_modal').modal('toggle');
+                                    Timeout();
+                                }
+                                else {
+                                    $("#create_advance_error").html('');
+                                    var error_message = data.message;
+                                    if (error_message == "Error While Adding Payment!") {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-triangle'></i>&nbsp;Error While Adding " + rdo_type + " Payment!&nbsp;</strong></div></div>";
+                                        $("#create_advance_error").html(html);
+                                    }
+                                    else {
+                                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                            "<div class='alert alert-danger' role='alert'>" +
+                                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                            "<strong><i class='fe fe-alert-circle text-white' ></i>&nbsp;Validation Error.. Please correct before you Update!&nbsp;</strong><br/><ul>";
+                                        $.each(data.message, function (index, value) {
+                                            html += "<li><small>" + value + "</small><li>";
+                                            var elem = $("#" + index);
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                            }
+                                            else {
+                                                $(elem).addClass(" is-invalid");
+                                            }
+                                            setTimeout(function () {
+                                                if (elem.hasClass("select2-hidden-accessible")) {
+                                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                                }
+                                                else {
+                                                    $(elem).removeClass("is-invalid");
+                                                }
+                                            }, 5000);
+                                        });
+                                        html += "</ul></div></div>";
+                                        $("#create_advance_error").html(html);
+                                    }
+                                    Timeout();
+                                }
+                            },
+                            error: function (xhr) {
+                                $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                                $('#btn_Insert').addClass("btn btn-success");
+                                $('#btn_Insert').parent().removeClass("curdrop");
+                                if (rdo_type == "Refund")
+                                    $('#btn_Insert').html(" Add Refund");
+                                else
+                                    $('#btn_Insert').html(" Add Advance");
+                                $('.btn-close').removeClass("disabled");
+                                var alertPlaceholder = document.getElementById("AdvancePaymentAlert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-x-circle text-white'></i> Failed to Add " + rdo_type +" Payment!", "danger");
+                                $('#add_advancepayment_modal').modal('toggle');
+                                Timeout();
+                            }
+                        });
+                    }
+                });
+            }
+            else {
+                var alertPlaceholder = document.getElementById("create_advance_error");
+                function alert(e, t) {
+                    var l = document.createElement("div");
+                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+                }
+                alert("<i class='fa fa-exclamation-triangle text-warning'></i>Please Fill Mandatory fields & Enter One Payment Mode At Least!", "warning");
+                Timeout();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+            var alertPlaceholder = document.getElementById("create_advance_error");
+            function alert(e, t) {
+                var l = document.createElement("div");
+                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>', alertPlaceholder.append(l)
+            }
+            alert("<i class='fa fa-exclamation-triangle text-warning'></i>Please Fill Mandatory fields!", "warning");
+            Timeout();
+        }
+    });
+    //#endregion
+
+    //#region Create Supplier
+    $('#btnAddSupplier').on('click', function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("CreateSupplier", "Supplier", new { area = "MaterialManagement" })",
+            contentType: "application/json",
+            dataType: "html",
+            success: function (data) {
+                $('#add_advancepayment_modal').modal('hide');
+                $('#Supplier_modal').attr("data-modal-from", "create-advance-payment");
+
+                $("#Supplier_body").html(data);
+                $('#Supplier_modal').modal('show');
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    });
+
+    $('#Supplier_modal').on('hidden.bs.modal', function () {
+        if (localStorage.getItem("newSupplierId") != null) {
+            var supplierId = localStorage.getItem("newSupplierId");
+
+            set_supplier(supplierId);
+
+            localStorage.removeItem("newSupplierId");
+        }
+    });
+
+    var set_supplier = function (supplierId) {
+        var branchId = $('#pay_branch').val();
+        if (branchId.length > 0) {
+            $.ajax({
+                url: '@Url.Action("GetSupplierByBranches", "PurchaseOrders", new { area = "MaterialManagement" })?branchId=' + branchId,
+                type: "GET",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption = new Option(response[j].Text, response[j].Value, (parseInt(response[j].Value) === supplierId) ? true : false, (parseInt(response[j].Value) === supplierId) ? true : false);
+                            $('#pay_supplier').append(newOption).trigger('change');
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            }).done(function () {
+                $('#pay_supplier').val(supplierId).trigger('change');
+            });
+        }
+    }
+    //#endregion
+
+    //#region Clear Data
+    var clearData = function () {
+        $('#pay_branch').val('').trigger('change');
+        $('#pay_supplier').empty();
+        $("#pay_date").bootstrapdatepicker("setDate", "today");
+        $('#pay_advance').empty();
+        clearPaymentMode();
+    }
+    var clearPaymentMode = function () {
+        $('#pay_cash').val('0.00');
+        $('#pay_cc').val('0.00');
+        $('#pay_bt').val('0.00');
+        $('#pay_chq').val('0.00');
+        $('#pay_chq_no').val('');
+        $('#pay_chq_date').val('');
+        $('#error_message').text('');
+        $('#pay_chq_bank').val('').trigger('change');;
+        $('#pay_cash_bank').val('').trigger('change');;
+        $('#pay_cc_bank').val('').trigger('change');;
+        $('#pay_bt_bank').val('').trigger('change');;
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id + "-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+
+</script>

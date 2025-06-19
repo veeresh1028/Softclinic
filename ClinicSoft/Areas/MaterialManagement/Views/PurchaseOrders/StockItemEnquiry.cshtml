@@ -1,0 +1,1318 @@
+﻿
+
+@model BusinessEntities.Accounts.Masters.ItemsHistory
+
+<style>
+    #enq_tbl_stock_batches_wrapper .dataTables_scrollBody, #enq_tbl_purchase_order_wrapper .dataTables_scrollBody, #enq_tbl_use_items_wrapper .dataTables_scrollBody, #enq_tbl_adjustment_items_wrapper .dataTables_scrollBody,
+    #enq_tbl_stock_allocated_wrapper .dataTables_scrollBody, #enq_tbl_stock_consumption_wrapper .dataTables_scrollBody, #enq_tbl_stock_transfer_wrapper .dataTables_scrollBody {
+        min-height: 70px !important;
+    }
+</style>
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">
+        Central Store Items Enquiry
+    </h5>
+    @*<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>*@
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-item" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body">
+
+    <form id="from_item_enquiry">
+        <div class="row mb-3">
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group">
+                    <label class="form-label text-black">Branch&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownList("enq_item_branch", (IEnumerable<SelectListItem>)ViewData["BranchList"], "Please Select", new { @class = "form-select select2" })
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-3">
+                <div class="form-group mb-2">
+                    <label class="form-label text-black">Item &nbsp;<span class="text-danger">*&nbsp;<label id="lbl_enq_message" class="fw-bold"></label></span></label>
+                    <select class="form-control select2" id="enq_item_name"></select>
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-6 col-lg-2">
+                <div class="form-group mb-2">
+                    <label class="form-label font-weight-semibold">&nbsp;</label>
+                    <button class="btn btn-primary mb-2" type="button" id="btnItemEnquirySearch">
+                        <i class="fa fa-search-plus"></i> Search
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row" style="overflow-y: scroll; scroll-behavior: auto; max-height: 500px !important;">
+        <div class="text-secondary text-center align-content-center" style="font-size:17px; font-weight:bold;">Stock Batches Detail</div>
+        <div class="table-responsive" style="min-height:auto">
+            <table id="enq_tbl_stock_batches" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Batch</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">GRN Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Expiry</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">UOM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Cost Price</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Sale Price</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="text-secondary text-center align-content-center" style="font-size:17px; font-weight:bold;">Goods Reveiver Note Details</div>
+        <div class="table-responsive" style="min-height:auto">
+            <table id="enq_tbl_purchase_order" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Supplier</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">GRN #</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Order #</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Batch #</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Expiry Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Ord.Qty	</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Amount</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Rcvd.Qty</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Amount</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="text-secondary text-center align-content-center" style="font-size:17px; font-weight:bold;">Usage of Items</div>
+        <div class="table-responsive" style="min-height:auto">
+            <table id="enq_tbl_use_items" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">CPT Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Treatment</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Item Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="text-secondary text-center align-content-center" style="font-size:17px; font-weight:bold;">Adjustments Detail</div>
+        <div class="table-responsive" style="min-height:auto">
+            <table id="enq_tbl_adjustment_items" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date Adjusted</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Group</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Location</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty in Hand</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty Adjusted</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Adjusted By</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="text-secondary text-center align-content-center" style="font-size:17px; font-weight:bold;">Sub Stock Allocations</div>
+        <div class="table-responsive" style="min-height:auto">
+            <table id="enq_tbl_stock_allocated" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Batch</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Exp.Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Appr.Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Ref No</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">From</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Approved Qty</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">UOM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Amount</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Madeby</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="text-secondary text-center align-content-center" style="font-size:17px; font-weight:bold;">Stock Consuption Detail</div>
+        <div class="table-responsive" style="min-height:auto">
+            <table id="enq_tbl_stock_consumption" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Ref No.</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Batch</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Doctor Name</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Room</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">UOM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Amount</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Madeby</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="text-secondary text-center align-content-center" style="font-size:17px; font-weight:bold;">Direct Stock Transfer Detail</div>
+        <div class="table-responsive" style="min-height:auto">
+            <table id="enq_tbl_stock_transfer" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Ref No.</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">From</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">To</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Item Batch</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">UOM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Amount</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Madeby</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-danger me-1 close-item" data-bs-dismiss="modal">
+        Close
+    </button>
+</div>
+<style type="text/css">
+    #size {
+        max-width: 1200px;
+    }
+</style>
+<script>
+    var _from_Item = $('#CentralStoreItems_modal').attr("data-modal-from");
+
+    //#region Page Load
+    $(function () {
+        $('#enq_item_branch').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#from_item_enquiry'),
+            width: '100%'
+        });
+    });
+    //#endregion
+
+    //#region Get Enquiry Items
+    $("#enq_item_name").select2({
+        placeholder: 'Select a Item',
+        width: '100%',
+        dropdownParent: $('#from_item_enquiry'),
+        minimumInputLength: 3,
+        escapeMarkup: function (markup) {
+            return markup;
+        },
+        ajax: {
+            url: '@Url.Action("SearchItems", "PurchaseOrders", new { area = "MaterialManagement" })',
+            dataType: 'json',
+            delay: 250,
+            data: function (query) {
+                $('#lbl_enq_message').text('');
+                if ($('#enq_item_branch').val() != null && $('#enq_item_branch').val() != "" && $('#enq_item_branch').val() != undefined) {
+                    return {
+                        query: query.term,
+                        branch: $('#enq_item_branch').val()
+                    };
+                }
+                else {
+                    $('#lbl_enq_message').text('Select Branch Name First');
+                    return {
+                        query: '',
+                        branch: 0
+                    }
+                }
+            },
+            processResults: function (data) {
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        }
+    });
+    //#endregion
+
+    //#region Close Stock Items Modal Click
+    $('.close-item').on('click', function (e) {
+        e.preventDefault();
+        if (_from_Item === "central-store-enquiry") {
+            $('#CentralStoreItems_modal').modal('hide');
+            $('#purchaseOrder_modal').modal('toggle');
+        }
+        if (_from_Item === "central-store-enquiry-por") {
+            $('#CentralStoreItems_modal').modal('hide');
+            $('#add_purchaseRequest_modal').modal('toggle');
+        }
+        if (_from_Item === "central-store-enquiry-pr") {
+            $('#CentralStoreItems_modal').modal('hide');
+            $('#purchaseReturn_modal').modal('toggle');
+        }
+        if (_from_Item === "item-enquiry-stock-adj") {
+            $('#CentralStoreItems_modal').modal('hide');
+            $('#adjustqty_modal').modal('toggle');
+        }
+        if (_from_Item === "item-enquiry-material-consumption") {
+            $('#CentralStoreItems_modal').modal('hide');
+            $('#consumption_modal').modal('toggle');
+        }
+        if (_from_Item === "item-enquiry-direct-transfer") {
+            $('#CentralStoreItems_modal').modal('hide');
+            $('#DirectTransfer_modal').modal('toggle');
+        }
+
+    });
+    //#endregion
+
+    //#region Get Item Detail and Bind to Tables
+    $('#btnItemEnquirySearch').on('click', function (e) {
+        var branch = $('#enq_item_branch').val();
+        var itemId = $('#enq_item_name').val();
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetEnquiryItemDetail", "PurchaseOrders", new { area = "MaterialManagement"})?branch=" + branch + "&itemId=" + itemId,
+            dataType: 'json',
+            success: function (response) {
+
+                if (response.itemBatchDetail != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#enq_tbl_stock_batches')) {
+                        table = $('#enq_tbl_stock_batches').DataTable();
+                        table.clear();
+                        table.rows.add(response.itemBatchDetail).draw();
+                    }
+                    else {
+                        BindDataTable7(response.itemBatchDetail);
+                    }
+                }
+                if (response.purcaseItemsReceiveds != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#enq_tbl_purchase_order')) {
+                        table = $('#enq_tbl_purchase_order').DataTable();
+                        table.clear();
+                        table.rows.add(response.purcaseItemsReceiveds).draw();
+                    }
+                    else {
+                        BindDataTable(response.purcaseItemsReceiveds);
+                    }
+                }
+                if (response.treatmentItemsUsed != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#enq_tbl_use_items')) {
+                        table = $('#enq_tbl_use_items').DataTable();
+                        table.clear();
+                        table.rows.add(response.treatmentItemsUsed).draw();
+                    }
+                    else {
+                        BindDataTable2(response.treatmentItemsUsed);
+                    }
+                }
+                if (response.itemsQtyAdjusted != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#enq_tbl_adjustment_items')) {
+                        table = $('#enq_tbl_adjustment_items').DataTable();
+                        table.clear();
+                        table.rows.add(response.itemsQtyAdjusted).draw();
+                    }
+                    else {
+                        BindDataTable3(response.itemsQtyAdjusted);
+                    }
+                }
+                if (response.itemsQtyAllocated != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#enq_tbl_stock_allocated')) {
+                        table = $('#enq_tbl_stock_allocated').DataTable();
+                        table.clear();
+                        table.rows.add(response.itemsQtyAllocated).draw();
+                    }
+                    else {
+                        BindDataTable4(response.itemsQtyAllocated);
+                    }
+                }
+                if (response.itemConsuptionHistory != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#enq_tbl_stock_consumption')) {
+                        table = $('#enq_tbl_stock_consumption').DataTable();
+                        table.clear();
+                        table.rows.add(response.itemConsuptionHistory).draw();
+                    }
+                    else {
+                        BindDataTable5(response.itemConsuptionHistory);
+                    }
+                }
+                if (response.itemDirectTransfer != null) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#enq_tbl_stock_transfer')) {
+                        table = $('#enq_tbl_stock_transfer').DataTable();
+                        table.clear();
+                        table.rows.add(response.itemDirectTransfer).draw();
+                    }
+                    else {
+                        BindDataTable6(response.itemDirectTransfer);
+                    }
+                }
+
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                $('#RowsCountToast').hide();
+            }
+        });
+    });
+
+    var BindDataTable = function (response) {
+        var table = $("#enq_tbl_purchase_order").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "td_max_width",
+                    "mData": "sup_name"
+                },
+                {
+                    "mData": "pir_ddate",
+                },
+                {
+                    "mData": "pir_grnno"
+                },
+                {
+                    "mData": "pur_ocode"
+                },
+                {
+                    "mData": "pir_dcode"
+                },
+                {
+                    "mData": "pir_edate"
+                },
+                {
+                    "mData": "pi_oqty",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pi_uprice",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pir_received",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "pi_uprice2",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                }
+
+            ],
+            order: [[1, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Branch / Item </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                //total_discount = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numFormat(total_discount));
+
+                //_total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numFormat(_total));
+
+                //_total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(6).footer()).html(numFormat(_total));
+
+                //_total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(7).footer()).html(numFormat(_total));
+
+                //_total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(8).footer()).html(numFormat(_total));
+
+                //_total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(9).footer()).html(numFormat(_total));
+
+                //_total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(10).footer()).html(numFormat(_total));
+
+            }
+        });
+        table.buttons().container().appendTo('#enq_tbl_purchase_order_wrapper .col-md-6:eq(0)');
+
+    }
+
+    var BindDataTable2 = function (response) {
+        var table = $("#enq_tbl_use_items").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "td_max_width",
+                    "mData": "app_fdate"
+                },
+                {
+                    "mData": "emp_name",
+                },
+                {
+                    "mData": "tr_code"
+                },
+                {
+                    "mData": "tr_name"
+                },
+                {
+                    "mData": "tit_qty",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "tit_cost",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "tit_notes"
+                }
+            ],
+            order: [[1, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Branch / Item </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                //total_discount = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numFormat(total_discount));
+
+                //_total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numFormat(_total));
+
+                //_total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(6).footer()).html(numFormat(_total));
+
+                //_total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(7).footer()).html(numFormat(_total));
+
+                //_total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(8).footer()).html(numFormat(_total));
+
+                //_total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(9).footer()).html(numFormat(_total));
+
+                //_total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(10).footer()).html(numFormat(_total));
+
+            }
+        });
+        table.buttons().container().appendTo('#enq_tbl_use_items_wrapper .col-md-6:eq(0)');
+
+    }
+
+    var BindDataTable3 = function (response) {
+        var table = $("#enq_tbl_adjustment_items").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "td_max_width",
+                    "mData": "iqa_date"
+                },
+                {
+                    "mData": "item_type",
+                },
+                {
+                    "mData": "ig_group"
+                },
+                {
+                    "mData": "item_location"
+                },
+                {
+                    "mData": "iqa_qty",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "iqa_adj",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "iqa_notes"
+                },
+                {
+                    "mData": "iqa_by_name"
+                }
+
+            ],
+            order: [[0, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Branch / Item </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                //total_discount = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numFormat(total_discount));
+
+                //_total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numFormat(_total));
+
+                //_total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(6).footer()).html(numFormat(_total));
+
+                //_total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(7).footer()).html(numFormat(_total));
+
+                //_total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(8).footer()).html(numFormat(_total));
+
+                //_total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(9).footer()).html(numFormat(_total));
+
+                //_total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(10).footer()).html(numFormat(_total));
+
+            }
+        });
+        table.buttons().container().appendTo('#enq_tbl_adjustment_items_wrapper .col-md-6:eq(0)');
+
+    }
+
+    var BindDataTable4 = function (response) {
+        var table = $("#enq_tbl_stock_allocated").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "td_max_width",
+                    "mData": "ia1_batchno"
+                },
+                {
+                    "mData": "ia1_edate",
+                },
+                {
+                    "mData": "ia1_date"
+                },
+                {
+                    "mData": "ia1_refno"
+                },
+                {
+                    "mData": "ia1_from_name2"
+                },
+                {
+                    "mData": "ia1_aqty",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ia1_aqty_uom"
+                },
+                {
+                    "mData": "ia1_aqty_cost",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ia1_notes"
+                },
+                {
+                    "mData": "ia1_status"
+                },
+                {
+                    "mData": "ia1_madeby_name"
+                }
+
+            ],
+            order: [[0, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Branch / Item </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                //total_discount = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numFormat(total_discount));
+
+                //_total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numFormat(_total));
+
+                //_total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(6).footer()).html(numFormat(_total));
+
+                //_total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(7).footer()).html(numFormat(_total));
+
+                //_total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(8).footer()).html(numFormat(_total));
+
+                //_total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(9).footer()).html(numFormat(_total));
+
+                //_total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(10).footer()).html(numFormat(_total));
+
+            }
+        });
+        table.buttons().container().appendTo('#enq_tbl_stock_allocated_wrapper .col-md-6:eq(0)');
+
+    }
+
+    var BindDataTable5 = function (response) {
+        var table = $("#enq_tbl_stock_consumption").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "td_max_width",
+                    "mData": "scr_refno"
+                },
+                {
+                    "mData": "scr_date",
+                },
+                {
+                    "mData": "ib_batch"
+                },
+                {
+                    "mData": "doctor_name"
+                },
+                {
+                    "mData": "room"
+                },
+                {
+                    "mData": "scr_qty",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "scr_uom"
+                },
+                {
+                    "mData": "qty_cost",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "scr_desc"
+                },
+                {
+                    "mData": "madeby_name"
+                }
+
+            ],
+            order: [[0, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Branch / Item </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                //total_discount = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numFormat(total_discount));
+
+                //_total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numFormat(_total));
+
+                //_total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(6).footer()).html(numFormat(_total));
+
+                //_total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(7).footer()).html(numFormat(_total));
+
+                //_total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(8).footer()).html(numFormat(_total));
+
+                //_total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(9).footer()).html(numFormat(_total));
+
+                //_total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(10).footer()).html(numFormat(_total));
+
+            }
+        });
+        table.buttons().container().appendTo('#enq_tbl_stock_consumption_wrapper .col-md-6:eq(0)');
+    }
+
+    var BindDataTable6 = function (response) {
+        var table = $("#enq_tbl_stock_transfer").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "td_max_width",
+                    "mData": "std_refno"
+                },
+                {
+                    "mData": "std_date",
+                },
+                {
+                    "mData": "from_branch"
+                },
+                {
+                    "mData": "to_branch"
+                },
+                {
+                    "mData": "std_item_batch"
+                },
+                {
+                    "mData": "std_oqty",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "std_ouom"
+                },
+                {
+                    "mData": "qty_cost",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "std_notes"
+                },
+                {
+                    "mData": "madeby_name"
+                }
+
+            ],
+            order: [[0, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Branch / Item </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                //total_discount = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numFormat(total_discount));
+
+                //_total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numFormat(_total));
+
+                //_total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(6).footer()).html(numFormat(_total));
+
+                //_total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(7).footer()).html(numFormat(_total));
+
+                //_total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(8).footer()).html(numFormat(_total));
+
+                //_total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(9).footer()).html(numFormat(_total));
+
+                //_total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(10).footer()).html(numFormat(_total));
+
+            }
+        });
+        table.buttons().container().appendTo('#enq_tbl_stock_transfer_wrapper .col-md-6:eq(0)');
+
+    }
+
+    var BindDataTable7 = function (response) {
+        var table = $("#enq_tbl_stock_batches").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "className": "td_max_width",
+                    "mData": "ib_batch"
+                },
+                {
+                    "mData": "ib_grn",
+                },
+                {
+                    "mData": "ib_edate"
+                },
+                {
+                    "mData": "ib_qty",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ib_uom"
+                },
+                {
+                    "mData": "ib_cost",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "ib_sprice",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                }
+
+            ],
+            order: [[0, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Item wise History Report',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code / Branch / Item </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                //total_discount = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(4).footer()).html(numFormat(total_discount));
+
+                //_total = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(5).footer()).html(numFormat(_total));
+
+                //_total = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(6).footer()).html(numFormat(_total));
+
+                //_total = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(7).footer()).html(numFormat(_total));
+
+                //_total = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(8).footer()).html(numFormat(_total));
+
+                //_total = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(9).footer()).html(numFormat(_total));
+
+                //_total = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                //$(api.column(10).footer()).html(numFormat(_total));
+
+            }
+        });
+        table.buttons().container().appendTo('#enq_tbl_stock_batches_wrapper .col-md-6:eq(0)');
+
+    }
+
+    //#endregion
+
+</script>

@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Medical Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Consent For Release Of Medical Information<br />
+                    <span dir="rtl">الموافقة على الإفصاح عن المعلومات الطبية</span>
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="MedicalConsent_add" style="display:none">
+                </div>
+                <div id="MedicalConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="MedicalConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetMedicalConsentInfo();
+        MedicalConsentPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetMedicalConsentInfo
+    var GetMedicalConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetMedicalConsentData", "MedicalConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditMedicalConsent();
+                        $("#MedicalConsent_add").hide();
+                        $("#MedicalConsent_edit").show();
+
+                    }
+                    else {
+                        $("#MedicalConsent_add").show();
+                        $("#MedicalConsent_edit").hide();
+                        AddMedicalConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load MedicalConsent
+
+    //#region Add MedicalConsent
+    function AddMedicalConsent() {
+        var x = $("#MedicalConsent_add");
+        x.load("@Url.Action("CreateMedicalConsent", "MedicalConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add MedicalConsent
+
+    // #region Update MedicalConsent
+    function EditMedicalConsent() {
+        var x = $("#MedicalConsent_edit");
+        x.load("@Url.Action("UpdateMedicalConsent", "MedicalConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update MedicalConsent
+
+    //#region Histroy of MedicalConsent
+    function MedicalConsentPreviousHistory() {
+        var x = $("#MedicalConsent_history");
+        x.load("@Url.Action("MedicalConsentPreviousHistory", "MedicalConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion History of MedicalConsent
+</script>

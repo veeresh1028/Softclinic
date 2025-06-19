@@ -1,0 +1,201 @@
+﻿@model BusinessEntities.Invoice.QC_Info
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<div class="modal-header py-3 px-4">
+    @Html.DropDownListFor(m => m.prev_invoices, new SelectList(Model.InvNosList, "id", "text"), new { @class = "form-select select2 col-lg-2", @id = "prev_invoices" })
+    <h5 class="modal-title text-primary font-weight-semibold ps-4">Quick Cash Billing For Visit ID : <span class="text-secondary" id="qappointmentId"></span></h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4">
+    <div class="panel panel-primary">
+        <div class="tab_wrapper first_tab">
+            @Html.HiddenFor(m => m.appId, new { id = "qappId" })
+            @Html.HiddenFor(m => m.app_dept, new { id = "qapp_dept" })
+            @Html.HiddenFor(m => m.app_status, new { id = "qapp_status" })
+            @Html.HiddenFor(m => m.multi_bill, new { id = "qmulti_bill" })
+
+            <ul class="tab_list">
+                <li id="view_qcash_title"><i class="fa fa-money"></i> Cash Treatments</li>
+                <li id="view_qdent_cash_title"><i class="fa fa-money"></i> Dental Cash Treatments</li>
+            </ul>
+
+            <div class="content_wrapper">
+                <div class="tab_content">
+                    <div id="view_qcash_content"></div>
+                </div>
+                <div class="tab_content">
+                    <div id="view_qdent_cash_content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/tabs.js"></script>
+
+<script type="text/javascript">
+    var multi_bill = $("#qmulti_bill").val();
+    //#region Page Load
+    $(function () {
+        $("#qappointmentId").html($("#qappId").val());
+
+        var app_dept = $("#qapp_dept").val();
+        var app_status = $("#qapp_status").val();
+
+        if (app_status === "Invoiced" || app_status === "Arrived") {
+            if (app_dept == "Dental") {
+                $('#view_qcash_title').remove();
+                $('#view_qcash_content').remove();
+
+                $('#view_qdent_cash_title').click();
+            }
+            else {
+                $('#view_qdent_cash_content').remove();
+                $('#view_qdent_cash_title').remove();
+
+                $('#view_qcash_title').click();
+            }
+        }
+
+        $('#prev_invoices').select2({
+            placeholder: 'Search',
+            width: '100%',
+            minimumInputLength: -1,
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $('#prev_invoices').change(function () {
+            $("#qappointmentId").html($("#qappId").val());
+            var app_dept = $("#qapp_dept").val();
+
+            if (app_dept == "Dental") {
+                $('#view_qdent_cash_title').click();
+            }
+            else {
+                $('#view_qcash_title').click();
+            }
+        });
+
+        setTimeout(function () {
+            $('.tab_content').removeAttr('title');
+        }, 100);
+    });
+    //#endregion
+    
+
+    // Cash Treatment on Click
+    $('#view_qcash_title').on('click', function (e) {
+        e.preventDefault();
+
+        $("#view_qdent_cash_content").empty();
+
+        var appId = $("#qappId").val();
+
+        if (multi_bill == 1) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("QuickCashMultiBilling", "Invoice", new { area = "Invoice" })",
+                contentType: "application/json",
+                data: {
+                    "appId": appId,
+                    "invId": $("#prev_invoices").val()
+                },
+                dataType: "html",
+                success: function (data) {
+                    localStorage.setItem("bill_from", "cash_billing");
+
+                    $("#view_qcash_content").html(data);
+                    $("#view_qcash_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        else {
+            $('#prev_invoices').remove();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("QuickCashBilling", "Invoice", new { area = "Invoice" })",
+                contentType: "application/json",
+                data: { "appId": appId },
+                dataType: "html",
+                success: function (data) {
+                    localStorage.setItem("bill_from", "cash_billing");
+
+                    $("#view_qcash_content").html(data);
+                    $("#view_qcash_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+    });
+
+    // Dental Cash Treatment on Click
+    $('#view_qdent_cash_title').on('click', function (e) {
+        e.preventDefault();
+
+        $("#view_qcash_content").empty();
+        $("#view_qdent_cash_content").empty();
+
+        var appId = $("#qappId").val();
+
+        if (multi_bill == 1) {
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("QuickDentalCashMultiBilling", "InsuranceInvoice", new { area = "Invoice" })",
+                contentType: "application/json",
+                data: {
+                    "appId": appId,
+                    "invId":$("#prev_invoices").val()
+                },
+                dataType: "html",
+                success: function (response) {
+                    localStorage.setItem("bill_from", "cash_billing");
+
+                    $("#view_qdent_cash_content").html(response);
+                    $("#view_qdent_cash_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+         }
+        else {
+            $('#prev_invoices').remove();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("QuickDentalCashBilling", "InsuranceInvoice", new { area = "Invoice" })?appId=" + appId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    localStorage.setItem("bill_from", "cash_billing");
+
+                    $("#view_qdent_cash_content").html(response);
+                    $("#view_qdent_cash_content").show();
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+         }
+    });
+    //#endregion
+</script>

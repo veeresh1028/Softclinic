@@ -1,0 +1,818 @@
+﻿
+@model BusinessEntities.EMR.ProgressNotes
+<form id="form_EditProgress" class="needs-validation" >
+
+
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.mnId)
+    @Html.HiddenFor(m => m.mn_appId)
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div style="display: flex; align-items: center;">
+                <button type="button" class="btn btn-purple me-5" id="ubtn-record">
+                    <i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Record
+                </button>
+
+                <span class="text-danger me-5" id="uspn-recording">
+                    <i class="fa fa-microphone loader fs-15"></i>&nbsp;Recording ...&nbsp;
+                </span>
+
+                <div class="text-success  me-5 text-bold" id="uspn-recording-timer">00:00:00</div>
+
+                <button type="button" class="btn btn-info me-5" id="ubtn-pause" value="pause">
+                    <i class="fa fa-pause" aria-hidden="true"></i>&nbsp;Pause
+                </button>
+
+                <button type="button" class="btn btn-danger me-5" id="ubtn-stop">
+                    <i class="fa fa-stop" aria-hidden="true"></i>&nbsp;Stop
+                </button>
+
+                <audio id="uaudio_file" class="me-5" controls>
+                    Your browser does not support the audio element.
+                </audio>
+
+                <button type="button" class="btn btn-success" id="ubtn-speech-to-text">
+                    <i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text
+                </button>
+
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">
+                    ProgressNotes &nbsp;<span class="text-danger">*</span><span class="ms-2">
+                        <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="uaddProgressNotes">
+                            <i class="fa fa-bullseye"></i>
+                            Add Notes
+                        </button>
+                    </span>
+                </label>
+                <span class="ms-2">  @Html.DropDownListFor(m => m.pnsm_title, new List<SelectListItem> { }, "Select Notes For", new { @class = "form-select  mb-2 select2", @id = "upnsm_title" })</span>
+
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="form-group mb-3">
+                <div class="ql-wrapper ql-wrapper-demo">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="uprog_notes">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">
+                    Next visit plan&nbsp;<span class="ms-2">
+                        <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addNextvisitNotes">
+                            <i class="fa fa-bullseye"></i>
+                            Add Next Visit
+                        </button>
+                    </span>
+                </label>
+                @Html.DropDownListFor(m => m.pnsm1_title, new List<SelectListItem> { }, "Select Notes For", new { @class = "form-select  mb-2 select2", @id = "upnsm1_title" })
+                <div class="mt-2"></div>
+                <div class="ql-wrapper ql-wrapper-demo">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="unextvisit_plan">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">
+                    Other instructions&nbsp;<span class="ms-2">
+                        <button class="btn btn-outline-dark btn-sm ms-lg-2 ms-sm-2" type="button" id="addInstrNotes">
+                            <i class="fa fa-bullseye"></i>
+                            Add instructions
+                        </button>
+                    </span>
+                </label>
+                @Html.DropDownListFor(m => m.pnsm2_title, new List<SelectListItem> { }, "Select Notes For", new { @class = "form-select  mb-2 select2", @id = "upnsm2_title" })
+                <div class="mt-2"></div>
+                <div class="ql-wrapper ql-wrapper-demo">
+                    <span class="errorr text-danger fw-bold"></span>
+                    <div id="uother_instr">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-warning" id="btn_Update_ProgressNote">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_EditProgress">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+        'use strict';
+
+        var timerInterval;
+        var startTime;
+        var elapsedTime = 0;
+        var timerElement = $('#uspn-recording-timer');
+        var uquillp;
+        var uquill1;
+        var uquill2;
+         $(function () {
+             $("#ubtn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Record');
+             $("#ubtn-record").show();
+             $("#uspn-recording").hide();
+             $("#uspn-recording-timer").hide();
+             $("#ubtn-pause").hide();
+             $("#ubtn-stop").hide();
+             $("#ubtn-speech-to-text").hide();
+             $("#uaudio_file").hide();
+
+             uquillp = new Quill('#uprog_notes', {
+                 modules: {
+                     toolbar:
+                    [[{
+                        'header': [1, 2, 3, 4, 5, 6, false]
+                    }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                     [{
+                         'list': 'ordered'
+                     }, {
+                         'list': 'bullet'
+                     }]]
+                 },
+                 theme: 'snow',
+                 placeholder: 'Write your Notes here.....',
+             });
+             var realHTML = $('<textarea />').html("@Model.mn_notes").text();
+             uquillp.root.innerHTML = realHTML;
+
+             uquill1 = new Quill('#unextvisit_plan', {
+                 modules: {
+                     toolbar:
+                         [[{
+                             'header': [1, 2, 3, 4, 5, 6, false]
+                         }],
+                             ['bold', 'italic', 'underline', 'strike'],
+                     [{
+                         'list': 'ordered'
+                     }, {
+                         'list': 'bullet'
+                     }]]
+                 },
+                 theme: 'snow',
+                 placeholder: 'Write your Notes here.....',
+             });
+             var realHTML2 = $('<textarea />').html("@Model.mn_visitPlan").text();
+             uquill1.root.innerHTML = realHTML2;
+
+             uquill2 = new Quill('#uother_instr', {
+                 modules: {
+                     toolbar:
+                         [[{
+                             'header': [1, 2, 3, 4, 5, 6, false]
+                         }],
+                             ['bold', 'italic', 'underline', 'strike'],
+                     [{
+                         'list': 'ordered'
+                     }, {
+                         'list': 'bullet'
+                     }]]
+                 },
+                 theme: 'snow',
+                 placeholder: 'Write your Notes here.....',
+             });
+             var realHTML3 = $('<textarea />').html("@Model.mn_instructions").text();
+             uquill2.root.innerHTML = realHTML3;
+             load_Notes("");
+             load_Notes1("");
+             load_Notes2("");
+        });
+    //#endregion Partial View Onload
+
+    //#region Close ProgressNotes
+        $('#btn_Close_EditProgress').click(function () {
+            $('#prognoteedit').hide();
+            AddProgressNotes();
+            $("#prognoteadd").show();
+        });
+    //#endregion Close ProgressNotes
+
+
+    //#region Add NotesMaster
+        $('#uaddProgressNotes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NotesMaster", "NotesMaster", new { area = "EMR" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    //$('#notes_master_modal').attr("data-modal-from", "create-Notes");
+                    $("#notes_master_body").html(data);
+                    $("#notes_master_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+    //#region Create Diagnosis On Modal Close
+        $('#notes_master_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newNotes") != null) {
+                var diagnosis = JSON.parse(localStorage.getItem("newNotes"));
+                setNarrative(diagnosis);
+                localStorage.removeItem("newNotes");
+            }
+        });
+    //#endregion Create Diagnosis On Modal Close
+
+    //#region set Narrative
+        var setNarrative = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#upnsm_title').append(newOption).trigger('change');
+
+            $('#upnsm_title').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion Set Narrative
+
+    //#region select2 ProgressNotes
+        $('#upnsm_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            console.log(data);
+            var realHTML = $('<textarea />').html(data.id).text();
+            uquillp.root.innerHTML = realHTML;
+        });
+    //#endregion select2 ProgressNotes
+
+    //#region Add NotesMaster
+        $('#uaddNextvisitNotes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NotesMasterNextVisit", "NotesMaster", new { area = "EMR" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    //$('#create_diag_modal').attr("data-modal-from", "create-Notes");
+                    $("#notes_master_nextvisit_body").html(data);
+                    $("#notes_master_nextvisit_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+    //#region Create Notes On Modal Close
+        $('#notes_master_nextvisit_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newnextvisitNotes") != null) {
+                var uNotes1 = JSON.parse(localStorage.getItem("newnextvisitNotes"));
+                usetNotes1(uNotes1);
+                localStorage.removeItem("newnextvisitNotes");
+            }
+        });
+    //#endregion 
+
+    //#region set Notes
+        var usetNotes1 = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#upnsm1_title').append(newOption).trigger('change');
+
+            $('#upnsm1_title').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion Set Notes
+
+    //#region load Notes
+        var load_Notes = function (query) {
+
+            var upnsm_title_ = "@Model.pnsm_title";
+            $.ajax({
+                url: '@Url.Action("GetNotes", "ProgressNotes", new { area = "EMR" })?query=' + query + "&nsm_flag=" + "Notes",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#upnsm_title").select2({
+                        placeholder: 'Select Progress Notes Type ',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 3,
+                        dropdownParent: $('#form_EditProgress'),
+
+                    });
+                    var newOption;
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption;
+
+                            if (upnsm_title_ != null && upnsm_title_ != "" && upnsm_title_ != undefined && upnsm_title_ != 0) {
+                                newOption = new Option(response[j].text, response[j].id, (response[j].text === upnsm_title_) ? true : false, (response[j].text === upnsm_title_) ? true : false);
+                            }
+                            else {
+                                newOption = new Option(response[j].text, response[j].id);
+                            }
+
+                            $('#upnsm_title').append(newOption).trigger('change');
+                        });
+                    }
+
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+    //#endregion
+
+    //#region load Notes1
+        var load_Notes1 = function (query) {
+
+            var upnsm1_title_ = "@Model.pnsm1_title";
+            $.ajax({
+                url: '@Url.Action("GetNotes", "ProgressNotes", new { area = "EMR" })?query=' + query + "&nsm_flag=" + "Notes1",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#upnsm1_title").select2({
+                        placeholder: 'Select Progress Notes Type ',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 3,
+                        dropdownParent: $('#form_EditProgress'),
+
+                    });
+                    var newOption;
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption;
+
+                            if (upnsm1_title_ != null && upnsm1_title_ != "" && upnsm1_title_ != undefined && upnsm1_title_ != 0) {
+                                newOption = new Option(response[j].text, response[j].id, (response[j].text === upnsm1_title_) ? true : false, (response[j].text === upnsm1_title_) ? true : false);
+                            }
+                            else {
+                                newOption = new Option(response[j].text, response[j].id);
+                            }
+
+                            $('#upnsm1_title').append(newOption).trigger('change');
+                        });
+                    }
+
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+    //#endregion
+
+    //#region load Notes2
+        var load_Notes2 = function (query) {
+        var upnsm2_title_ = "@Model.pnsm2_title";
+            $.ajax({
+                url: '@Url.Action("GetNotes", "ProgressNotes", new { area = "EMR" })?query=' + query + "&nsm_flag=" + "Notes2",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#upnsm2_title").select2({
+                        placeholder: 'Select Progress Notes Type ',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 3,
+                        dropdownParent: $('#form_EditProgress'),
+
+                    });
+                    var newOption;
+
+                    if (response.length > 0) {
+                        $.each(response, function (j) {
+                            var newOption;
+
+                            if (upnsm2_title_ != null && upnsm2_title_ != "" && upnsm2_title_ != undefined && upnsm2_title_ != 0) {
+                                newOption = new Option(response[j].text, response[j].id, (response[j].text === upnsm2_title_) ? true : false, (response[j].text === upnsm2_title_) ? true : false);
+                            }
+                            else {
+                                newOption = new Option(response[j].text, response[j].id);
+                            }
+
+                            $('#upnsm2_title').append(newOption).trigger('change');
+                        });
+                    }
+
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+    //#endregion
+
+    //#region load Notes
+            $('#upnsm1_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            var realHTML = $('<textarea />').html(data.id).text();
+            uquill1.root.innerHTML = realHTML;
+        });
+    //#endregion load Notes
+
+    //#region Add NotesMaster
+        $('#uaddInstrNotes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("NotesMasterInstruction", "NotesMaster", new { area = "EMR" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    //$('#create_diag_modal').attr("data-modal-from", "create-Notes");
+                    $("#notes_master_Instr_body").html(data);
+                    $("#notes_master_Instr_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Notes : " + xhr.statusText);
+                }
+            });
+        });
+     //#endregion
+
+    //#region Create Notes On Modal Close
+        $('#notes_master_Instr_modal').on('hidden.bs.modal', function () {
+            if (localStorage.getItem("newInstrNotes") != null) {
+                var uNotes2 = JSON.parse(localStorage.getItem("newInstrNotes"));
+                //usetNotes2(Notes2);
+                localStorage.removeItem("newInstrNotes");
+            }
+        });
+    //#endregion
+
+    //#region set Notes
+        var usetNotes2 = function (response) {
+            var data = {
+                "id": response.id,
+                "text": response.text,
+            };
+            var newOption = new Option(response.text, response.id, true, true);
+            $('#upnsm2_title').append(newOption).trigger('change');
+
+            $('#upnsm2_title').trigger({
+                type: 'select2:select',
+                params: {
+                    data: data
+                }
+            });
+        }
+    //#endregion     
+
+    //#region load Notes
+            $('#upnsm2_title').on('select2:select', function (e) {
+            var data = e.params.data;
+            var realHTML = $('<textarea />').html(data.id).text();
+            uquill2.root.innerHTML = realHTML;
+        });
+    //#endregion 
+
+    //#region Recording
+        $("#ubtn-record").on('click', function () {
+        startRecording();
+
+        $("#ubtn-pause").html('<i class="fa fa-pause" aria-hidden="true"></i> &nbsp;Pause');
+        $("#ubtn-pause").removeClass("btn btn-success me-5");
+        $("#ubtn-pause").addClass("btn btn-info me-5");
+
+        $("#uspn-recording").removeClass("text-info me-5");
+        $("#uspn-recording").addClass("text-danger me-5");
+        $("#uspn-recording").html(' <i class="fa fa-microphone font-size-15"></i>&nbsp;Recording ...&nbsp;');
+
+        $("#ubtn-record").hide();
+        $("#uspn-recording").show();
+        $("#uspn-recording-timer").show();
+        $("#ubtn-pause").show();
+        $("#ubtn-stop").show();
+        $("#ubtn-speech-to-text").hide();
+        $("#uaudio_file").hide();
+
+        startTime = new Date().getTime();
+        timerInterval = setInterval(updateTimer, 1000);
+
+         clearControls();
+    });
+
+        $("#ubtn-pause").on('click', function () {
+            let btn_mode = $(this).val();
+            btn_mode = (btn_mode === "pause") ? "play" : "pause";
+            $(this).val(btn_mode);
+
+            if (btn_mode === "play") {
+                if (isRecording && mediaRecorder) {
+                    mediaRecorder.pause();
+                    isRecording = false;
+                }
+
+                $("#ubtn-pause").html('<i class="fa fa-play" aria-hidden="true"></i> &nbsp;Resume');
+                $("#ubtn-pause").removeClass("btn btn-info me-5");
+                $("#ubtn-pause").addClass("btn btn-success me-5");
+
+
+                // Pause the timer
+                $("#uspn-recording").removeClass("text-danger me-5");
+                $("#uspn-recording").addClass("text-info me-5");
+                $("#uspn-recording").html('<i class="fa fa-microphone font-size-15"></i>&nbsp;Recorded ...&nbsp;');
+                clearInterval(timerInterval);
+                elapsedTime += new Date().getTime() - startTime;
+            }
+            else {
+                if (!isRecording && mediaRecorder) {
+                    mediaRecorder.resume();
+                    isRecording = true;
+                }
+
+                $("#ubtn-pause").html('<i class="fa fa-pause" aria-hidden="true"></i> &nbsp;Pause');
+                $("#ubtn-pause").removeClass("btn btn-success me-5");
+                $("#ubtn-pause").addClass("btn btn-info me-5");
+
+                // Resume the timer
+                $("#uspn-recording").removeClass("text-info me-5");
+                $("#uspn-recording").addClass("text-danger me-5");
+                $("#uspn-recording").html(' <i class="fa fa-microphone font-size-15"></i>&nbsp;Recording ...&nbsp;');
+                startTime = new Date().getTime();
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+
+            $("#ubtn-record").hide();
+            $("#ubtn-pause").show();
+            $("#ubtn-stop").show();
+            $("#ubtn-speech-to-text").hide();
+            $("#uaudio_file").hide();
+        });
+
+        $("#ubtn-stop").on('click', function () {
+            stopRecording();
+            $("#ubtn-record").show();
+            $("#ubtn-record").html('<i class="fa fa-microphone" aria-hidden="true"></i>&nbsp;Re-Record');
+            $("#uspn-recording").hide();
+            $("#uspn-recording-timer").hide();
+            $("#ubtn-pause").hide();
+            $("#ubtn-pause").val("pause");
+            $("#ubtn-stop").hide();
+            $("#ubtn-speech-to-text").show();
+            $("#uaudio_file").hide();
+
+            clearInterval(timerInterval);
+            timerElement.text("00:00:00");
+            elapsedTime = 0;
+        });
+
+        function updateTimer() {
+            var currentTime = new Date().getTime();
+            var totalMilliseconds = currentTime - startTime + elapsedTime;
+
+            // Calculate hours, minutes, and seconds
+            var hours = Math.floor(totalMilliseconds / 3600000);
+            var minutes = Math.floor((totalMilliseconds % 3600000) / 60000);
+            var seconds = Math.floor((totalMilliseconds % 60000) / 1000);
+
+            // Format the time as HH:MM:SS
+            var formattedTime = padNumber(hours) + ':' + padNumber(minutes) + ':' + padNumber(seconds);
+
+            // Update the timer element
+            timerElement.text(formattedTime);
+        }
+
+        function padNumber(number) {
+            return number.toString().padStart(2, '0');
+        }
+
+        $("#ubtn-speech-to-text").on('click', function () {
+            $("#ubtn-speech-to-text").html('<i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;Processing...');
+            // Create a Blob from the recorded chunks
+            const audioBlob = new Blob(recordedChunks, { type: 'audio/wav' });
+
+            var formData = new FormData();
+            formData.append('audio', audioBlob, 'audio.wav');
+
+            recordedChunks = [];
+            isRecording = false;
+            stream = null;
+            mediaRecorder = null;
+
+            // Send the FormData to the server using AJAX
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("SaveAudio", "SpeechToText", new { area = "RnD" })",
+                dataType: 'json',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    $("#ubtn-speech-to-text").html('<i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text');
+
+
+                    if (response.isConverted) {
+                        if (response.isSuccess) {
+                            uquillp.root.innerHTML = uquillp.root.innerHTML + " " +response.data.speechtext
+                        }
+                    }
+
+                },
+                error: function (xhr, status, error) {
+                    $("#ubtn-speech-to-text").html('<i class="fa fa-language" aria-hidden="true"></i>&nbsp;Speech To Text');
+                    console.error(error);
+                    console.log(error);
+                }
+            });
+        });
+   
+        // Function to start recording
+        function startRecording() {
+            // Request access to the microphone
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function (audioStream) {
+                    // Store the microphone stream
+                    stream = audioStream;
+
+                    // Create a MediaRecorder instance
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    // Event handler for data available
+                    mediaRecorder.addEventListener('dataavailable', function (event) {
+                        if (event.data.size > 0) {
+                            recordedChunks.push(event.data);
+                        }
+                    });
+
+                    // Start recording
+                    mediaRecorder.start();
+                    isRecording = true;
+                })
+                .catch(function (err) {
+                    console.error('Error accessing microphone:', err);
+                });
+        }
+
+        function stopRecording() {
+            // Stop the MediaRecorder
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+            }
+
+            // Stop the microphone stream
+            if (stream) {
+                stream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+            }
+            isRecording = false;
+        }
+    //#endregion 
+
+    //#region Update  Button Click
+        $('#btn_Update_ProgressNote').on('click', function (e) {
+            e.preventDefault();
+            var isvalid = true;
+
+            if (uquillp.getText().trim().length == 0) {
+                $("#prog_notes").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#prog_notes"));
+                isvalid = false;
+            }
+            if ($("#form_EditProgress").valid()) {
+                if (isvalid) {
+                    $('#btn_Update_ProgressNote').removeClass("btn btn-success");
+                    $('#btn_Update_ProgressNote').addClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Update_ProgressNote').html("Updating the Record....");
+                    var _dataInsert = {
+                        "mnId": $("#mnId").val(),
+                        "mn_appId": $("#mn_appId").val(),
+                        "mn_notes": uquillp.root.innerHTML,
+                        "mn_visitPlan": uquill1.root.innerHTML,
+                        "mn_instructions": uquill2.root.innerHTML,
+                        "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    }
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("UpdateProgressNotes", "ProgressNotes", new { area = "EMR" })",
+                        dataType: 'JSON',
+                        data: _dataInsert,
+                        success: function (data) {
+                            $('#prognoteedit').hide();
+                            $('#btn_Update_ProgressNote').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_Update_ProgressNote').addClass("btn btn-success");
+                            $('#btn_Update_ProgressNote').html("Save Changes");
+                            if (data.isSuccess) {
+                                if (data.isUpdated) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> Progress Notes Updated Successfully!", "success");                                    
+                                    Timeout();
+                                    GetProgressNotes();
+                                    GetPreviousProgressNotes();
+                                    $('#prognoteadd').show();
+                                    $("#prognoteedit").hide()
+                                    clearControls();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. Progress Notes Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#error").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+                                html += "</ul></div></div>";
+                                $("#error").html(html);
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btn_Update_ProgressNote').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_Update_ProgressNote').addClass("btn btn-success");
+                            $('#btn_Update_ProgressNote').html("Save Changes");
+                            Timeout();
+                        }
+                    });
+                }
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Update  Button Click
+
+    //#region Clear Controls
+        var clearControls = function () {
+            quill.root.innerHTML = "";
+            quill1.root.innerHTML = "";
+            quill2.root.innerHTML = "";
+            $("#pnsm_title option:selected").val(0);
+            $("#pnsm1_title option:selected").val(0);
+            $("#pnsm2_title option:selected").val(0);
+        }
+    //#endregion Clear Controls
+
+
+</script>

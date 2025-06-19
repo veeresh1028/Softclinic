@@ -1,0 +1,115 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "OperativeCheckListIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Pre Operative CheckList</h3>
+            </div>
+            <div class="card-body">
+                <div id="OperativeCheckList_add" style="display:none">
+                </div>
+                <div id="OperativeCheckList_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="OperativeCheckList_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetOperativeCheckListInfo();
+            OperativeCheckListPreviousHistory();
+
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetOperativeCheckListInfo
+        var GetOperativeCheckListInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetOperativeCheckListData", "OperativeCheckList", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditOperativeCheckList();
+                            $("#OperativeCheckList_add").hide();
+                            $("#OperativeCheckList_edit").show();
+
+                        }
+                        else {
+                            $("#OperativeCheckList_add").show();
+                            $("#OperativeCheckList_edit").hide();
+                            AddOperativeCheckList();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load OperativeCheckList
+
+        //#region Add OperativeCheckList
+        function AddOperativeCheckList() {
+            var x = $("#OperativeCheckList_add");
+            x.load("@Url.Action("CreateOperativeCheckList", "OperativeCheckList", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add OperativeCheckList
+
+        //#region Update OperativeCheckList
+        function EditOperativeCheckList() {
+            var x = $("#OperativeCheckList_edit");
+            x.load("@Url.Action("UpdateOperativeCheckList", "OperativeCheckList", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update OperativeCheckList
+
+          //#region Histroy of OperativeCheckList
+        function OperativeCheckListPreviousHistory() {
+            var x = $("#OperativeCheckList_history");
+            x.load("@Url.Action("OperativeCheckListPreviousHistory", "OperativeCheckList", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of OperativeCheckList
+
+
+    </script>
+@*}*@
+

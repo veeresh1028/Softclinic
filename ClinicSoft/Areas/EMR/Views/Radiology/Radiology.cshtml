@@ -1,0 +1,270 @@
+﻿
+
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="PatientAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-status bg-blue"></div>
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_RadTreat" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">CPT Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Treatment</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Upload Radiology Pdf's</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Reports</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Upload Radiology Pdf's -->
+<div class="modal fade overflow-auto" id="RadiologyPdf" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="patient">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="RadiologyPdf_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+<!-- Modal Upload Radiology Pdf's -->
+<div class="modal fade overflow-auto" id="RadiologyReport" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="patient">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeAL">
+        <div class="modal-content" id="RadiologyReport_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+
+
+@section myScripts{
+    <style>
+        .modal-lg {
+            max-width: 1500px;
+        }
+    </style>
+    <script type="text/javascript">
+    //#region Page Load
+        $(function () {
+            GetRadiologyTreatments();
+        });
+    //#endregion
+
+    //#region Load Patients
+        var GetRadiologyTreatments = function () {
+            $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetRadiologyTreatments", "Radiology", new { area = "EMR" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_RadTreat')) {
+                        table = $('#tbl_RadTreat').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        console.log(response);
+                        BindDataTableRadTreat(response);
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+            })
+            .done(function () {
+                resizedt();
+            });
+        }
+    //#endregion
+
+    //#region Bind Datatable
+        var BindDataTableRadTreat = function (response) {
+            var table = $("#tbl_RadTreat").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "pt_type",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "tr_code",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "tr_name",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                   {
+                        "mData": "ptId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                       "render": function (ptId, type, full, meta) {
+                            return '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="UploadRadiologyPdf(' + ptId +')"><i class="fa fa-folder-open-o text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i></a>';
+                        }
+                    },
+                    {
+                        "mData": "ptId",
+                        "className": 'text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (ptId, type, full, meta) {
+                            return '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="UploadRadiologyReport(' + ptId + ')"><i class="fa fa-folder-open-o text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i></a>';
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Addendum',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Addendum',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Addendum',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Addendum',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_RadTreat_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Upload Radiology Pdf's
+        var UploadRadiologyPdf = function (ptId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("UploadRadiologyPdf", "Radiology", new { area = "EMR" })?ptId=" + ptId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#RadiologyPdf_body").html(response);
+                    $("#RadiologyPdf").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+    //#region Upload Radiology Pdf's
+        var UploadRadiologyReport = function (ptId) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("ReportResults", "Radiology", new { area = "EMR" })?ptId=" + ptId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#RadiologyReport_body").html(response);
+                    $("#RadiologyReport").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+        //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        //#endregion Resize Datatable
+    </script>
+}

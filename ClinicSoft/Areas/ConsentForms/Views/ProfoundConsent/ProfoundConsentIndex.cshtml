@@ -1,0 +1,109 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Profound Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Profhilo/Profound Consent Form
+                    <br /><span dir="rtl" class="text-right">بروفيلو/نموذج الموافقة العميقة </span>
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="ProfoundConsent_add" style="display:none">
+                </div>
+                <div id="ProfoundConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="ProfoundConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetProfoundConsentInfo();
+        ProfoundConsentPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetProfoundConsentInfo
+    var GetProfoundConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetProfoundConsentData", "ProfoundConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditProfoundConsent();
+                        $("#ProfoundConsent_add").hide();
+                        $("#ProfoundConsent_edit").show();
+
+                    }
+                    else {
+                        $("#ProfoundConsent_add").show();
+                        $("#ProfoundConsent_edit").hide();
+                        AddProfoundConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load ProfoundConsent
+
+    //#region Add ProfoundConsent
+    function AddProfoundConsent() {
+        var x = $("#ProfoundConsent_add");
+        x.load("@Url.Action("CreateProfoundConsent", "ProfoundConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add ProfoundConsent
+
+    // #region Update ProfoundConsent
+    function EditProfoundConsent() {
+        var x = $("#ProfoundConsent_edit");
+        x.load("@Url.Action("UpdateProfoundConsent", "ProfoundConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update ProfoundConsent
+
+    //#region Histroy of ProfoundConsent
+    function ProfoundConsentPreviousHistory() {
+        var x = $("#ProfoundConsent_history");
+        x.load("@Url.Action("ProfoundConsentPreviousHistory", "ProfoundConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

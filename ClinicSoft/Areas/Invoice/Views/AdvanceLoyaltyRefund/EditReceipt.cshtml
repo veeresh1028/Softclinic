@@ -1,0 +1,1814 @@
+﻿@model BusinessEntities.Invoice.ReceiptWithInvoiceInfo
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update @Model.receipts.rec_type Receipt</h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4" id="urec_div">
+    <div class="row">
+        <form id="form_advance_edit">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">Select Patient&nbsp;<span class="text-danger">*</span></label>
+                        <select placeholder="Select Any" class="form-select select2 mb-2" id="urec_patient" name="urec_patient" disabled>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-3" id="divdoc">
+                    <div class="form-group">
+                        <label class="form-label">Select Doctor&nbsp;<span class="text-danger">*</span></label>
+                        <select placeholder="Select Any Doctor" class="form-select select2 mb-2" id="urec_doctor" name="urec_doctor">
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label"><span class="text-info">Date&nbsp;<span class="text-danger">*</span></span></label>
+
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div>
+                            <input type="text" name="urec_date" id="urec_date" class="form-control font-weight-semibold" placeholder="Ex:DD-MMMM-YYYY" autocomplete="off" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label"><span class="text-info">Receipt Code </span></label>
+                        <input class="form-control font-weight-semibold" placeholder="Eg:Rec-0001" type="text" readonly value="@Model.receipts.rec_code" name="urec_code" id="urec_code">
+                    </div>
+                </div>
+            </div>
+            <div class="row" id="udivReference">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label" id="ulbl_ref">Select Reference&nbsp;<span class="text-danger">*</span></label>
+                        <select placeholder="Select Any" class="form-select select2 mb-2" id="urec_reference" name="urec_reference">
+                        </select>
+                        <span class="text-info font-weight-semibold" style="font-size:smaller; font-style:italic;" id="uvalid-msg"></span>
+                    </div>
+                </div>
+            </div>
+            <hr style="margin-top: 0.5rem; margin-bottom: 0.5rem; " />
+            <div id="udivAdvanceRefund">
+                <h3 class="card-title">
+                    Payment Mode :
+                </h3>
+
+                <div class="row mt-5">
+                    <div class="col-lg-12 col-md-12 col-sm-12 text-start">
+                        <div class="form-group font-weight-bold">
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description me-2 font-weight-bold text-dark">Cheque</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(3, $(this).is(':checked'))" checked="checked" id="uchkChq">
+                                <span class="custom-switch-indicator custom-switch-indicator-secondary"></span>
+                            </label>
+
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description me-2 font-weight-bold text-dark">Bank Transfer</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(4, $(this).is(':checked'))" id="uchkBT">
+                                <span class="custom-switch-indicator custom-switch-indicator-warning"></span>
+                            </label>
+
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description me-2 font-weight-bold text-dark">Tabby</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(9, $(this).is(':checked'))" id="uchkTabby">
+                                <span class="custom-switch-indicator custom-switch-indicator-secondary"></span>
+                            </label>
+
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description me-2 font-weight-bold text-dark">Selfology</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(10, $(this).is(':checked'))" id="uchkSelf">
+                                <span class="custom-switch-indicator custom-switch-indicator-warning"></span>
+                            </label>
+
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description me-2 font-weight-bold text-dark">Spotify</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(11, $(this).is(':checked'))" id="uchkSpoti">
+                                <span class="custom-switch-indicator custom-switch-indicator-danger"></span>
+                            </label>
+
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description me-2 font-weight-bold text-dark">Cobone</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(12, $(this).is(':checked'))" id="uchkCob">
+                                <span class="custom-switch-indicator custom-switch-indicator-dark"></span>
+                            </label>
+
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description me-2 font-weight-bold text-dark">Group-n Add</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(13, $(this).is(':checked'))" id="uchkGroup">
+                                <span class="custom-switch-indicator custom-switch-indicator-success"></span>
+                            </label>
+
+                            <label class="custom-switch mb-2">
+                                <span class="custom-switch-description ms-0 me-2 font-weight-bold text-dark">Stripe</span>
+                                <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="upayby(14, $(this).is(':checked'))" id="chkStripe">
+                                <span class="custom-switch-indicator custom-switch-indicator-danger"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-1">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Cash</span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_cash" name="urec_cash" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Credit Card  </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_cc" name="urec_cc" oninput="uuvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Chrg. (%)</span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_cc_per" name="urec_cc_per" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1" id="udivCq">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Cheque Amt. </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_chq" name="urec_chq" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2" id="udivCqNo">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Cheque No. </span></label>
+                            <input class="form-control font-weight-semibold" placeholder="Eg:123456" type="text" id="urec_chq_no" name="urec_chq_no">
+                        </div>
+                    </div>
+                    <div class="col-md-3" id="udivCqBank">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Bank Name </span></label>
+                            <input class="form-control font-weight-semibold" placeholder="Eg:ADCB" type="text" id="urec_chq_bank" name="urec_chq_bank">
+                        </div>
+                    </div>
+
+                    <div class="col-md-2" id="udivCqDate">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Cheque Date </span></label>
+
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input type="text" id="urec_chq_date" class="form-control font-weight-semibold" placeholder="Ex:DD-MMMM-YYYY" autocomplete="off" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1 d-none" id="udivBT">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Bank Transfer </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_bt" name="urec_bt" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-none" id="udivBT_Bank">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Bank Name </span></label>
+                            <select class="form-select select2" id="urec_bt_bank"></select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1 d-none" id="udivTabby">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Tabby </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_tabby" name="urec_tabby" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1 d-none" id="udivSoft">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Selfology </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_self" name="urec_self" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1 d-none" id="udivSpo">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Spotify </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_spoti" name="urec_spoti" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1 d-none" id="udivCob">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Cobone </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_cob" name="urec_cob" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1 d-none" id="udivGro">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Group-n Add </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_group" name="urec_group" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-1 d-none" id="udivStripe">
+                        <div class="form-group">
+                            <label class="form-label"><span class="text-info">Stripe </span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_stripe" name="urec_stripe" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="udivLoyalty">
+                <h3 class="card-title">
+                    Loyalty Points :
+                    <br /><br />
+                    <span class="text-info font-weight-semibold" style="font-size: smaller; font-style: italic; text-transform: lowercase;">
+                        this loyalty point will reflect in invoice &amp; billing
+                    </span>
+                </h3>
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text  ">
+                                        <i class="fe fe-plus text-green pay"></i>
+                                    </div>
+                                </div>
+                                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="urec_loyalty_value" name="urec_loyalty_value" oninput="uvalidate(this,0)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="row">
+                    <div class="col-lg-12 col-sm-12 col-md-12">
+                        <textarea id="urec_notes" name="urec_notes" class="form-control" rows="5" placeholder="Enter receipts notes..."></textarea>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                    <div class="form-group">
+                        <div id="uerror"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label mt-1">&nbsp;<span class="text-danger" id="uerror_receipts"></span></label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="float-end mb-4">
+                    <button type="button" class="btn btn-primary me-2" id="update_receipts"><i class="si si-wallet"></i> Pay Receipt</button>
+                    <button type="button" class="btn btn-outline-dark me-2" id="ureset_receipts"><i class="fe fe-x"></i> Reset</button>
+                    <button type="button" class="btn btn-outline-danger me-2" data-bs-dismiss="modal"><i class="fe fe-minimize"></i> Close</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    //#region Document Load
+    $(function () {
+        $('#urec_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        $("#urec_date").bootstrapdatepicker("setDate", 'today');
+
+        $("#urec_patient").select2({
+            placeholder: 'Select Patient',
+            width: '100%',
+            dropdownParent: $('#form_advance_edit'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchPatients", "AdvanceLoyaltyRefund", new { area = "Invoice" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    var _type = 0;
+
+                    if ("@Model.receipts.rec_type" == "Refund") {
+                        _type = 3;
+                    }
+                    else if ("@Model.receipts.rec_type" == "Inv Refund") {
+                        _type = 2;
+                    }
+                    else {
+                        _type = 1;
+                    }
+
+                    return {
+                        query: query.term,
+                        type: _type
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#urec_reference").select2({
+            placeholder: 'Select Reference',
+            width: '100%',
+            dropdownParent: $('#form_advance_edit')
+        });
+
+        $('#urec_chq_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        $("#urec_chq_date").bootstrapdatepicker("setDate", 'today');
+
+        $("#urec_bt_bank").select2({
+            placeholder: 'Select Bank',
+            width: '100%',
+            dropdownParent: $('#form_advance_edit')
+        });
+
+        load_banks();
+
+        receipt_validation();
+
+        load_receipt_data();
+
+        loadDoctors()
+    });
+    //#endregion
+
+    var load_receipt_data = function () {
+        var label = "<span class='text-primary me-2'>@Model.patient.pat_code.ToString() - </span> " +
+            "<span class='text-info me-2'>@Model.patient.pat_name.ToString()  - </span> " +
+            "<span class='text-danger me-2'>@Model.patient.pat_mob.ToString()</span>"
+
+        var newOption = new Option(label, @Model.patient.patId.ToString(), true, true);
+        $('#urec_patient').append(newOption).trigger('change');
+        $('#urec_patient').trigger('select2:select');
+
+        $('#urec_notes').val('@Model.receipts.rec_notes');
+
+        if ('@Model.receipts.rec_type' == "Advance") {
+            $("#udivReference").hide();
+            $("#ulbl_ref").html("Select Reference");
+            $("#uvalid-msg").html("");
+
+            $(".pay").removeClass("fe-minus text-danger");
+            $(".pay").addClass("fe-plus text-green");
+
+            $("#udivAdvanceRefund").show();
+            $("#udivLoyalty").hide();
+            $("#update_receipts").html('<i class="fe fe-plus-circle"></i> Make Advance Payment');
+            $("#update_receipts").addClass("btn-primary");
+            $("#update_receipts").removeClass("btn-danger btn-success");
+        }
+        else if ('@Model.receipts.rec_type' == "Loyalty") {
+            $("#udivReference").hide();
+            $("#ulbl_ref").html("Select Reference");
+            $("#uvalid-msg").html("");
+
+            $(".pay").removeClass("fe-minus text-danger");
+            $(".pay").addClass("fe-plus text-green");
+
+            $("#udivAdvanceRefund").hide();
+            $("#udivLoyalty").show();
+            $("#update_receipts").html('<i class="si si-present"></i> Earn Loyalty Points');
+            $("#update_receipts").addClass("btn-success");
+            $("#update_receipts").removeClass("btn-primary btn-danger");
+        }
+        else if ('@Model.receipts.rec_type' == "Refund") {
+
+            $('#urec_reference').val(@Model.receipts.rec_advance).trigger('change');
+            $("#udivReference").show();
+            $("#ulbl_ref").html("Select Advance Reference&nbsp;<span class='text-danger'>*</span>");
+            $("#uvalid-msg").html("select the patient first according to the patient advances will load here to refund..");
+            $("#udivAdvanceRefund").show();
+            $("#udivLoyalty").hide();
+            $(".pay").addClass("fe-minus text-danger");
+            $(".pay").removeClass("fe-plus text-green");
+
+            $("#update_receipts").html('<i class="fe fe-minus-circle"></i> Make Refund');
+            $("#update_receipts").addClass("btn-danger");
+            $("#update_receipts").removeClass("btn-primary btn-success");
+            $("#ulbl_ref").html("Select Advance Reference&nbsp;<span class='text-danger'>*</span>");
+            $("#uvalid-msg").html("select the patient first according to the patient, advances will load here to refund..");
+        }
+        else if ('@Model.receipts.rec_type' == "Inv Refund") {
+            var id = @Model.receipts.rec_advance + " - " + @Model.receipts.rec_invoice;
+            $('#urec_reference').val(id).trigger('change');
+            $("#udivReference").show();
+            $("#ulbl_ref").html("Select Advance Reference&nbsp;<span class='text-danger'>*</span>");
+            $("#uvalid-msg").html("select the patient first according to the patient advances will load here to refund..");
+            $("#udivAdvanceRefund").show();
+            $("#udivLoyalty").hide();
+            $(".pay").addClass("fe-minus text-danger");
+            $(".pay").removeClass("fe-plus text-green");
+
+            $('#rec_patient').empty();
+            $("#update_receipts").html('<i class="fe fe-minus-circle"></i> Make Refund');
+            $("#update_receipts").addClass("btn-danger");
+            $("#update_receipts").removeClass("btn-primary btn-success");
+            $("#ulbl_ref").html("Select Invoice Reference&nbsp;<span class='text-danger'>*</span>");
+            $("#uvalid-msg").html("select the patient first according to the patient, invoice receipts will load here to refund..");
+        }
+
+        //Loyalty
+        if (@Model.receipts.rec_loy_value > 0) {
+            $("#urec_loyalty_value").val(@Model.receipts.rec_loy_value);
+        }
+        else {
+            $("#urec_loyalty_value").val("0.00");
+        }
+
+        //Cash
+        if (parseFloat(@Model.receipts.rec_cash) != 0) {
+            if (@Model.receipts.rec_cash > 0) {
+                $("#urec_cash").val(@Model.receipts.rec_cash);
+            }
+            else {
+                $("#urec_cash").val(-1 * @Model.receipts.rec_cash);
+            }
+        }
+        else {
+            $("#urec_cash").val("0.00");
+        }
+
+        //Credit Card
+        if (parseFloat(@Model.receipts.rec_cc) != 0) {
+            if (@Model.receipts.rec_cc > 0) {
+                $("#urec_cc").val(@Model.receipts.rec_cc);
+                $("#urec_cc_per").val(@Model.receipts.rec_cc_per);
+            }
+            else {
+                $("#urec_cc").val(-1 * @Model.receipts.rec_cc);
+                $("#urec_cc_per").val(-1 * @Model.receipts.rec_cc_per);
+            }
+        }
+        else {
+            $("#urec_cc").val("0.00");
+            $("#urec_cc_per").val("0.00");
+        }
+
+        //Cheque
+        if (parseFloat(@Model.receipts.rec_chq) != 0) {
+            if (@Model.receipts.rec_chq > 0) {
+                $("#urec_chq").val(@Model.receipts.rec_chq);
+            }
+            else {
+                $("#urec_chq").val( -1 * @Model.receipts.rec_chq);
+            }
+            $("#urec_chq_no").val('@Model.receipts.rec_chq_no');
+            $("#urec_chq_bank").val('@Model.receipts.rec_chq_bank');
+            $("#urec_chq_date").bootstrapdatepicker("setDate", moment('@Model.receipts.rec_chq_date').format("DD-MM-YYYY"));
+            $("#uchkChq").prop('checked', true);
+            upayby(3, true);
+        }
+        else {
+            $("#urec_chq").val("0.00");
+            $("#urec_chq_no").val("");
+            $("#urec_chq_bank").val("");
+            $("#urec_chq_date").bootstrapdatepicker("setDate", 'today');
+            $("#uchkChq").prop('checked', false);
+            upayby(3, false);
+        }
+
+        //Bank Transfer
+        if (parseFloat(@Model.receipts.rec_bt) != 0) {
+            if (@Model.receipts.rec_bt > 0) {
+                $("#urec_bt").val(@Model.receipts.rec_bt);
+            }
+            else {
+                $("#urec_bt").val( -1 * @Model.receipts.rec_bt);
+            }
+            $("#urec_bt_bank").val(@Model.receipts.rec_bt_bank).trigger('change');
+            $("#uchkBT").prop('checked', true);
+            upayby(4, true);
+        }
+        else {
+            $("#urec_bt").val("0.00");
+            $('#urec_bt_bank').val("0").trigger('change');
+            $("#uchkBT").prop('checked', false);
+            upayby(4, false);
+        }
+
+        //Tabby
+        if (parseFloat(@Model.receipts.rec_tabby) != 0) {
+            if (@Model.receipts.rec_tabby > 0) {
+                $("#urec_tabby").val(@Model.receipts.rec_tabby);
+            }
+            else {
+                $("#urec_tabby").val( -1 * @Model.receipts.rec_tabby);
+            }
+            $("#uchkTabby").prop('checked', true);
+            upayby(9, true);
+        }
+        else {
+            $("#urec_tabby").val("0.00");
+            $("#uchkBT").prop('checked', false);
+            upayby(9, false);
+        }
+
+        //Selfology
+        if (parseFloat(@Model.receipts.rec_self) != 0) {
+            if (@Model.receipts.rec_self > 0) {
+                $("#urec_self").val(@Model.receipts.rec_self);
+            }
+            else {
+                $("#urec_self").val( -1 * @Model.receipts.rec_self);
+            }
+            $("#uchkSelf").prop('checked', true);
+            upayby(10, true);
+        }
+        else {
+            $("#urec_self").val("0.00");
+            $("#uchkSelf").prop('checked', false);
+            upayby(10, false);
+        }
+
+        //Spotify
+        if (parseFloat(@Model.receipts.rec_spoti) != 0) {
+            if (@Model.receipts.rec_spoti > 0) {
+                $("#urec_spoti").val(@Model.receipts.rec_spoti);
+            }
+            else {
+                $("#urec_spoti").val( -1 * @Model.receipts.rec_spoti);
+            }
+            $("#uchkSpoti").prop('checked', true);
+            upayby(11, true);
+        }
+        else {
+            $("#urec_spoti").val("0.00");
+            $("#uchkSpoti").prop('checked', false);
+            upayby(11, false);
+        }
+
+        //Cobone
+        if (parseFloat(@Model.receipts.rec_cob) != 0) {
+            if (@Model.receipts.rec_cob > 0) {
+                $("#urec_cob").val(@Model.receipts.rec_cob);
+            }
+            else {
+                $("#urec_cob").val( -1 * @Model.receipts.rec_cob);
+            }
+            $("#uchkCob").prop('checked', true);
+            upayby(12, true);
+        }
+        else {
+            $("#urec_cob").val("0.00");
+            $("#uchkCob").prop('checked', false);
+            upayby(12, false);
+        }
+
+        //Group & Add
+        if (parseFloat(@Model.receipts.rec_group) != 0) {
+            if (@Model.receipts.rec_group > 0) {
+                $("#urec_group").val(@Model.receipts.rec_group);
+            }
+            else {
+                $("#urec_group").val( -1 * @Model.receipts.rec_group);
+            }
+            $("#uchkGroup").prop('checked', true);
+            upayby(13, true);
+        }
+        else {
+            $("#urec_group").val("0.00");
+            $("#uchkGroup").prop('checked', false);
+            upayby(13, false);
+        }
+
+        //Stripe
+        if (parseFloat(@Model.receipts.rec_stripe) != 0) {
+            if (@Model.receipts.rec_stripe > 0) {
+                $("#urec_stripe").val(@Model.receipts.rec_stripe);
+            }
+            else {
+                $("#urec_stripe").val( -1 * @Model.receipts.rec_stripe);
+            }
+            $("#uchkStripe").prop('checked', true);
+            upayby(14, true);
+        }
+        else {
+            $("#urec_stripe").val("0.00");
+            $("#uchkStripe").prop('checked', false);
+            upayby(14, false);
+        }
+    }
+
+    //PayBy Options
+    var upayby = function (id, isChecked) {
+        if (id == 1) { //Cash
+            if (isChecked) {
+                $("#udivCash").removeClass("d-none");
+            }
+            else {
+                $("#udivCash").addClass("d-none");
+            }
+        }
+
+        if (id == 2) { //Credit Card
+            if (isChecked) {
+                $("#udivCC").removeClass("d-none");
+                $("#udivCC_Per").removeClass("d-none");
+            }
+            else {
+                $("#udivCC").addClass("d-none");
+                $("#udivCC_Per").addClass("d-none");
+            }
+        }
+
+        if (id == 3) { //Cheque
+            if (isChecked) {
+                $("#udivCq").removeClass("d-none");
+                $("#udivCqNo").removeClass("d-none");
+                $("#udivCqBank").removeClass("d-none");
+                $("#udivCqDate").removeClass("d-none");
+            }
+            else {
+                $("#udivCq").addClass("d-none");
+                $("#udivCqNo").addClass("d-none");
+                $("#udivCqBank").addClass("d-none");
+                $("#udivCqDate").addClass("d-none");
+            }
+        }
+
+        if (id == 4) { //Bank Transfer
+            if (isChecked) {
+                $("#udivBT").removeClass("d-none");
+                $("#udivBT_Bank").removeClass("d-none");
+            }
+            else {
+                $("#udivBT").addClass("d-none");
+                $("#udivBT_Bank").addClass("d-none");
+            }
+        }
+
+
+        if (id == 9) { //Tabby
+            if (isChecked) {
+                $("#udivTabby").removeClass("d-none");
+            }
+            else {
+                $("#udivTabby").addClass("d-none");
+            }
+        }
+
+        if (id == 10) { //Sofology
+            if (isChecked) {
+                $("#udivSoft").removeClass("d-none");
+            }
+            else {
+                $("#udivSoft").addClass("d-none");
+            }
+        }
+
+        if (id == 11) { //Spotify
+            if (isChecked) {
+                $("#udivSpo").removeClass("d-none");
+            }
+            else {
+                $("#udivSpo").addClass("d-none");
+            }
+        }
+
+        if (id == 12) { //Cobone
+            if (isChecked) {
+                $("#udivCob").removeClass("d-none");
+            }
+            else {
+                $("#udivCob").addClass("d-none");
+            }
+        }
+
+        if (id == 13) { //Group-n Add
+            if (isChecked) {
+                $("#udivGro").removeClass("d-none");
+            }
+            else {
+                $("#udivGro").addClass("d-none");
+            }
+        }
+
+        if (id == 14) { //Stripe
+            if (isChecked) {
+                $("#udivStripe").removeClass("d-none");
+            }
+            else {
+                $("#udivStripe").addClass("d-none");
+            }
+        }
+    }
+
+    //Load Banks
+    var load_banks = function () {
+        $.ajax({
+            url: '@Url.Action("BankNamesForBankTransfers", "Receipt", new { area = "Invoice" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                $('#urec_bt_bank').empty();
+                var _data = response;
+                if (_data.length > 0) {
+                    var optNone = new Option("Select Any", "0", false, false);
+                    $('#urec_bt_bank').append(optNone).trigger('change');
+
+                    $.each(response, function (j) {
+                        var label = response[j]["acc_code"] + " | " + response[j]["acc_name"] + " | " + response[j]["acc_cbal"];
+                        var newOption = new Option(label, response[j]["acc_code"],  false, false);
+                        $('#urec_bt_bank').append(newOption).trigger('change');
+                    });
+
+                    $('#urec_bt_bank').val("0").trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        })
+    }
+
+    //#region Receipt Validation
+    var receipt_validation = function () {
+        $('#urec_cash').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_cc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_cc_per').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_chq').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_bt').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_tabby').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_self').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_spoti').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_cob').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_group').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_stripe').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#urec_loyalty_value').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $("#form_advance_edit").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "urec_patient": {
+                    required: true
+                },
+                "urec_doctor": {
+                    required: true
+                },
+                "urec_date": {
+                    required: true
+                },
+                "urec_reference": {
+                    required: function () {
+                        return $("input[name='rdoType']:checked").val() === "Refund";
+                    }
+                }
+            },
+            messages: {
+                "urec_patient": {
+                    required: "Please Select Patient"
+                },
+                "urec_doctor": {
+                    required: "Please Select Doctor"
+                },
+                "urec_date": {
+                    required: "Please Select Date"
+                },
+                "urec_reference": {
+                    required: "Select the Refunding Invoice/Advance"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#urec_patient').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#urec_date').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#urec_reference').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+
+    //Validate Max value for Controls
+    var uvalidate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion Receipt Validation
+
+    //Clear Treatments
+    var uclearReceipts = function () {
+        $("#urec_cash").val("0.00");
+        $("#urec_cc").val("0.00");
+        $("#urec_cc_per").val("0.00");
+        $("#urec_chq").val("0.00");
+        $("#urec_chq_no").val("");
+        $("#urec_chq_bank").val("");
+        $("#urec_chq_date").bootstrapdatepicker("setDate", 'today');
+        $("#urec_bt").val("0.00");
+        $("#urec_bt_bank").val("");
+        $("#urec_tabby").val("0.00");
+        $("#urec_self").val("0.00");
+        $("#urec_spoti").val("0.00");
+        $("#urec_cob").val("0.00");
+        $("#urec_group").val("0.00");
+        $("#urec_stripe").val("0.00");
+        $("#urec_loy_value").val("0.00");
+        $("#urec_notes").val("");
+
+        $("#update_receipts").hide();
+    }
+
+    //Calculation for Receipts
+    var ucalculation_refund = function () {
+        var _type = 0;
+        var rdo_type = "@Model.receipts.rec_type";
+
+        if (rdo_type.includes("Refund")) {
+            var error = 0;
+            var refund_amount = 0;
+
+            var _cash = $("#urec_cash").val();
+            var _cc = $("#urec_cc").val();
+            var _cc_per = $("#urec_cc_per").val();
+            var _chq = $("#urec_chq").val();
+            var _bt = $("#urec_bt").val();
+            var _tabby = $("#urec_tabby").val();
+            var _self = $("#urec_self").val();
+            var _spoti = $("#urec_spoti").val();
+            var _cobone = $("#urec_cob").val();
+            var _group = $("#urec_group").val();
+            var _stripe = $("#urec_stripe").val();
+
+            //Advance Allocated
+            if (($("#urec_reference").val() != null) &&
+                ($("#urec_reference").val() != undefined) &&
+                ($("#urec_reference").val() != "") && ($("#urec_reference").val() != NaN)) {
+                var selected_text = $("#urec_reference option:selected").text();
+                var value_arr = selected_text.split("|");
+                var amount = value_arr[2].trim().replace(" ", "");
+
+                refund_amount = parseFloat(amount);
+            }
+            else {
+                error++;
+                $("#uerror_receipts").html("Please select refund invoice or advance recipt ");
+                $("#urec_reference").attr("style", "border:1px solid red;color:red;");
+            }
+
+
+            //Cheque
+            if (parseFloat(_chq) > 0) {
+                if (!(($("#urec_chq_no").val() != null) &&
+                    ($("#urec_chq_no").val() != undefined) && ($("#urec_chq_no").val() != "") &&
+                    ($("#urec_chq_no").val() != NaN))) {
+                    error++;
+                    $("#uerror_receipts").html("Cheque No is Required ");
+                    $("#urec_chq_no").attr("style", "border:1px solid red;color:red;");
+                }
+                else {
+                    $("#uerror_receipts").html("");
+                    $("#urec_chq_no").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                }
+
+                if (!(($("#urec_chq_date").val() != null) &&
+                    ($("#urec_chq_date").val() != undefined) &&
+                    ($("#urec_chq_date").val() != "") && ($("#urec_chq_date").val() != NaN))) {
+                    error++;
+                    $("#uerror_receipts").html("Cheque Date is Required ");
+                    $("#urec_chq_date").attr("style", "border:1px solid red;color:red;");
+                }
+                else {
+                    $("#uerror_receipts").html("");
+                    $("#urec_chq_date").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                }
+
+                if (!(($("#urec_chq_bank").val() != null) &&
+                    ($("#urec_chq_bank").val() != undefined) &&
+                    ($("#urec_chq_bank").val() != "") && ($("#urec_chq_bank").val() != NaN))) {
+                    error++;
+                    $("#uerror_receipts").html("Bank Name is Required ");
+                    $("#urec_chq_bank").attr("style", "border:1px solid red;color:red;");
+                }
+                else {
+                    $("#uerror_receipts").html("");
+                    $("#urec_chq_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                }
+            }
+
+            //Bank Transfer
+            if (parseFloat(_bt) > 0) {
+                if (($("#urec_bt_bank").val() != null) &&
+                    ($("#urec_bt_bank").val() != undefined) &&
+                    ($("#urec_bt_bank").val() != "") &&
+                    ($("#urec_bt_bank").val() != NaN)) {
+                    $("#uerror_receipts").html("");
+                    $("#urec_bt_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+
+                    var selected_text = $("#urec_bt_bank option:selected").text();
+                    var value_arr = selected_text.split("|");
+                    var amount = value_arr[2].trim().replace(" ", "");
+
+                    if (!(parseFloat(amount) >= parseFloat(_bt))) {
+                        error++;
+                        $("#uerror_receipts").html("Bank Transferred Should be less than or equal to " + amount);
+                        $("#urec_bt").attr("style", "border:1px solid red;color:red;");
+                        $("#urec_bt_bank").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#uerror_receipts").html("");
+                        $("#urec_bt").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#urec_bt_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else {
+                    error++;
+                    $("#uerror_receipts").html("Bank Account is Required for Bank Transfers");
+                    $("#urec_bt_bank").attr("style", "border:1px solid red;color:red;");
+                }
+            }
+
+            if (error == 0) {
+                var urec_total = parseFloat(_cash) + parseFloat(_cc) + parseFloat(_chq) + parseFloat(_bt) +
+                    parseFloat(_tabby) + parseFloat(_self) + parseFloat(_spoti) + parseFloat(_cobone) +
+                    parseFloat(_group) + parseFloat(_stripe);
+
+
+                if (parseFloat(refund_amount) >= parseFloat(urec_total)) {
+                    $("#uerror_receipts").html("");
+                    $('#update_receipts').show();
+                }
+                else {
+                    $('#update_receipts').hide();
+                    $("#uerror_receipts").html("Refund total is not more than invoiced or advanced amount");
+                }
+            }
+            else {
+                $('#update_receipts').hide();
+            }
+        }
+        else if (rdo_type.includes("Advance")) {
+            var error = 0;
+            var refund_amount = 0;
+
+            var _cash = $("#urec_cash").val();
+            var _cc = $("#urec_cc").val();
+            var _cc_per = $("#urec_cc_per").val();
+            var _chq = $("#urec_chq").val();
+            var _bt = $("#urec_bt").val();
+            var _tabby = $("#urec_tabby").val();
+            var _self = $("#urec_self").val();
+            var _spoti = $("#urec_spoti").val();
+            var _cobone = $("#urec_cob").val();
+            var _group = $("#urec_group").val();
+            var _stripe = $("#urec_stripe").val();
+
+            //Cheque
+            if (parseFloat(_chq) > 0) {
+                if (!(($("#urec_chq_no").val() != null) &&
+                    ($("#urec_chq_no").val() != undefined) && ($("#rec_chq_no").val() != "") &&
+                    ($("#urec_chq_no").val() != NaN))) {
+                    error++;
+                    $("#uerror_receipts").html("Cheque No is Required ");
+                    $("#urec_chq_no").attr("style", "border:1px solid red;color:red;");
+                }
+                else {
+                    $("#uerror_receipts").html("");
+                    $("#urec_chq_no").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                }
+
+                if (!(($("#urec_chq_date").val() != null) &&
+                    ($("#urec_chq_date").val() != undefined) &&
+                    ($("#urec_chq_date").val() != "") && ($("#urec_chq_date").val() != NaN))) {
+                    error++;
+                    $("#uerror_receipts").html("Cheque Date is Required ");
+                    $("#urec_chq_date").attr("style", "border:1px solid red;color:red;");
+                }
+                else {
+                    $("#uerror_receipts").html("");
+                    $("#urec_chq_date").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                }
+
+                if (!(($("#urec_chq_bank").val() != null) &&
+                    ($("#urec_chq_bank").val() != undefined) &&
+                    ($("#urec_chq_bank").val() != "") && ($("#urec_chq_bank").val() != NaN))) {
+                    error++;
+                    $("#uerror_receipts").html("Bank Name is Required ");
+                    $("#urec_chq_bank").attr("style", "border:1px solid red;color:red;");
+                }
+                else {
+                    $("#uerror_receipts").html("");
+                    $("#urec_chq_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                }
+            }
+            else {
+                $("#uerror_receipts").html("");
+                $("#urec_chq_no").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#urec_chq_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#urec_chq_date").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+
+            //Bank Transfer
+            if (parseFloat(_bt) > 0) {
+                if (($("#urec_bt_bank").val() != null) &&
+                    ($("#urec_bt_bank").val() != undefined) &&
+                    ($("#urec_bt_bank").val() != "") &&
+                    ($("#urec_bt_bank").val() != NaN)) {
+                    $("#uerror_receipts").html("");
+                    $("#urec_bt_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+
+                    var selected_text = $("#urec_bt_bank option:selected").text();
+                    var value_arr = selected_text.split("|");
+                    var amount = value_arr[2].trim().replace(" ", "");
+
+                    if (!(parseFloat(amount) >= parseFloat(_bt))) {
+                        error++;
+                        $("#uerror_receipts").html("Bank Transferred Should be less than or equal to " + amount);
+                        $("#urec_bt").attr("style", "border:1px solid red;color:red;");
+                        $("#urec_bt_bank").attr("style", "border:1px solid red;color:red;");
+                    }
+                    else {
+                        $("#uerror_receipts").html("");
+                        $("#urec_bt").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#urec_bt_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+                else {
+                    error++;
+                    $("#uerror_receipts").html("Bank Account is Required for Bank Transfers");
+                    $("#urec_bt_bank").attr("style", "border:1px solid red;color:red;");
+                }
+            }
+            else {
+                $("#uerror_receipts").html("");
+                $("#urec_bt").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#urec_bt_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+
+            if (error == 0) {
+                var rec_total = parseFloat(_cash) + parseFloat(_cc) + parseFloat(_chq) + parseFloat(_bt) +
+                    parseFloat(_tabby) + parseFloat(_self) + parseFloat(_spoti) + parseFloat(_cobone) +
+                    parseFloat(_group) + parseFloat(_stripe);
+
+                if (parseFloat(rec_total) > 0) {
+                    $("#uerror_receipts").html("");
+                    $('#update_receipts').show();
+                }
+                else {
+                    $('#update_receipts').hide();
+                    $("#uerror_receipts").html("Enter Advance Amount by any Payment Method!");
+                }
+            }
+            else {
+                $('#update_receipts').hide();
+            }
+        }
+        else {
+            $("#uerror_receipts").html("");
+            $('#update_receipts').show();
+        }
+    }
+
+    //Bank Transfer Bank Change Event
+    $('#urec_bt_bank').on('select2:select', function (e) {
+        ucalculation_refund();
+    });
+
+    //#region Focus In/Out Events
+    $("#urec_cash").focusin(function () {
+        localStorage.setItem("temp_cash", $(this).val());
+    });
+
+    $("#urec_cash").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cash");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cash"));
+            localStorage.removeItem("temp_cash");
+        }
+    });
+
+    $("#urec_cc").focusin(function () {
+        localStorage.setItem("temp_cc", $(this).val());
+    });
+
+    $("#urec_cc").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cc");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cc"));
+            localStorage.removeItem("temp_cc");
+        }
+    });
+
+    $("#urec_cc_per").focusin(function () {
+        localStorage.setItem("temp_cc_per", $(this).val());
+    });
+
+    $("#urec_cc_per").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cc_per");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cc_per"));
+            localStorage.removeItem("temp_cc_per");
+        }
+    });
+
+    $("#urec_chq").focusin(function () {
+        localStorage.setItem("temp_chq", $(this).val());
+    });
+
+    $("#urec_chq").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_chq");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_chq"));
+            localStorage.removeItem("temp_chq");
+        }
+    });
+
+    $("#urec_chq_no").focusout(function () {
+        ucalculation_refund();
+    });
+
+    $("#urec_chq_bank").focusout(function () {
+        ucalculation_refund();
+    });
+
+    $("#urec_chq_date").focusout(function () {
+        ucalculation_refund();
+    });
+
+    $("#urec_bt").focusin(function () {
+        localStorage.setItem("temp_bt", $(this).val());
+    });
+
+    $("#urec_bt").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_bt");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_bt"));
+            localStorage.removeItem("temp_bt");
+        }
+    });
+
+    $("#urec_tabby").focusin(function () {
+        localStorage.setItem("temp_tabby", $(this).val());
+    });
+
+    $("#urec_tabby").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_tabby");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_tabby"));
+            localStorage.removeItem("temp_tabby");
+        }
+    });
+
+    $("#urec_self").focusin(function () {
+        localStorage.setItem("temp_self", $(this).val());
+    });
+
+    $("#urec_self").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_self");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_self"));
+            localStorage.removeItem("temp_self");
+        }
+    });
+
+    $("#urec_spoti").focusin(function () {
+        localStorage.setItem("temp_spoti", $(this).val());
+    });
+
+    $("#urec_spoti").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_spoti");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_spoti"));
+            localStorage.removeItem("temp_spoti");
+        }
+    });
+
+    $("#urec_cob").focusin(function () {
+        localStorage.setItem("temp_cob", $(this).val());
+    });
+
+    $("#urec_cob").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cob");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cob"));
+            localStorage.removeItem("temp_cob");
+        }
+    });
+
+    $("#urec_group").focusin(function () {
+        localStorage.setItem("temp_group", $(this).val());
+    });
+
+    $("#urec_group").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_group");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_group"));
+            localStorage.removeItem("temp_group");
+        }
+    });
+
+    $("#urec_stripe").focusin(function () {
+        localStorage.setItem("temp_stripe", $(this).val());
+    });
+
+    $("#urec_stripe").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_stripe");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_stripe"));
+            localStorage.removeItem("temp_stripe");
+        }
+    });
+
+    $("#urec_loyalty_value").focusin(function () {
+        localStorage.setItem("temp_loy_value", $(this).val());
+    });
+
+    $("#urec_loyalty_value").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_loy_value");
+            ucalculation_refund();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_loy_value"));
+            localStorage.removeItem("temp_loy_value");
+        }
+    });
+
+    //#endregion Focus In/Out Events
+
+    //#region Load Doctors
+    var loadDoctors = function () {
+        $("#urec_doctor").select2({
+            placeholder: 'Select Doctor',
+            width: '100%',
+            maximumInputLength: 6,
+            dropdownParent: $('#form_advance_edit')
+        });
+
+        $.ajax({
+            url: '@Url.Action("GetDoctorsByBranch", "Appointment", new { area = "Appointment" })?app_branch=' + @emp_branch,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#urec_doctor').empty();
+
+                if (response.length > 0) {
+                    $.each(response, function (j) {
+                        //var newOption = new Option(response[j]["Text"], response[j]["Value"], (response[j]["Value"] == -1) ? true : false, (response[j]["Value"] == -1) ? true : false);
+                        var newOption = new Option(response[j]["Text"], response[j]["Value"],  (@Model.receipts.rec_doctor == response[j]["Value"]) ? true :false,  (@Model.receipts.rec_doctor == response[j]["Value"]) ? true :false);
+
+                        $('#urec_doctor').append(newOption).trigger('change');
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //Select Patient
+    $('#urec_patient').on('select2:select', function (e) {
+        var url = '';
+        var _type = 0;
+
+        if ("@Model.receipts.rec_type" == "Refund") {
+           _type = 3;
+           url= '@Url.Action("ReceiptAdvanceByPatId", "Receipt", new { area = "Invoice" })?patId=' + parseInt($("#urec_patient").val());
+        }
+        else if ("@Model.receipts.rec_type" == "Inv Refund") {
+            _type = 2;
+           url= '@Url.Action("RefundInvoiceByPatId", "AdvanceLoyaltyRefund", new { area = "Invoice" })?patId=' + parseInt($("#urec_patient").val());
+        }
+        else {
+           _type = 1;
+        }
+
+        if (_type === 3 || _type === 2) {
+            $.ajax({
+                url: url,
+                type: "GET",
+                dataType: "JSON",
+                async: false,
+                success: function (response) {
+                    $('#urec_reference').empty();
+                    var _data = response;
+                    if (_data.length > 0) {
+                        $.each(response, function (j) {
+                            var id = '';
+                            var code = '';
+
+                            if (_type === 2) {
+                                var value_arr = response[j]["rec_code"].split("[");
+                                var invId = value_arr[1].trim().replace("]", "");
+
+                                code = value_arr[0].trim().replace("[", "");;
+                                id = response[j]["recId"] + " - " + invId;
+                            }
+                            else {
+                                id = response[j]["recId"];
+                                code = response[j]["rec_code"];
+                            }
+                            var label = code + " | " + response[j]["rec_date"] + "| [" + response[j]["rec_amount"] + "] | " + response[j]["rec_advance"];
+                            var newOption = new Option(label, id,  false, false);
+                            $('#urec_reference').append(newOption).trigger('change');
+                        });
+
+                        $('#urec_reference').val(0).trigger('change');
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            })
+        }
+    });
+
+    $('#update_receipts').on('click', function (e) {
+        e.preventDefault();
+
+        var _receipt = {};
+        var _msg = '';
+
+        if ("@Model.receipts.rec_type" == "Loyalty") {
+            _msg = 'Loyalty amount updated successfully....!';
+            _receipt = loyalty_obj();
+        }
+        else if ("@Model.receipts.rec_type" == "Advance") {
+            _msg = 'Advance amount updated successfully....!';
+            _receipt = advance_obj();
+        }
+        else if ("@Model.receipts.rec_type" == "Refund") {
+            _msg = 'Advance refund amount updated successfully....!';
+            _receipt = advance_refund_obj();
+        }
+        else if ("@Model.receipts.rec_type" == "Inv Refund") {
+            _msg = 'Invoice receipt amount updated successfully....!';
+            _receipt = invoice_refund_obj();
+        }
+
+        if ($("#form_advance_edit").valid()) {
+            $.ajax({
+                url: '@Url.Action("UpdatePayReceipt", "Receipt", new { area = "Invoice" })',
+                type: "POST",
+                dataType: "json",
+                data: _receipt,
+                async: false,
+                success: function (data) {
+                    if (data.isSuccess) {
+                        var alertPlaceholder = document.getElementById("AdvanceReceiptAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> " + _msg, "success");
+
+                        $('#edit_receipt_modal').modal('hide');
+                        load_receipts();
+                        timeout();
+                    }
+                    else {
+                        let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                            "<strong>Error.. " + data.message + "</strong><br/>" +
+                            "</div>";
+                        $("#error").html(html);
+                        timeout();
+                    }
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+
+    var loyalty_obj = function () {
+        var _receipt = {
+            "recId": @Model.receipts.recId,
+            "rec_code": "@Model.receipts.rec_code",
+            "rec_prefix": "LYP-",
+            "rec_type": "Loyalty",
+            "rec_date": $("#urec_date").val(),
+            "rec_patient": $("#urec_patient").val(),
+            "rec_invoice": 0,
+            "rec_cash": 0,
+            "rec_cc": 0,
+            "rec_cc_per": 0,
+            "rec_chq": 0,
+            "rec_chq_no": "",
+            "rec_chq_date": $("#urec_chq_date").val(),
+            "rec_chq_bank": "",
+            "rec_bt": 0,
+            "rec_bt_bank": "",
+            "rec_advance": 0,
+            "rec_allocated": 0,
+            "rec_notes": $("#urec_notes").val(),
+            "rec_madeby": 0,
+            "rec_debit": 0,
+            "rec_branch": 0,
+            "rec_voucher": 0,
+            "rec_vamount": 0,
+            "rec_loyalty": 0,
+            "rec_lamount": 0,
+            "rec_loy_value": parseFloat($("#urec_loyalty_value").val()),
+            "rec_tabby": 0,
+            "rec_self": 0,
+            "rec_spoti": 0,
+            "rec_group": 0,
+            "rec_cob": 0,
+            "rec_stripe": 0
+        }
+
+        return _receipt;
+    }
+
+    var advance_obj = function () {
+        var _receipt = {
+            "recId": @Model.receipts.recId,
+            "rec_code": "@Model.receipts.rec_code",
+            "rec_prefix": "ADV-",
+            "rec_type": "Advance",
+            "rec_date": $("#urec_date").val(),
+            "rec_patient": $("#urec_patient").val(),
+            "rec_doctor": $("#urec_doctor").val(),
+            "rec_invoice": 0,
+            "rec_cash": parseFloat($("#urec_cash").val()),
+            "rec_cc": parseFloat($("#urec_cc").val()),
+            "rec_cc_per": parseFloat($("#urec_cc_per").val()),
+            "rec_chq": parseFloat($("#urec_chq").val()),
+            "rec_chq_no": $("#urec_chq_no").val(),
+            "rec_chq_date": $("#urec_chq_date").val(),
+            "rec_chq_bank": $("#urec_chq_bank").val(),
+            "rec_bt": 0,
+            "rec_bt_bank": "",
+            "rec_advance": 0,
+            "rec_allocated": 0,
+            "rec_notes": $("#urec_notes").val(),
+            "rec_madeby": 0,
+            "rec_debit": 0,
+            "rec_branch": 0,
+            "rec_voucher": 0,
+            "rec_vamount": 0,
+            "rec_loyalty": 0,
+            "rec_lamount": 0,
+            "rec_loy_value": 0,
+            "rec_tabby": parseFloat($("#urec_tabby").val()),
+            "rec_self": parseFloat($("#urec_self").val()),
+            "rec_spoti": parseFloat($("#urec_spoti").val()),
+            "rec_group": parseFloat($("#urec_group").val()),
+            "rec_cob": parseFloat($("#urec_cob").val()),
+            "rec_stripe": parseFloat($("#urec_stripe").val())
+        }
+
+        return _receipt;
+    }
+
+    var advance_refund_obj = function () {
+        var _receipt = {
+            "recId": @Model.receipts.recId,
+            "rec_code": "@Model.receipts.rec_code",
+            "rec_prefix": "REF-",
+            "rec_type": "Refund",
+            "rec_date": $("#urec_date").val(),
+            "rec_patient": $("#urec_patient").val(),
+            "rec_invoice": 0,
+            "rec_cash":( -1 * parseFloat($("#urec_cash").val())),
+            "rec_cc": (-1 * parseFloat($("#urec_cc").val())),
+            "rec_cc_per": (-1 * parseFloat($("#urec_cc_per").val())),
+            "rec_chq": (-1 * parseFloat($("#urec_chq").val())),
+            "rec_chq_no": $("#urec_chq_no").val(),
+            "rec_chq_date": $("#urec_chq_date").val(),
+            "rec_chq_bank": $("#urec_chq_bank").val(),
+            "rec_bt": 0,
+            "rec_bt_bank": "",
+            "rec_advance": parseInt($("#urec_reference").val()),
+            "rec_allocated": 0,
+            "rec_notes": $("#urec_notes").val(),
+            "rec_madeby": 0,
+            "rec_debit": 0,
+            "rec_branch": 0,
+            "rec_voucher": 0,
+            "rec_vamount": 0,
+            "rec_loyalty": 0,
+            "rec_lamount": 0,
+            "rec_loy_value": 0,
+            "rec_tabby": (-1 * parseFloat($("#urec_tabby").val())),
+            "rec_self": (-1 * parseFloat($("#urec_self").val())),
+            "rec_spoti": (-1 * parseFloat($("#urec_spoti").val())),
+            "rec_group": (-1 * parseFloat($("#urec_group").val())),
+            "rec_cob": (-1 * parseFloat($("#urec_cob").val())),
+            "rec_stripe": (-1 * parseFloat($("#urec_stripe").val()))
+        }
+
+        return _receipt;
+    }
+
+    var invoice_refund_obj = function () {
+        var value_arr = $("#urec_reference").val().split("-");
+        var rec_invoice = value_arr[1].trim().replace(" ", "");
+        var rec_advance = value_arr[0].trim().replace(" ", "");
+
+
+        var _receipt = {
+            "recId": @Model.receipts.recId,
+            "rec_code": "@Model.receipts.rec_code",
+            "rec_prefix": "I-REF-",
+            "rec_type": "Inv Refund",
+            "rec_date": $("#urec_date").val(),
+            "rec_patient": $("#urec_patient").val(),
+            "rec_invoice": parseInt(rec_invoice),
+            "rec_cash": (-1 * parseFloat($("#urec_cash").val())),
+            "rec_cc": (-1 * parseFloat($("#urec_cc").val())),
+            "rec_cc_per": (-1 * parseFloat($("#urec_cc_per").val())),
+            "rec_chq": (-1 * parseFloat($("#urec_chq").val())),
+            "rec_chq_no": $("#urec_chq_no").val(),
+            "rec_chq_date": $("#urec_chq_date").val(),
+            "rec_chq_bank": $("#urec_chq_bank").val(),
+            "rec_bt": 0,
+            "rec_bt_bank": "",
+            "rec_advance": parseInt(rec_advance),
+            "rec_allocated": 0,
+            "rec_notes": $("#urec_notes").val(),
+            "rec_madeby": 0,
+            "rec_debit": 0,
+            "rec_branch": 0,
+            "rec_voucher": 0,
+            "rec_vamount": 0,
+            "rec_loyalty": 0,
+            "rec_lamount": 0,
+            "rec_loy_value": 0,
+            "rec_tabby": (-1 * parseFloat($("#urec_tabby").val())),
+            "rec_self": (-1 * parseFloat($("#urec_self").val())),
+            "rec_spoti": (-1 * parseFloat($("#urec_spoti").val())),
+            "rec_group": (-1 * parseFloat($("#urec_group").val())),
+            "rec_cob": (-1 * parseFloat($("#urec_cob").val())),
+            "rec_stripe": (-1 * parseFloat($("#urec_stripe").val()))
+        }
+
+        return _receipt;
+    }
+
+    $('#ureset_receipts').on('click', function () {
+        uclearReceipts();
+    });
+</script>

@@ -1,0 +1,964 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Collection Reports (Weekly)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<link href="~/assets/plugins/morris/morris.css" rel="stylesheet" />
+<link href="~/assets/plugins/charts-c3/c3-chart.css" rel="stylesheet" />
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Collection Reports (Weekly)</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-transparent"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch<small>(es)</small></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select From Date" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row row-deck">
+    <div class="col-md-12 col-sm-12 col-lg-12 col-xl-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">
+                    Weekly Revenue Tabular Report
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tbl_weekly_collection" class="table table-hover text-nowrap w-100">
+                        <thead class="border-bottom-0 pt-3 pb-3">
+                            <tr>
+                                <th class="text-center">S.No</th>
+                                <th>Sales Date</th>
+                                <th>Sales (AED)</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th class="text-center fs-14 font-weight-semibold">Total (AED)</th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 col-sm-12 col-lg-12 col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo font-weight-semibold">
+                    Weekly Revenue Graphical Report
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="d-none">
+                    <canvas id="status_chart" class="h-300"></canvas>
+                </div>
+                <div class="chartjs-wrapper-demo">
+                    <canvas id="collection_weekly" class="h-400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row row-deck">
+    <div class="col-md-12 col-sm-12 col-lg-12 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">
+                    Tabular Sales Report (By Department)
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tbl_collection_departments" class="table table-hover text-nowrap w-100">
+                        <thead class="border-bottom-0 pt-3 pb-3">
+                            <tr>
+                                <th>Department</th>
+                                <th>Daily Sales</th>
+                                <th>Weekly Sales</th>
+                                <th>Monthly Sales</th>
+                                <th>Daily (%)</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th class="text-end fs-14 font-weight-semibold">Total (AED)</th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 col-sm-12 col-lg-12 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo font-weight-semibold">
+                    Graphical Report (By Department)
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div id="chart_dept" class="chartsh" style="margin-top: 9.5rem !important;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row row-deck">
+    <div class="col-md-12 col-sm-12 col-lg-12 col-xl-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">
+                    Tabular Sales Report (By Cash / Insurance)
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tbl_collection_type" class="table table-hover text-nowrap w-100">
+                        <thead class="border-bottom-0 pt-3 pb-3">
+                            <tr>
+                                <th>Sales Type</th>
+                                <th>Daily Sales</th>
+                                <th>Weekly Sales</th>
+                                <th>Monthly Sales</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th class="text-end fs-14 font-weight-semibold">Total (AED)</th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 col-sm-12 col-lg-12 col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-indigo">
+                    Tabular Sales Collection Report
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="tbl_collections" class="table table-hover text-nowrap w-100">
+                        <thead class="border-bottom-0 pt-3 pb-3">
+                            <tr>
+                                <th>Description</th>
+                                <th>Daily Nos</th>
+                                <th>Daily Amount</th>
+                                <th>Weekly Nos</th>
+                                <th>Weekly Amount</th>
+                                <th>Monthly Nos</th>
+                                <th>Monthly Amount</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th class="text-end fs-14 font-weight-semibold">Total (AED)</th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                                <th class="text-end fs-14 font-weight-semibold"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="text-wrap d-none" id="toastColl">
+    <div class="toast-main p-5">
+        <div class="demo-static-toast">
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="collToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header text-dark">
+                        <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                        <strong class="me-auto">Collection Report</strong>
+                        <small>Just Now</small>
+                        <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="toast-body" id="toastBody">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script src="~/assets/plugins/morris/raphael-min.js"></script>
+    <script src="~/assets/plugins/morris/morris.js"></script>
+    <script src="~/assets/plugins/chart/chart.bundle.js"></script>
+    <script src="~/assets/plugins/chart/utils.js"></script>
+    <script src="~/assets/js/apexcharts.js"></script>
+    <script src="~/assets/plugins/charts-c3/d3.v5.min.js"></script>
+    <script src="~/assets/plugins/charts-c3/c3-chart.js"></script>
+    <script type="text/javascript">
+        //#region Page Load & Initialization
+        $(function () {
+            // Load Advanced Filters
+            load_filters();
+            // Load Dashboard Data
+            GetCollectionReports();
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        // Initialize All Items
+        var load_filters = function () {
+            load_branches();
+
+            $('#select_date_from').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#select_date_from").bootstrapdatepicker("setDate", "today");
+
+            $('#select_date_from').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                if ("@emp_designation.ToString()" === "Super Administrator")
+                {
+                    $.each(response, function (j) {
+                        $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    });
+                }
+                else
+                {
+                    $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Dashboard Click
+        $("#btnSearch").click(function (e){
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                let isValid = true;
+                let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+
+                // Check if Date From is a valid Date
+                if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                    if (!date_frm.isValid()) {
+                        isValid = false;
+                        e.stopPropagation();
+                        return $.growl.error({
+                            title: "Error",
+                            message: "Invalid Date!"
+                        });
+                    }
+                }
+
+                // Check If Valid
+                if (isValid) {
+                    GetCollectionReports();
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Collection Reports!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Collection Reports
+        var GetCollectionReports = function () {
+
+            var empId = "";
+
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                empId = 0;
+            }
+            else {
+                empId = @empId.ToString();
+            }
+
+            var _data = {
+                "empId"         : empId,
+                "select_branch" : $('#select_branch').val().toString(),
+                "date_from"     : $('#select_date_from').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetCollectionReports", "Reports", new { area = "Reports" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#toastColl').removeClass("d-none");
+                    $('#collToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+
+                        //#region Weekly Collections
+                        // Table
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_weekly_collection')) {
+                            table = $('#tbl_weekly_collection').DataTable();
+                            table.clear();
+                            table.rows.add(response.weeklyCollection).draw();
+                        }
+                        else {
+                            BindWeekTable(response.weeklyCollection);
+                        }
+
+                        // Graphical
+                        weeklyCollection(response);
+                        //#endregion
+
+                        //#region Departmentwise Sales Report
+                        // Table
+                        var table1;
+                        if ($.fn.dataTable.isDataTable('#tbl_collection_departments')) {
+                            table1 = $('#tbl_collection_departments').DataTable();
+                            table1.clear();
+                            table1.rows.add(response.deptCollections).draw();
+                        }
+                        else {
+                            BindDepartmentTable(response.deptCollections);
+                        }
+                        // Graphical
+                        deptReportChart(response.deptCollections);
+                        //#endregion
+
+                        //#region Cash / Insurance Sales Report
+                        // Table
+                        var table2;
+                        if ($.fn.dataTable.isDataTable('#tbl_collection_type')) {
+                            table2 = $('#tbl_collection_type').DataTable();
+                            table2.clear();
+                            table2.rows.add(response.cashInsCollections).draw();
+                        }
+                        else {
+                            BindCashInsTable(response.cashInsCollections);
+                        }
+                        //#endregion
+
+                        //#region Collection Report
+                        // Table
+                        var table3;
+                        if ($.fn.dataTable.isDataTable('#tbl_collections')) {
+                            table3 = $('#tbl_collections').DataTable();
+                            table3.clear();
+                            table3.rows.add(response.collectionReports).draw();
+                        }
+                        else {
+                            BindCollectionReport(response.collectionReports);
+                        }
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var etime = new Date().getTime() - this.start_time;
+
+                        $('#toastBody').html('');
+                        $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Generated </b> report in about <b id="etime">' + etime + '</b> ms');
+                        $('#collToast').show();
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                setTimeout(function () {
+                    $('#collToast').fadeOut('fast');
+                    $('#toastColl').addClass("d-none");
+                }, 5000);
+            });
+        }
+        //#endregion
+
+        //#region Bind Weekly Collection Table
+        var BindWeekTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+            var table = $("#tbl_weekly_collection").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                "bPaginate": false,
+                "bLengthChange": false,
+                "bFilter": false,
+                "bInfo": false,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "className":"text-center",
+                        "mData": "s_no"
+                    },
+                    {
+                        "className": "text-center",
+                        "mData": "sales_date",
+                        "render": function (sales_date, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(sales_date).format("DD-MM-YYYY");
+                            }
+                            return moment(sales_date).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "sales",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[0, 'asc']],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                lengthChange: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    total_inv_total = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(2).footer()).html(numberRenderer(total_inv_total.toFixed(2)));
+                },
+            });
+        };
+        //#endregion
+
+        //#region Collection By Month Chart
+        var statusChart = document.getElementById('status_chart').getContext('2d');
+        var myChart = null;
+        var weeklyCollection = function (response) {
+
+            if (myChart != null) {
+                myChart.destroy();
+            }
+
+            var _data = response.weeklyCollection;
+
+            var _labels = _data.map(function (value) {
+                return moment(value.sales_date).format("DD-MM-YYYY");
+            });
+
+            var _values = _data.map(function (value) {
+                return value.sales;
+            });
+
+            var gradient = statusChart.createLinearGradient(0, 350, 0, 0);
+            gradient.addColorStop(0, 'rgba(102, 77, 201,0)');
+            gradient.addColorStop(1, 'rgba(102, 77, 201,.5)');
+
+            var weekChart = document.getElementById('collection_weekly');
+
+            myChart = new Chart(weekChart, {
+                type: 'line',
+                data: {
+                    labels: _labels,
+                    datasets: [{
+                        data: _values,
+                        borderColor: '#664dc9',
+                        borderWidth: 1,
+                        backgroundColor: gradient
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false,
+                        labels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 10,
+                                max: 50000,
+                                fontColor: 'black',
+                                fontWeight: 'bold'
+                            }
+                        }],
+                        xAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                fontSize: 11,
+                                fontColor: 'black',
+                                fontWeight: 'bold'
+                            }
+                        }]
+                    },
+                    tooltips: {
+                        callbacks: {
+                            label: function (tooltipItem, data) {
+                                var label = data.datasets[0].data[tooltipItem.index];
+
+                                label = "AED " + label.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                return label;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Departmentwise Sales Report Table
+        var BindDepartmentTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+            var table = $("#tbl_collection_departments").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                "bPaginate": false,
+                "bLengthChange": false,
+                "bFilter": false,
+                "bInfo": false,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "department"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "daily",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "weekly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "monthly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "daily_sales_perc",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[0, 'asc']],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                lengthChange: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    total_daily = api.column(1).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(1).footer()).html(numberRenderer(total_daily.toFixed(2)));
+
+                    total_weekly = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(2).footer()).html(numberRenderer(total_weekly.toFixed(2)));
+
+                    total_monthly = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(numberRenderer(total_monthly.toFixed(2)));
+
+                    total_percent = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(4).footer()).html(numberRenderer(total_percent.toFixed(2)));
+                }
+            });
+        };
+        //#endregion
+
+        //#region Bind Departmentwise Sales Report Chart
+        var deptReportChart = function (response) {
+
+            var _labels = response.map(function (value) {
+                return value.department;
+            });
+
+            var dynamicNames = {};
+            _labels.forEach(function (name, index) {
+                var dataKey = 'data' + (index + 1);
+                dynamicNames[dataKey] = name;
+            });
+
+            var _columns = response.map(function (value) {
+                return value.daily_sales_perc;
+            });
+
+            var dynamicColumns = [];
+            var isnull = true;
+
+            _columns.forEach(function (value, index) {
+                if (value > 0) {
+                    isnull = false;
+                }
+                var dataKey = 'data' + (index + 1);
+                dynamicColumns.push([dataKey, value]);
+            });
+
+            if (isnull) {
+                dynamicColumns = [['data1', 100]];
+                dynamicNames = { 'data1': 'Null' };
+            }
+
+            var chart = c3.generate({
+                bindto: '#chart_dept',
+                data: {
+                    columns: dynamicColumns,
+                    type: 'pie',
+                    names: dynamicNames
+                },
+                axis: {
+                },
+                legend: {
+                    show: false,
+                },
+                padding: {
+                    bottom: 0,
+                    top: 0
+                },
+            });
+        }
+        //#endregion
+
+        //#region Bind Cash / Insurance Sales Report Table
+        var BindCashInsTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+            var table = $("#tbl_collection_type").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                "bPaginate": false,
+                "bLengthChange": false,
+                "bFilter": false,
+                "bInfo": false,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "inv_type"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "daily",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "weekly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "monthly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[0, 'asc']],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                lengthChange: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    total_daily = api.column(1).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(1).footer()).html(numberRenderer(total_daily.toFixed(2)));
+
+                    total_weekly = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(2).footer()).html(numberRenderer(total_weekly.toFixed(2)));
+
+                    total_monnthly = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(numberRenderer(total_monnthly.toFixed(2)));
+                },
+            });
+        };
+        //#endregion
+
+        //#region Bind Collection by Type Report Table
+        var BindCollectionTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+            var table = $("#tbl_collection_type").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                "bPaginate": false,
+                "bLengthChange": false,
+                "bFilter": false,
+                "bInfo": false,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "inv_type"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "daily",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "weekly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "monthly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[0, 'asc']],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                lengthChange: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    total_daily = api.column(1).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(1).footer()).html(numberRenderer(total_daily.toFixed(2)));
+
+                    total_weekly = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(2).footer()).html(numberRenderer(total_weekly.toFixed(2)));
+
+                    total_monnthly = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(numberRenderer(total_monnthly.toFixed(2)));
+                }
+            });
+        };
+        //#endregion
+
+        //#region Bind Collection Report Table
+        var BindCollectionReport = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+            var table = $("#tbl_collections").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                "bPaginate": false,
+                "bLengthChange": false,
+                "bFilter": false,
+                "bInfo": false,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "description"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "dailyNos"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "daily",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "weeklyNos"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "weekly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "monthlyNos"
+                    },
+                    {
+                        "className": "text-end",
+                        "mData": "monthly",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                order: [[0, 'asc']],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                lengthChange: true,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    dailyNos = api.column(1).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(1).footer()).html(numberRenderer(dailyNos.toFixed(2)));
+
+                    total_daily = api.column(2).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(2).footer()).html(numberRenderer(total_daily.toFixed(2)));
+
+                    weeklyNos = api.column(3).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(numberRenderer(weeklyNos.toFixed(2)));
+
+                    total_weekly = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(4).footer()).html(numberRenderer(total_weekly.toFixed(2)));
+
+                    monthlyNos = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(5).footer()).html(numberRenderer(monthlyNos.toFixed(2)));
+
+                    total_monthly = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(numberRenderer(total_monthly.toFixed(2)));
+                },
+            });
+        };
+        //#endregion
+    </script>
+}

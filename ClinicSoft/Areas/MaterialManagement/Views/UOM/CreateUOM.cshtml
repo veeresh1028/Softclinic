@@ -1,0 +1,271 @@
+﻿@model BusinessEntities.Accounts.Masters.UOM
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Add UoM</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close close-uom-model" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+
+    <form id="form_AddUOM" autocomplete="off">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">UoM&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.uom, new { @class = "form-control", @placeholder = "Ex : BOX", autocomplete = "off", maxlength = "24" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">UoM Category&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.uom_category, new List<SelectListItem>
+                       {
+                          new SelectListItem{ Text="Main", Value = "Main" },
+                          new SelectListItem{ Text="Sub", Value = "Sub" },
+                       }, "Select Category", new { @class = "form-control select2" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="error"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <button type="submit" class="btn btn-success" id="btn_Insert_UOM">Add</button>
+                <button type="button" class="btn btn-outline-danger me-1 close-uom-model" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+
+    var _from_uom = $('#uom_modal').attr("data-modal-from");
+    
+
+    //#region Page Load
+    $(function () {
+        $('#uom_category').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#uom_body'),
+            width: '100%'
+        });
+        $('#uom').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            if (String.fromCharCode(charCode).match(/[^a-zA-Z ]/g))
+                return false;
+        });
+       validation();
+    });
+    //#endregion Page Load
+
+    //#region Insert New UOM on Button Click
+    $('#btn_Insert_UOM').on('click', function (e) {
+        e.preventDefault();
+        if ($('#form_AddUOM').valid()) {            
+            var _dataInsert = {
+                "uomId": 0,
+                "uom": $('#uom').val().trim(),
+                "uom_category": $('#uom_category').val(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertUOM","UOM", new { area = "MaterialManagement"})",
+                dataType: "JSON",
+                data: _dataInsert,
+                beforeSend: function () {
+                    $('#btn_Insert_UOM').removeClass("btn btn-success");
+                    $('#btn_Insert_UOM').addClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_UOM').html("Saving....");
+                },
+                success: function (data) {
+                    $('#btn_Insert_UOM').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_UOM').addClass("btn btn-success");
+                    $('#btn_Insert_UOM').html("Add");
+                    if (data.isInserted > 0) {
+                        $("#uom").val('');
+                        $("#uom_category").val('').trigger('chnage');
+                        if (_from_uom == "create-stock-uom") {
+                            GetUOM();
+                            var alertPlaceholder = document.getElementById("UOMAlert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> UOM Added Successfully!", "success");
+
+                            $('#uom_modal').modal('toggle');
+                            Timeout();
+
+                        }
+                        else if (_from_uom == "create-stock-item") {
+                            localStorage.setItem("newUOMId", data.isInserted);
+
+                            $('#uom_modal').modal('hide');
+                            $('#items_modal').modal('show');
+
+                            return $.growl.notice({
+                                title: 'Success',
+                                message: '<i class="fa fa-check-circle"></i> ' + data.message,
+                            });
+                        }
+
+                    }
+                    else if (data.isInserted == -2) {
+                        $("#error").html('');
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-circle' ></i>&nbsp;Validation Error.. Please correct before you submit!&nbsp;</strong><br/><ul>";
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+                        html += "</ul></div></div>";
+                        $("#error").html(html);
+
+                        Timeout();
+                    }
+                    else {
+                        $("#error").html('');
+
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-triangle'></i>&nbsp;" + data.message + "&nbsp;</strong></div></div>";
+                        $("#error").html(html);
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert_UOM').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert_UOM').addClass("btn btn-success");
+                    $('#btn_Insert_UOM').html("Add");
+                    var alertPlaceholder = document.getElementById("UOMAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Add UoM!", "danger");
+                    $('#uom_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion Insert New UOM on Button Click
+
+    //#region Adding Validation on Feilds
+    var validation = function () {
+        $("#form_AddUOM").validate({
+            focusInvalid: true,
+            rules:
+            {
+                uom: {
+                    required: true,
+                    minlength: 2
+                },
+                uom_category: {
+                    required: true
+                },
+            },
+            messages: {
+                uom: {
+                    required: "Enter UoM Name",
+                    minlength: "Min 2 characters"
+                },
+                uom_category: {
+                    required: "Select Category",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion Adding Validation on Feilds
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion Remove Valiate Error Class Timeout
+
+    //#region Close Stock UOM Modal Click
+    $('.close-uom-model').on('click', function (e) {
+        e.preventDefault();
+        if (_from_uom === "create-stock-item") {
+            $('#uom_modal').modal('hide');
+            $('#items_modal').modal('toggle');
+        }
+
+    });
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion Alert Timeout
+</script>

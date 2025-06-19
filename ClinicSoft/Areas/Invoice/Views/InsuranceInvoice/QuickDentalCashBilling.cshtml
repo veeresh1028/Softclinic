@@ -1,0 +1,2925 @@
+﻿@model BusinessEntities.Invoice.QuickCash
+
+<style type="text/css">
+    #dtTable_invAddTreatments_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 100px;
+    }
+</style>
+
+<div class="modal-header py-3 px-4" id="dcashInvoiceHeader">
+    <h5 class="modal-title text-primary font-weight-semibold">Cash Invoice - Quick Dental Cash Billing</h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4" id="dcashInvoiceBody">
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="inv-title-box">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span class="font-weight-semibold text-primary fs-15">Invoice No.&nbsp;<span class="text-danger">*</span></span><br>
+                        <input type="text" id="qb_invno" class="form-control" placeholder="Ex : INV23456-234" value="@Model.qc_invoice_info.inv_no" readonly />
+                        <input type="hidden" id="hiInvId" value="0" />
+                    </div>
+                    <div class="col-sm-3">
+                        <span class="font-weight-semibold text-primary fs-15">Invoice Date&nbsp;<span class="text-danger">*</span></span><br>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div>
+                            <input type="text" id="qb_inv_date" class="form-control" placeholder="Ex : DD-MMMM-YYYY" />
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <span class="font-weight-semibold text-primary fs-15">Patient/Client</span><br>
+                        <address>
+                            @Model.qc_invoice_info.pat_name<br />
+                            @Model.qc_invoice_info.pat_code<br>
+
+                            @if (Model.qc_invoice_info.id_card_edate.Date < DateTime.Now.Date)
+                            {
+                                <span class="text-danger">@Model.qc_invoice_info.pat_emirateid</span>
+                            }
+                            else
+                            {
+                                @Model.qc_invoice_info.pat_emirateid;
+                            }
+                        </address>
+                    </div>
+                    <div class="col-lg-3 text-end">
+                        <span class="font-weight-semibold text-primary fs-15">Doctor</span><br>
+                        <address>
+                            @Model.qc_invoice_info.emp_name<br />
+                            @Model.qc_invoice_info.emp_license<br>
+                            @Model.qc_invoice_info.emp_dept_name
+                        </address>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="form_quick_dental_cash">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label class="form-label">Treatments &amp; Procedures&nbsp;<span class="text-danger">*</span></label>
+                    <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_treatment" name="pt_treatment">
+                    </select>
+                    <input type="hidden" value="0" id="hi_pt_tr_code">
+                    <input type="hidden" value="0" id="hi_pt_tr_name">
+                    <input type="hidden" value="0" id="hi_isPackage">
+                </div>
+            </div>
+            <div class="col-md-2 teeth">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Teeth&nbsp;</label>
+                    <div class="form-group mb-3">
+                        <select class="form-control" id="pt_teeth" multiple="multiple">
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 surface">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Surface&nbsp;</label>
+                    <div class="form-group mb-3">
+                        <select class="form-control" id="pt_sur" multiple="multiple">
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Qty&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="1.00" id="pt_qty" name="pt_qty" oninput="validate(this,1000)">
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Session</label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="1.00" id="pt_ses" name="pt_ses" oninput="validate(this,100)">
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Unit Price&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_uprice" name="pt_uprice" oninput="validate(this,100000)">
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Total&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_total" name="pt_total" oninput="validate(this,0)" readonly>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Discount</label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_disc" name="pt_disc" oninput="validate(this,100000)">
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Disc.Type</label>
+                    <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_disc_type" name="pt_disc_type">
+                        <option value="0">%</option>
+                        <option value="1" selected>Fixed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Disc.Value</label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_disc_value" name="pt_disc_value" oninput="validate(this,0)" readonly>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label class="form-label">Coupon</label>
+                    <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_coupon" name="pt_coupon">
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Coupon Disc.</label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_coupon_disc" name="pt_coupon_disc" oninput="validate(this,0)" readonly>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">Net&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_net" name="pt_net" oninput="validate(this,0)" readonly>
+                </div>
+            </div>
+
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">VAT %</label>
+                    <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_vat_type" name="pt_vat_type">
+                        <option value="0">0 %</option>
+                        <option value="5">5 %</option>
+                        <option value="Exempt">Exempt</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group mt-4">
+                    <div class="custom-controls-stacked">
+                        <label class="custom-control custom-radio">
+                            <input type="radio" class="custom-control-input" name="rdoVATType" value="Inclusive" id="rdoVATIn">
+                            <span class="custom-control-label">Inclusive</span>
+                        </label>
+                        <label class="custom-control custom-radio">
+                            <input type="radio" class="custom-control-input" name="rdoVATType" value="Exclusive" id="rdoVATEx" checked="checked">
+                            <span class="custom-control-label">Exclusive</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">VAT&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_vat" name="pt_vat" oninput="validate(this,0)" readonly>
+                    <input type="hidden" value="0" id="hi_pt_vat">
+                    <input type="hidden" value="0" id="hi_pt_vat2">
+                </div>
+            </div>
+            <div class="col-md-1">
+                <div class="form-group">
+                    <label class="form-label">NET + VAT&nbsp;<span class="text-danger">*</span></label>
+                    <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_netvat" name="pt_netvat" oninput="validate(this,0)" readonly>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <span class="text-danger" id="error_msg"></span>
+                    <button type="submit" class="btn btn-info" id="btnAddTreatment"><i class="fe fe-plus"></i> Add Treatment/Service</button>
+                    <button type="button" class="btn btn-outline-dark" id="btn_Reset">Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="card" id="qc_listItems">
+        <div class="card-body p-0">
+            <div class="table-responsive" style="min-height:unset;">
+                <table id="dtTable_invAddTreatments" class="table table-striped table-bordered" style="width:100%">
+                    <thead>
+                        <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                            <th class="border-bottom-0 font-weight-semibold text-white text-end">ID</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">CPT Code</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Treatment &amp; Procedures</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white text-center">Type</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Teeth</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Surface</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Session</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Unit Price</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Disc</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Disc.Type</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Discount</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Coupon.Id</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Coupon</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">Coup.Disc</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white">NET + VAT</th>
+                            <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                            <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                            <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold text">Total :</th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                            <th class="text-end fs-14 font-weight-semibold"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="border p-3">
+                <div class="row">
+                    <div class="col-lg-10 col-sm-12 col-md-12">
+                        <textarea id="inv_notes" name="inv_notes" class="form-control" rows="5" placeholder="Enter Invoice Notes..."></textarea>
+                    </div>
+
+                    <div class="col-lg-2 col-sm-12 col-md-12">
+                        <div class="row">
+                            <div class="col-lg-4 col-sm-12 col-md-4"><label class="font-weight-bold">Total</label></div>
+                            <div class="col-lg-8 col-sm-12 col-md-8 text-end"><label class="text-primary font-weight-bold" id="lbl_inv_total"></label></div>
+                            <div class="col-lg-4 col-sm-12 col-md-4"><label class="font-weight-bold">Discount</label></div>
+                            <div class="col-lg-8 col-sm-12 col-md-8 text-end"><label class="text-danger font-weight-bold" id="lbl_inv_disc"></label></div>
+                            <div class="col-lg-4 col-sm-12 col-md-4"><label class="font-weight-bold">NET</label></div>
+                            <div class="col-lg-8 col-sm-12 col-md-8 text-end"><label class="text-info font-weight-bold" id="lbl_inv_net"></label></div>
+                            <div class="col-lg-4 col-sm-12 col-md-4"><label class="font-weight-bold">VAT</label></div>
+                            <div class="col-lg-8 col-sm-12 col-md-8 text-end"><label class="text-warning font-weight-bold" id="lbl_inv_vat"></label></div>
+                            <div class="col-lg-4 col-sm-12 col-md-4"><label class="font-weight-bold">NET+VAT</label></div>
+                            <div class="col-lg-8 col-sm-12 col-md-8 text-end"><label class="text-success font-weight-bold" id="lbl_inv_netvat"></label></div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                        <div id="error"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="form_quick_dental_cash">
+        <div id="divReceipt">
+            <div aria-multiselectable="true" class="accordion" id="accordion" role="tablist">
+                <div class="acc-card mb-2">
+                    <div class="acc-header" id="headingOne" role="tab">
+                        <h5 class="mb-0">
+                            <a aria-controls="collapseOne" aria-expanded="true" data-bs-toggle="collapse" href="#collapseOne" class="bg-danger text-white border-danger">
+                                <i class="si si-wallet"></i> Pay Invoice &nbsp; (REC No. - @Model.qc_invoice_info.rec_no)
+                            </a>
+                        </h5>
+                    </div>
+                    <div aria-labelledby="headingOne" class="collapse" data-parent="#accordion" id="collapseOne" role="tabpanel">
+                        <div class="acc-body">
+                            <h3 class="card-title">Pay By :</h3>
+
+                            <div class="row mb-2">
+                                <div class="col-lg-12 col-md-12 col-sm-12 text-start">
+                                    <div class="form-group font-weight-bold">
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Cheque</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(3, $(this).is(':checked'))" checked="checked">
+                                            <span class="custom-switch-indicator custom-switch-indicator-secondary"></span>
+                                        </label>
+
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Bank Transfer</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(4, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-warning"></span>
+                                        </label>
+
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Advance</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(5, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-danger"></span>
+                                        </label>
+
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Voucher</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(6, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-dark"></span>
+                                        </label>
+
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Loyalty</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(7, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-success"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Bad Debit</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(8, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-info"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Tabby</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(9, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-secondary"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Selfologi</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(10, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-warning"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Spotii</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(11, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-danger"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Cobone</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(12, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-dark"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description me-2 font-weight-bold text-dark">Groupon</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(13, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-success"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description ms-0 me-2 font-weight-bold text-dark">Stripe</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(14, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-info"></span>
+                                        </label>
+                                        <label class="custom-switch">
+                                            <span class="custom-switch-description ms-0 me-2 font-weight-bold text-dark">Tamara</span>
+                                            <input type="checkbox" name="custom-switch-checkbox1" class="custom-switch-input" onchange="payby(15, $(this).is(':checked'))">
+                                            <span class="custom-switch-indicator custom-switch-indicator-secondary"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-1">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Cash</span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_cash" name="rec_cash" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-1">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Credit Card  </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_cc" name="rec_cc" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Chrg. (%)</span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_cc_per" name="rec_cc_per" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-1" id="divCq">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Cheque Amt. </span></label>
+                                        <input class="form-control font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_chq" name="rec_chq" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-2" id="divCqNo">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Cheque No. </span></label>
+                                        <input class="form-control font-weight-semibold" placeholder="Eg:123456" type="text" id="rec_chq_no" name="rec_chq_no">
+                                    </div>
+                                </div>
+                                <div class="col-md-2" id="divCqBank">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Bank Name </span></label>
+                                        <input class="form-control font-weight-semibold" placeholder="Eg:ADCB" type="text" id="rec_chq_bank" name="rec_chq_bank">
+                                    </div>
+                                </div>
+                                <div class="col-md-2" id="divCqDate">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Cheque Date </span></label>
+                                        <input type="text" id="rec_chq_date" class="form-control font-weight-semibold" placeholder="Ex:DD-MMMM-YYYY" />
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divBT">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Bank Transfer </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_bt" name="rec_bt" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-none" id="divBT_Bank">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Bank Name </span></label>
+                                        <select class="form-select select2" id="rec_bt_bank"></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-none" id="divAdv">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Advance </span></label>
+                                        <select class="form-select select2" id="rec_advance"></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divAdvName">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Allocated </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_allocated" name="rec_allocated" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-none" id="divVou">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Voucher </span></label>
+                                        <select class="form-select select2" id="rec_voucher"></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-none" id="divLoy">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Loyalty </span></label>
+                                        <select class="form-select select2" id="rec_loyalty"></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divLoyCou">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Amount </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_lamount" name="rec_lamount" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divBD">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Bad Debit</span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_debit" name="rec_debit" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divTabby">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Tabby </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_tabby" name="rec_tabby" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divSoft">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Selfologi </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_self" name="rec_self" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divSpo">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Spotii </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_spoti" name="rec_spoti" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divCob">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Cobone </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_cob" name="rec_cob" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divGro">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Groupon </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_group" name="rec_group" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-none" id="divStripe">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Stripe </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_stripe" name="rec_stripe" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-1 d-none" id="divTamara">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="text-info">Tamara </span></label>
+                                        <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="rec_tamara" name="rec_tamara" oninput="validate(this,0)">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-lg-12 col-sm-12 col-md-12">
+                                    <textarea id="rec_notes" name="rec_notes" class="form-control" rows="5" placeholder="Enter receipts notes..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                                    <div class="form-group">
+                                        <label class="form-label mt-1">&nbsp;<span class="text-danger" id="error_receipts"></span></label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-12 col-md-12 d-flex alert alert-light-info" role="alert">
+                                    <span class="badge bg-info me-2"><strong class="ms-2">Notes :</strong></span>
+                                    Voucher is <strong> &nbsp;one time use</strong> only, &nbsp; After Using of Voucher balance amount is <strong> &nbsp;not redeemable</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="modal-footer py-1 px-3">
+    <div class="form-group">
+        <button type="button" class="btn btn-success" id="btnConfirmBilling"><i class="fe fe-check-circle"></i> Generate Invoice</button>
+        <button type="button" class="btn btn-outline-success" id="btnConfirmBilling_Package"><i class="fe fe-layers"></i> Create Package &amp; Generate Invoice</button>
+        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" aria-label="Close">
+            <i class="fe fe-x"></i> Close
+        </button>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var item_arr = [];
+    var isReceipt = false;
+
+    //#region Load Event
+    $(function () {
+        if (localStorage.getItem("bill_from") != null) {
+            var from = localStorage.getItem("bill_from");
+
+            if (from === "insurance_billing" || from === "cash_billing") {
+                $("#dcashInvoiceHeader").hide();
+                $("#dcashInvoiceBody").removeClass("modal-body p-4");
+            }
+
+            localStorage.removeItem("bill_from");
+        }
+
+        $("#divReceipt").hide();
+        $("#btnConfirmBilling").hide();
+        $("#btnConfirmBilling_Package").hide();
+
+        $('#qb_inv_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: new Date('@Model.qc_invoice_info.app_fdate'),
+        });
+
+        $("#qb_inv_date").bootstrapdatepicker("setDate", '@Model.qc_invoice_info.inv_date.ToString("dd/MM/yyyy")');
+
+        $("#pt_treatment").select2({
+            placeholder: 'Select Treatment/Procedure',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchTreatments", "Invoice", new { area = "Invoice" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                        appId: '@Model.qc_invoice_info.appId'
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#pt_vat_type").select2({
+            placeholder: 'Select VAT Type',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash')
+        });
+
+        $("#pt_disc_type").select2({
+            placeholder: 'Select Discount Type',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash')
+        });
+
+        $("#pt_coupon").select2({
+            placeholder: 'Select Coupon',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash')
+        });
+
+        $("#lbl_inv_total").html("0.00");
+        $("#lbl_inv_disc").html("0.00");
+        $("#lbl_inv_net").html("0.00");
+        $("#lbl_inv_vat").html("0.00");
+        $("#lbl_inv_netvat").html("0.00");
+
+        validation();
+
+        receipt_validation();
+
+        BindDataTable(null);
+
+        $('#rec_chq_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+
+        $("#rec_chq_date").bootstrapdatepicker("setDate", 'today');
+
+        $("#rec_bt_bank").select2({
+            placeholder: 'Select Bank',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash')
+        });
+
+        $("#rec_advance").select2({
+            placeholder: 'Select Advance',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash')
+        });
+
+        $("#rec_voucher").select2({
+            placeholder: 'Select Voucher',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash')
+        });
+
+        $("#rec_loyalty").select2({
+            placeholder: 'Select Loyality',
+            width: '100%',
+            dropdownParent: $('#form_quick_dental_cash')
+        });
+
+        $('#pt_teeth').SumoSelect({
+            placeholder: 'Select Tooth(s)',
+            captionFormat: '{0} Tooth(s) Selected',
+            captionFormatAllSelected: 'All {0} Tooth selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true,
+            dropdownParent: $('#form_quick_dental_cash'),
+        });
+
+        load_banks();
+        load_advances();
+        load_vouchers();
+        load_loyalty();
+        load_Surfaces();
+        GetAppointmentPackages();
+    });
+    //#endregion
+
+    //#region Load Teeth
+    var load_Teeth = function () {
+        $.ajax({
+            url: '@Url.Action("GetTeeth", "PatientTreatments", new { area = "EMR" })?query=',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#pt_teeth').html('');
+                $('#pt_teeth')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#pt_teeth')[0].sumo.add(response[j].text, response[j].text);
+                });
+            },
+            error: function (xhr) {
+                console.log("Failed to Load Teeth! Error Message : " + xhr.statusText);
+            }
+        }).done(function () {
+            $('#pt_teeth')[0].sumo.reload();
+        });
+    }
+    //#endregion
+
+    //#region Load Surfaces
+    var load_Surfaces = function () {
+        $('#pt_sur').SumoSelect({
+            placeholder: 'Select Surface(s)',
+            captionFormat: '{0} Surface(s) Selected',
+            captionFormatAllSelected: 'All {0} Surfaces selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true,
+            dropdownParent: $('#form_quick_dental_cash'),
+        });
+
+        $.ajax({
+            url: '@Url.Action("GetToothSurface", "OralExamination", new { area = "EMR" })?query=',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#pt_sur').html('');
+                $('#pt_sur')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#pt_sur')[0].sumo.add(response[j].id, response[j].text);
+                });
+            },
+            error: function (xhr) {
+                console.log("Failed to Load Surfac(es)! Error Message : " + xhr.statusText);
+            }
+        }).done(function () {
+            $('#pt_sur')[0].sumo.reload();
+        });
+    }
+    //#endregion
+
+    //#region Invoice
+    //Validation
+    var validation = function () {
+        $('#pt_qty').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+        });
+
+        $('#pt_ses').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_uprice').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_total').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_disc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_disc_value').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_coupon_disc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_net').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_vat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#pt_netvat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $("#form_quick_dental_cash").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "pt_treatment": {
+                    required: true
+                },
+                "pt_qty": {
+                    required: true,
+                    minlength: 1,
+                    min: 1,
+                    max: 1000
+                },
+                "pt_ses": {
+                    required: true,
+                    minlength: 1,
+                    min: 0,
+                    max: 100
+                },
+                "pt_uprice": {
+                    required: true,
+                    minlength: 1,
+                    min: 0,
+                    max: 100000
+                },
+                "pt_total": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "pt_disc": {
+                    required: true,
+                    minlength: 1,
+                    min: 0,
+                    max: 100000
+                },
+                "pt_disc_type": {
+                    required: true
+                },
+                "pt_disc_value": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "pt_coupon_disc": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "pt_net": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "pt_vat": {
+                    required: true,
+                    minlength: 1
+                },
+                "pt_netvat": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+            },
+            messages: {
+                "pt_treatment": {
+                    required: "Select Treatment"
+                },
+                "pt_qty": {
+                    required: "Enter Qty",
+                    minlength: "Give atleast 0",
+                    min: "Min. Qty is 1",
+                    max: "Max. Qty is 1000"
+                },
+                "pt_ses": {
+                    required: "Enter Session",
+                    minlength: "Min. 1 Degit",
+                    min: "Min. Value is 0",
+                    max: "Max. Value is 100"
+                },
+                "pt_uprice": {
+                    required: "Enter Unit Price",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1",
+                    max: "Max. Value is 100000"
+                },
+                "pt_total": {
+                    required: "Enter Total",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1"
+                },
+                "pt_disc": {
+                    required: "Enter Discount",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0",
+                    max: "Max. Value is 100000"
+                },
+                "pt_disc_type": {
+                    required: "Select Discount Type"
+                },
+                "pt_disc_value": {
+                    required: "Enter Discount Value",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "pt_coupon_disc": {
+                    required: "Enter Coupon Value",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "pt_net": {
+                    required: "Enter Net",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1"
+                },
+                "pt_vat": {
+                    required: "Enter VAT",
+                    minlength: "Give atleast 0"
+                },
+                "pt_netvat": {
+                    required: "Enter Net+VAT",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1"
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#pt_treatment').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_vat_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_qty').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_ses').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_uprice').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_total').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_disc').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_disc_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_disc_value').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_coupon').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_coupon_disc').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_net').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_vat').on('change', function () {
+            $(this).trigger('blur');
+        });
+        $('#pt_netvat').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+
+    //Add Treatment
+    $('#btnAddTreatment').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_quick_dental_cash").valid()) {
+            var exists = false;
+
+            if (item_arr.length > 0) {
+                exists = item_arr.some(function (check) {
+                    var existingTeeth = check.pt_teeth.split(',').map(function (t) { return t.trim(); });
+                    var inputTeeth = $("#pt_teeth").val().toString().toString().split(',').map(function (t) { return t.trim(); });
+
+                    return (check.ptId == $("#pt_treatment").val()) &&
+                        (inputTeeth.some(function (t) { return existingTeeth.includes(t); }));
+                });
+            }
+
+            if (exists) {
+                var data = $("#hi_pt_tr_name").val();
+                data = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+
+                Swal.fire({
+                    title: "Duplicate Item!",
+                    html: "<strong style='color:red;'>" + data + "</strong><br/> already Exists in the list! Please delete existing & Add again.",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonText: 'OK',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    buttonsStyling: !1
+                })
+            }
+            else {
+                bindTreatment();
+
+                clearData();
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+
+    //BindTreatment
+    var bindTreatment = function () {
+        var surfaces = $("#pt_sur option:selected").map(function () {
+            return $(this).text();
+        }).get().join(', ');
+
+        var values = ($("#pt_teeth").val().toString()).split(',');
+
+        $.each(values, function (index, value) {
+            var data = {
+                "ptId": $("#pt_treatment").val(),
+                "pt_tr_code": $("#hi_pt_tr_code").val(),
+                "pt_tr_name": $("#hi_pt_tr_name").val(),
+                "pt_vat_type": $("#pt_vat_type").val(),
+                "pt_vat": $("#pt_vat").val(),
+                "pt_qty": parseFloat($("#pt_qty").val()),
+                "pt_ses": parseFloat($("#pt_ses").val()),
+                "pt_uprice": parseFloat($("#pt_uprice").val()).toFixed(2),
+                "pt_total": parseFloat($("#pt_total").val()).toFixed(2),
+                "pt_disc": parseFloat($("#pt_disc").val()).toFixed(2),
+                "pt_disc_type": $("#pt_disc_type option:selected").text(),
+                "pt_disc_value": parseFloat($("#pt_disc_value").val()).toFixed(2),
+                "pt_coupon": $("#pt_coupon").val(),
+                "pt_coupon_value": $("#pt_coupon option:selected").text(),
+                "pt_coupon_disc": parseFloat($("#pt_coupon_disc").val()).toFixed(2),
+                "pt_net": parseFloat($("#pt_net").val()).toFixed(2),
+                "pt_vat": parseFloat($("#pt_vat").val()).toFixed(2),
+                "pt_netvat": parseFloat($("#pt_netvat").val()).toFixed(2),
+                "isPackage": parseInt($("#hi_isPackage").val()),
+                "pt_sur": surfaces,
+                "pt_teeth": value,
+                "group_package": 'No'
+            }
+
+            item_arr.push(data);
+
+            GetInvoiceItems(item_arr);
+        });
+
+        $("#btnConfirmBilling").show();
+        $("#btnConfirmBilling_Package").show();
+        $("#divReceipt").show();
+    }
+
+    //Reset Treatment
+    $('#btn_Reset').on('click', function (e) {
+        e.preventDefault();
+        clearData();
+
+        $("#lbl_inv_total").html("0.00");
+        $("#lbl_inv_disc").html("0.00");
+        $("#lbl_inv_net").html("0.00");
+        $("#lbl_inv_vat").html("0.00");
+        $("#lbl_inv_netvat").html("0.00");
+
+        if (item_arr.length > 0) {
+            $("#btnConfirmBilling").show();
+            $("#btnConfirmBilling_Package").show();
+        }
+        else {
+            $("#btnConfirmBilling").hide();
+            $("#btnConfirmBilling_Package").hide();
+        }
+    });
+
+    //Treatment Change Event
+    $('#pt_treatment').on('select2:select', function (e) {
+        var data = e.params.data;
+        var isPackage = 0;
+
+        $.ajax({
+            url: '@Url.Action("SelectTreatment", "Invoice", new { area = "Invoice" })?trId=' + data.id + "&appId=" + @Model.qc_invoice_info.appId + "&isPackage=" + isPackage ,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                load_coupons(response["tr_coupons"]);
+
+                $("#hi_pt_tr_code").val(response["tr_values"].tr_code);
+                $("#hi_pt_tr_name").val(response["tr_values"].tr_name);
+                $("#hi_isPackage").val(isPackage);
+                $("#pt_qty").val("1.00");
+                $("#pt_ses").val("1");
+                $("#pt_uprice").val(response["tr_values"].tr_price);
+                $("#pt_disc").val(response["tr_values"].tr_disc);
+                $("#hi_pt_vat").val(response["tr_values"].tr_vat);
+                $("#hi_pt_vat2").val(response["tr_values"].tr_vat2);
+                $('#pt_disc_type').val(1).trigger('change');
+
+                if (response["tr_values"].tr_tooth == "Required") {
+                    load_Teeth();
+                }
+                else {
+                    $('#pt_teeth').html('');
+                    $('#pt_teeth')[0].sumo.reload();
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                alert(xhr);
+            }
+        }).done(function(){
+            calculation();
+        });
+    });
+
+    //Coupon Change Event
+    $('#pt_coupon').on('select2:select', function (e) {
+        calculation();
+    });
+
+    //VAT Type Change Event
+    $('#pt_vat_type').on('select2:select', function (e) {
+
+        calculation();
+    });
+
+    //VAT Inclusive/Exclusive Event
+    $('input[type=radio][name=rdoVATType]').change(function () {
+        calculation();
+    });
+
+    //Load Coupons
+    var load_coupons = function (data) {
+        $('#pt_coupon').empty();
+
+        if (data.length > 0) {
+            var newOption1 = new Option("Select Coupons", 0, true, true);
+            $('#pt_coupon').append(newOption1).trigger('change');
+
+            $.each(data, function (j) {
+                var val = data[j].disc_name + " - " + data[j].disc_float + "%";
+                var newOption = new Option(val, data[j].discId, false, false);
+                $('#pt_coupon').append(newOption).trigger('change');
+            });
+        }
+    }
+
+    //Calculation for Treatments
+    var calculation = function () {
+        var pt_qty = $("#pt_qty").val();
+        var pt_uprice = $("#pt_uprice").val();
+
+        var pt_total = parseFloat(pt_qty) * parseFloat(pt_uprice);
+        $("#pt_total").val(pt_total);
+
+
+        var coupon_value = 0;
+        var pt_disc_value = 0;
+        var pt_vat = 0;
+
+        if (parseInt($("#pt_coupon").val()) > 0) {
+            $("#pt_disc").val(pt_disc_value);
+
+            var coupon_name = $("#pt_coupon option:selected").text();
+            var coupon_arr = coupon_name.split("-");
+            var coupon_per = coupon_arr[1].trim().replace("%", "");
+            coupon_value = (parseFloat(pt_total) * parseFloat(coupon_per)) / 100;
+        }
+        else {
+            var pt_disc = $("#pt_disc").val();
+
+            if (parseInt($("#pt_disc_type").val()) == 1) {
+                pt_disc_value = parseFloat(pt_disc);
+            }
+            else if (parseInt($("#pt_disc_type").val()) == 0) {
+                pt_disc_value = (parseFloat(pt_total) * parseFloat(pt_disc)) / 100;
+            }
+        }
+
+        $("#pt_disc_value").val(pt_disc_value);
+        $("#pt_coupon_disc").val(coupon_value);
+
+        var pt_net = parseFloat(pt_total) - (parseFloat(pt_disc_value) + parseFloat(coupon_value));
+        $("#pt_net").val(pt_net);
+
+
+        if ($("#pt_vat_type").val() == "5") {
+            pt_vat = parseFloat(pt_net) * (5 / 100);
+            pt_vat = Math.floor(pt_vat * 100) / 100;
+        }
+
+
+        if (pt_vat > 0) {
+            var rdoVAT = $("input[name='rdoVATType']:checked").val();
+
+            if (rdoVAT === "Inclusive") {
+                if ($("#pt_vat_type").val() == "5") {
+                    pt_vat = parseFloat(pt_net) * (5 / 105);
+                    pt_vat = Math.floor(pt_vat * 100) / 100;
+                }
+                pt_net = parseFloat(pt_net) - parseFloat(pt_vat);
+                pt_net = Math.floor(pt_net * 100) / 100;
+                $("#pt_net").val(pt_net);
+            }
+        }
+
+        $("#pt_vat").val(pt_vat);
+
+        var pt_netvat = parseFloat(pt_net) + parseFloat(pt_vat);
+        pt_netvat = Math.floor(pt_netvat * 100) / 100;
+        $("#pt_netvat").val(pt_netvat);
+
+        if (!(pt_disc_value == 0 && pt_total == 0)) {
+            if (pt_disc_value > pt_total) {
+                $("#error_msg").html("Discount should be less than or equal to Total Amount");
+                $("#pt_total").attr("style", "border:1px solid red;color:red;");
+                $("#pt_disc_value").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#error_msg").html("");
+                $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#pt_disc_value").attr("style", "border:1px solid #ecebf1;color:#728096;");
+
+                if (!(coupon_value == 0 && pt_total == 0)) {
+                    if (coupon_value >= pt_total) {
+                        $("#pt_total").attr("style", "border:1px solid red;color:red;");
+                        $("#pt_coupon_disc").attr("style", "border:1px solid red;color:red;");
+                        $("#error_msg").html("Coupon Discount should be less than Total Amount");
+                    }
+                    else {
+                        $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#pt_coupon_disc").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#error_msg").html("");
+                    }
+                }
+                else {
+                    $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    $("#pt_coupon_disc").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    $("#error_msg").html("");
+                }
+            }
+        }
+        else {
+            $("#error_msg").html("");
+            $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            $("#pt_disc_value").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+    }
+
+    //Discount Type Change Event
+    $('#pt_disc_type').on('select2:select', function (e) {
+        $('#pt_coupon').val(0).trigger('change');
+        $('#pt_coupon_disc').val("0.00");
+        calculation();
+    });
+
+    // Clear Treatments
+    var clearData = function () {
+        $("#pt_treatment").empty();
+        $('#pt_vat_type').val("0").trigger('change');
+        $("#rdoVATEx").prop("checked", true);
+        $("#pt_qty").val("1.00");
+        $("#pt_ses").val("1");
+        $("#pt_uprice").val("0.00");
+        $("#pt_total").val("0.00");
+        $("#pt_disc").val("0.00");
+        $('#pt_disc_type').val(1).trigger('change');
+        $("#pt_disc_value").val("0.00");
+        $("#pt_coupon").empty();
+        $("#pt_coupon_disc").val("0.00");
+        $("#pt_net").val("0.00");
+        $("#pt_vat").val("0.00");
+        $("#pt_netvat").val("0.00");
+        $('#pt_teeth').html('');
+        $('#pt_teeth')[0].sumo.reload();
+        $('#pt_sur')[0].sumo.unSelectAll();
+
+        $("#hi_pt_tr_code").val("0");
+        $("#hi_pt_tr_name").val("0");
+        $("#hi_isPackage").val("0");
+        $("#hi_pt_vat").val("0");
+        $("#hi_pt_vat2").val("0");
+    }
+
+    // Packages
+    var GetAppointmentPackages = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetAppointmentPackages", "Invoice", new { area = "Invoice" })?appId=" + "@Model.qc_invoice_info.appId",
+            success: function (response) {
+
+                if (response.isAuthorized != false) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#dtTable_invAddTreatments')) {
+                        table = $('#dtTable_invAddTreatments').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                        for (var i = 0; i < response.length; i++) {
+                            item_arr.push(response[i]);
+                        }
+                    }
+                    else {
+                        console.log(response);
+                        //BindDataTable(response);
+                        for (var i = 0; i < response.length; i++) {
+                            item_arr.push(response[i]);
+                        }
+                        GetInvoiceItems(item_arr);
+
+                    }
+                    $("#btnConfirmBilling").show();
+                    $("#btnConfirmBilling_Package").hide();
+                    $("#divReceipt").show();
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+
+    //Load Invoice Items
+    var GetInvoiceItems = function (response) {
+        if (response != null && response != undefined) {
+            var table;
+            if ($.fn.dataTable.isDataTable('#dtTable_invAddTreatments')) {
+                table = $('#dtTable_invAddTreatments').DataTable();
+                table.clear();
+                table.rows.add(response).draw();
+            }
+            else {
+                BindDataTable(response);
+            }
+        }
+    }
+
+    //Bind Treatment DataTable
+    var BindDataTable = function (response) {
+        var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+        var table = $("#dtTable_invAddTreatments").DataTable({
+            processing: true,
+            paging: false,
+            ordering: false,
+            info: false,
+            "searching": false,
+            "retrieve": true,
+            lengthChange: false,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "ptId" },
+                { "mData": "pt_tr_code" },
+                { "mData": "pt_tr_name" },
+                { "mData": "pt_vat_type" },
+                { "mData": "pt_teeth" },
+                { "mData": "pt_sur" },
+                { "mData": "pt_qty" },
+                { "mData": "pt_ses" },
+                { "mData": "pt_uprice" },
+                { "mData": "pt_total" },
+                { "mData": "pt_disc" },
+                { "mData": "pt_disc_type" },
+                { "mData": "pt_disc_value" },
+                { "mData": "pt_coupon" },
+                { "mData": "pt_coupon_value" },
+                { "mData": "pt_coupon_disc" },
+                { "mData": "pt_net" },
+                { "mData": "pt_vat" },
+                { "mData": "pt_netvat" },
+                { "mData": "ptId" },
+                { "mData": "isPackage" },
+                { "mData": "group_package" }
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "visible": false
+                },
+                {
+                    "aTargets": [2],
+                    "className": "fs-13 text-nowrap",
+                    "render": function (data, type, full, meta) {
+
+                        if (full.isPackage == 1) {
+                            var val = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+                            return val + '<span class="pull-right"><span class="badge bg-danger"> <small class="fs-9">PACKAGE <small></span></span>';
+                        }
+                        else {
+                            var val = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+                            return val;
+                        }
+                    }
+                },
+                {
+                    "aTargets": [3],
+                    "visible": false,
+                    "className": "fs-13 text-center",
+                    "render": function (data) {
+                        var val = (data === "0") ? "0% VAT" : ((data === "5") ? "5% VAT" : "Exempt");
+                        return val;
+                    }
+                },
+                {
+                    "aTargets": [6],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [7],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [8],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [9],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [10],
+                    "className": "fs-13 text-end",
+                    "visible": false,
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [11],
+                    "visible": false
+                },
+                {
+                    "aTargets": [12],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [13],
+                    "visible": false
+                },
+                {
+                    "aTargets": [14],
+                    "visible": false
+                },
+                {
+                    "aTargets": [15],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [16],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [17],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [18],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [19],
+                    "className": "fs-13 text-center dt-delete",
+                    "render": function (data) {
+                        var html = "<i class='fe fe-trash text-danger curpointer' id='remove-item' style='font-size: 15px;'></i>";
+                        return html;
+                    }
+                },
+                {
+                    "aTargets": [20],
+                    "className": "fs-13 text-center dt-delete",
+                    "render": function (data, type, full, meta) {
+                        if (data === 1) {
+                            return "<a id='pk_" + full.ptId + "' data-bs-toggle='popover'><i class='fe fe-list text-primary curpointer' id='package-info' style='font-size: 15px;'></i></a>";
+                        }
+                        else {
+                            return '';
+                        }
+                    }
+                },
+                {
+                    "aTargets": [21],
+                    "visible": false
+                }
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+
+                total_qty = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(6).footer()).html(numberRenderer1(total_qty.toFixed(2)));
+
+                total_ses = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(7).footer()).html(numberRenderer1(total_ses.toFixed(2)));
+
+                total_unitprice = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(8).footer()).html(numberRenderer1(total_unitprice.toFixed(2)));
+
+                total_invtotal = api.column(9).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(9).footer()).html(numberRenderer1(total_invtotal.toFixed(2)));
+                $("#lbl_inv_total").html(numberRenderer1(total_invtotal.toFixed(2)));
+
+                total_disc = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(10).footer()).html(numberRenderer1(total_disc.toFixed(2)));
+
+                total_disc_val = api.column(12).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(12).footer()).html(numberRenderer1(total_disc_val.toFixed(2)));
+
+                total_coupon_val = api.column(15).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(15).footer()).html(numberRenderer1(total_coupon_val.toFixed(2)));
+                $("#lbl_inv_disc").html(numberRenderer1((total_coupon_val + total_disc_val).toFixed(2)));
+
+                total_net = api.column(16).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(16).footer()).html(numberRenderer1(total_net.toFixed(2)));
+                $("#lbl_inv_net").html(numberRenderer1(total_net.toFixed(2)));
+
+                total_vat = api.column(17).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(17).footer()).html(numberRenderer1(total_vat.toFixed(2)));
+                $("#lbl_inv_vat").html(numberRenderer1(total_vat.toFixed(2)));
+
+                total_netvat = api.column(18).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(18).footer()).html(numberRenderer1(total_netvat.toFixed(2)));
+                $("#lbl_inv_netvat").html(numberRenderer1(total_netvat.toFixed(2)));
+            },
+            "fnDrawCallback": function (settings) {
+                var _ptId;
+
+                //#region Package
+                $(settings.aoData).each(function (index) {
+                    _trisPackage = settings.aoData[index]._aData["isPackage"];
+                    if (_trisPackage == 1) {
+                        _ptId = settings.aoData[index]._aData["ptId"];
+                    }
+
+                    $('#pk_' + _ptId).each(function () {
+                        var popId = $(this).attr('id');
+                        var tgId = popId.substr(popId.lastIndexOf("_") + 1);
+
+                        // Dynamic data for Popover
+                        var pendings = "";
+                        var html = "";
+                        $.ajax({
+                            type: "GET",
+                            url: "@Url.Action("GetPackages", "Invoice", new { area= "Invoice" })?tgId=" + tgId,
+                            contentType: "application/json; charset=utf-8",
+                            dataType: "JSON",
+                            success: function (response) {
+                                $.each(response, function (j) {
+                                    pendings += (
+                                        '<li class="listorder">' + response[j]["tr_code"] + " - " + response[j]["tr_name"] + '</li>'
+                                    );
+                                    html = '<p class="mb-0 mt-1 fs-14 font-weight-semibold"><ul class="list-group text-dark">' + pendings + '</ul></p>';
+                                });
+
+                                $('#' + popId).popover({
+                                    trigger: 'hover',
+                                    placement: 'right',
+                                    title: 'Package Treatments',
+                                    container: '#form_quick_dental_cash',
+                                    html: true,
+                                    content: html
+                                }).popover({ trigger: "hover" });
+                            },
+                            error: function (xhr) {
+                                console.log("Failed! Error Message : " + xhr.statusText);
+                            }
+                        });
+                    });
+                });
+                //#endregion
+            }
+        });
+        table.buttons().container().appendTo('#dtTable_invAddTreatments_wrapper .col-md-6:eq(0)');
+
+        // Remove Items From DataTable
+        table.on('click', '#remove-item', function (e) {
+            var row = $(this).parents('tr');
+            var data_row = table.row($(this).closest('tr')).data();
+            console.log(data_row.ptId)
+
+            Swal.fire({
+                title: "Are you sure you want to delete this Treatments From List?",
+                text: "This action will delete this Treatment from Selection!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2",
+                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    item_arr = $.grep(item_arr, function (n, i) {
+                        return (n.ptId !== data_row.ptId);
+                    });
+
+                    console.log(item_arr)
+
+                    if ($(row).hasClass('child')) {
+                        table.row($(row).prev('tr')).remove().draw();
+                    } else {
+                        table.row(row).remove().draw();
+                    }
+
+
+                    Swal.fire({
+                        title: "Success!",
+                        text: "Treatment Deleted Successfully!",
+                        icon: "success",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+
+
+                }
+            });
+        });
+
+        resizedt();
+    }
+
+    //Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Focus In/Out Events
+    //Invoice
+    $("#pt_qty").focusin(function () {
+        localStorage.setItem("temp_qty", $(this).val());
+    });
+
+    $("#pt_qty").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 1) {
+            localStorage.removeItem("temp_qty");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_qty"));
+            localStorage.removeItem("temp_qty");
+        }
+    });
+
+    $("#pt_ses").focusin(function () {
+        localStorage.setItem("temp_ses", $(this).val());
+    });
+
+    $("#pt_ses").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 1) {
+            localStorage.removeItem("temp_ses");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_ses"));
+            localStorage.removeItem("temp_ses");
+        }
+    });
+
+    $("#pt_uprice").focusin(function () {
+        localStorage.setItem("temp_uprice", $(this).val());
+    });
+
+    $("#pt_uprice").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_uprice");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_uprice"));
+            localStorage.removeItem("temp_uprice");
+        }
+    });
+
+    $("#pt_disc").focusin(function () {
+        localStorage.setItem("temp_disc", $(this).val());
+    });
+
+    $("#pt_disc").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_disc");
+            $('#pt_coupon').val(0).trigger('change');
+            $('#pt_coupon_disc').val("0.00");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_disc"));
+            localStorage.removeItem("temp_disc");
+        }
+    });
+
+    //Receipts
+    $("#rec_cash").focusin(function () {
+        localStorage.setItem("temp_cash", $(this).val());
+    });
+
+    $("#rec_cash").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cash");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cash"));
+            localStorage.removeItem("temp_cash");
+        }
+    });
+
+    $("#rec_cc").focusin(function () {
+        localStorage.setItem("temp_cc", $(this).val());
+    });
+
+    $("#rec_cc").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cc");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cc"));
+            localStorage.removeItem("temp_cc");
+        }
+    });
+
+    $("#rec_cc_per").focusin(function () {
+        localStorage.setItem("temp_cc_per", $(this).val());
+    });
+
+    $("#rec_cc_per").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cc_per");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cc_per"));
+            localStorage.removeItem("temp_cc_per");
+        }
+    });
+
+    $("#rec_chq").focusin(function () {
+        localStorage.setItem("temp_chq", $(this).val());
+    });
+
+    $("#rec_chq").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_chq");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_chq"));
+            localStorage.removeItem("temp_chq");
+        }
+    });
+
+    $("#rec_chq_no").focusout(function () {
+        calculation_receipts();
+    });
+
+    $("#rec_chq_bank").focusout(function () {
+        calculation_receipts();
+    });
+
+    $("#rec_chq_date").focusout(function () {
+        calculation_receipts();
+    });
+
+    $("#rec_bt").focusin(function () {
+        localStorage.setItem("temp_bt", $(this).val());
+    });
+
+    $("#rec_bt").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_bt");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_bt"));
+            localStorage.removeItem("temp_bt");
+        }
+    });
+
+    $("#rec_allocated").focusin(function () {
+        localStorage.setItem("temp_allocated", $(this).val());
+    });
+
+    $("#rec_allocated").focusout(function () {
+        if (($("#rec_advance").val() != null) && ($("#rec_advance").val() != undefined) && ($("#rec_advance").val() != "") && ($("#rec_advance").val() != NaN)) {
+            var val = parseFloat($(this).val());
+            if (val >= 0) {
+                localStorage.removeItem("temp_allocated");
+                calculation_receipts();
+            }
+            else {
+                $(this).val(localStorage.getItem("temp_allocated"));
+                localStorage.removeItem("temp_allocated");
+            }
+        }
+        else {
+            $(this).val("0.00");
+            localStorage.removeItem("temp_allocated");
+        }
+    });
+
+    $("#rec_lamount").focusin(function () {
+        localStorage.setItem("temp_lamount", $(this).val());
+    });
+
+    $("#rec_lamount").focusout(function () {
+        if (parseInt($("#rec_loyalty").val()) > 0) {
+            var val = parseFloat($(this).val());
+            if (val >= 0) {
+                localStorage.removeItem("temp_lamount");
+                calculation_receipts();
+            }
+            else {
+                $(this).val(localStorage.getItem("temp_lamount"));
+                localStorage.removeItem("temp_lamount");
+            }
+        }
+        else {
+            $(this).val("0.00");
+            localStorage.removeItem("temp_lamount");
+        }
+    });
+
+    $("#rec_debit").focusin(function () {
+        localStorage.setItem("temp_debit", $(this).val());
+    });
+
+    $("#rec_debit").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_debit");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_debit"));
+            localStorage.removeItem("temp_debit");
+        }
+    });
+
+    $("#rec_tabby").focusin(function () {
+        localStorage.setItem("temp_tabby", $(this).val());
+    });
+
+    $("#rec_tabby").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_tabby");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_tabby"));
+            localStorage.removeItem("temp_tabby");
+        }
+    });
+
+    $("#rec_self").focusin(function () {
+        localStorage.setItem("temp_self", $(this).val());
+    });
+
+    $("#rec_self").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_self");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_self"));
+            localStorage.removeItem("temp_self");
+        }
+    });
+
+    $("#rec_spoti").focusin(function () {
+        localStorage.setItem("temp_spoti", $(this).val());
+    });
+
+    $("#rec_spoti").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_spoti");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_spoti"));
+            localStorage.removeItem("temp_spoti");
+        }
+    });
+
+    $("#rec_cob").focusin(function () {
+        localStorage.setItem("temp_cob", $(this).val());
+    });
+
+    $("#rec_cob").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_cob");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_cob"));
+            localStorage.removeItem("temp_cob");
+        }
+    });
+
+    $("#rec_group").focusin(function () {
+        localStorage.setItem("temp_group", $(this).val());
+    });
+
+    $("#rec_group").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_group");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_group"));
+            localStorage.removeItem("temp_group");
+        }
+    });
+
+    $("#rec_stripe").focusin(function () {
+        localStorage.setItem("temp_stripe", $(this).val());
+    });
+
+    $("#rec_stripe").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_stripe");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_stripe"));
+            localStorage.removeItem("temp_stripe");
+        }
+    });
+
+    $("#rec_tamara").focusin(function () {
+        localStorage.setItem("temp_tamara", $(this).val());
+    });
+
+    $("#rec_tamara").focusout(function () {
+        var val = parseFloat($(this).val());
+        if (val >= 0) {
+            localStorage.removeItem("temp_tamara");
+            calculation_receipts();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_tamara"));
+            localStorage.removeItem("temp_tamara");
+        }
+    });
+    //#endregion
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion
+
+    //#region Adjust DataTable Columns
+    function resizedt() {
+        setTimeout(function () {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }, 350);
+    }
+    //#endregion
+
+    //#region Receipts Section
+    //PayBy Options
+    var payby = function (id, isChecked) {
+        if (id == 1) { //Cash
+            if (isChecked) {
+                $("#divCash").removeClass("d-none");
+            }
+            else {
+                $("#divCash").addClass("d-none");
+            }
+        }
+
+        if (id == 2) { //Credit Card
+            if (isChecked) {
+                $("#divCC").removeClass("d-none");
+                $("#divCC_Per").removeClass("d-none");
+            }
+            else {
+                $("#divCC").addClass("d-none");
+                $("#divCC_Per").addClass("d-none");
+            }
+        }
+
+        if (id == 3) { //Cheque
+            if (isChecked) {
+                $("#divCq").removeClass("d-none");
+                $("#divCqNo").removeClass("d-none");
+                $("#divCqBank").removeClass("d-none");
+                $("#divCqDate").removeClass("d-none");
+            }
+            else {
+                $("#divCq").addClass("d-none");
+                $("#divCqNo").addClass("d-none");
+                $("#divCqBank").addClass("d-none");
+                $("#divCqDate").addClass("d-none");
+            }
+        }
+
+        if (id == 4) { //Bank Transfer
+            if (isChecked) {
+                $("#divBT").removeClass("d-none");
+                $("#divBT_Bank").removeClass("d-none");
+            }
+            else {
+                $("#divBT").addClass("d-none");
+                $("#divBT_Bank").addClass("d-none");
+            }
+        }
+
+        if (id == 5) { //Advance
+            if (isChecked) {
+                $("#divAdv").removeClass("d-none");
+                $("#divAdvName").removeClass("d-none");
+            }
+            else {
+                $("#divAdv").addClass("d-none");
+                $("#divAdvName").addClass("d-none");
+            }
+        }
+
+        if (id == 6) { //Voucher
+            if (isChecked) {
+                $("#divVou").removeClass("d-none");
+            }
+            else {
+                $("#divVou").addClass("d-none");
+            }
+        }
+
+        if (id == 7) { //Loyality
+            if (isChecked) {
+                $("#divLoy").removeClass("d-none");
+                $("#divLoyCou").removeClass("d-none");
+            }
+            else {
+                $("#divLoy").addClass("d-none");
+                $("#divLoyCou").addClass("d-none");
+            }
+        }
+
+        if (id == 8) { //Bad Debit
+            if (isChecked) {
+                $("#divBD").removeClass("d-none");
+            }
+            else {
+                $("#divBD").addClass("d-none");
+            }
+        }
+
+        if (id == 9) { //Tabby
+            if (isChecked) {
+                $("#divTabby").removeClass("d-none");
+            }
+            else {
+                $("#divTabby").addClass("d-none");
+            }
+        }
+
+        if (id == 10) { //Sofology
+            if (isChecked) {
+                $("#divSoft").removeClass("d-none");
+            }
+            else {
+                $("#divSoft").addClass("d-none");
+            }
+        }
+
+        if (id == 11) { //Spotify
+            if (isChecked) {
+                $("#divSpo").removeClass("d-none");
+            }
+            else {
+                $("#divSpo").addClass("d-none");
+            }
+        }
+
+        if (id == 12) { //Cobone
+            if (isChecked) {
+                $("#divCob").removeClass("d-none");
+            }
+            else {
+                $("#divCob").addClass("d-none");
+            }
+        }
+
+        if (id == 13) { //Group-n Add
+            if (isChecked) {
+                $("#divGro").removeClass("d-none");
+            }
+            else {
+                $("#divGro").addClass("d-none");
+            }
+        }
+
+        if (id == 14) { //Stripe
+            if (isChecked) {
+                $("#divStripe").removeClass("d-none");
+            }
+            else {
+                $("#divStripe").addClass("d-none");
+            }
+        }
+
+        if (id == 15) { //Tamara
+            if (isChecked) {
+                $("#divTamara").removeClass("d-none");
+            }
+            else {
+                $("#divTamara").addClass("d-none");
+            }
+        }
+
+    }
+
+    //Load Banks
+    var load_banks = function () {
+        $.ajax({
+            url: '@Url.Action("BankNamesForBankTransfers", "Receipt", new { area = "Invoice" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                $('#rec_bt_bank').empty();
+                var _data = response;
+                if (_data.length > 0) {
+                    var optNone = new Option("Select Any", "0", false, false);
+                    $('#rec_bt_bank').append(optNone).trigger('change');
+
+                    $.each(response, function (j) {
+                        var label = response[j]["acc_code"] + " | " + response[j]["acc_name"] + " | " + response[j]["acc_cbal"];
+                        var newOption = new Option(label, response[j]["acc_code"],  false, false);
+                        $('#rec_bt_bank').append(newOption).trigger('change');
+                    });
+
+                    $('#rec_bt_bank').val("0").trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        })
+    }
+
+    //Load Receipt Advance
+    var load_advances = function () {
+        $.ajax({
+            url: '@Url.Action("ReceiptAdvanceByPatId", "Receipt", new { area = "Invoice" })?patId=' + @Model.qc_invoice_info.patId,
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                $('#rec_advance').empty();
+                var _data = response;
+                if (_data.length > 0) {
+                    $.each(response, function (j) {
+                        var label = response[j]["rec_code"] + " | " + response[j]["rec_date"] + "| [" + response[j]["rec_amount"] + "] | " + response[j]["rec_advance"];
+                        var newOption = new Option(label, response[j]["recId"],  false, false);
+                        $('#rec_advance').append(newOption).trigger('change');
+                    });
+
+                    $('#rec_advance').val(0).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        })
+    }
+
+    //Load Vouchers
+    var load_vouchers = function () {
+        $.ajax({
+            url: '@Url.Action("ReceiptVouchers", "Receipt", new { area = "Invoice" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                $('#rec_voucher').empty();
+                var _data = response;
+                if (_data.length > 0) {
+                    $.each(response, function (j) {
+                        var label = response[j]["vou_code"] + " | " + response[j]["vou_edate"] + " | " + response[j]["vou_amount"];
+                        var newOption = new Option(label, response[j]["vouId"],  false, false);
+                        $('#rec_voucher').append(newOption).trigger('change');
+                    });
+
+                    $('#rec_voucher').val(0).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        })
+    }
+
+    //Load Receipt Loyality
+    var load_loyalty = function () {
+        $.ajax({
+            url: '@Url.Action("ReceiptLoyalityEarnsByPatId", "Receipt", new { area = "Invoice" })?patId=' + @Model.qc_invoice_info.patId,
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                $('#rec_loyalty').empty();
+                var _data = response;
+                if (_data.length > 0) {
+                    $.each(response, function (j) {
+                        var label = response[j]["rec_code"] + " | " + response[j]["rec_date"] + " | " + response[j]["rec_loyalty"];
+                        var newOption = new Option(label, response[j]["recId"],  false, false);
+                        $('#rec_loyalty').append(newOption).trigger('change');
+                    });
+
+                    $('#rec_loyalty').val(0).trigger('change');
+                }
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        })
+    }
+
+    //Receipt Validation
+    var receipt_validation = function () {
+
+        $('#rec_cash').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_cc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_cc_per').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_chq').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_bt').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_allocated').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_lamount').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_debit').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_tabby').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_self').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_spoti').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_cob').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_group').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_stripe').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+
+        $('#rec_tamara').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+        });
+    }
+
+    //Bank Transfer Bank Change Event
+    $('#rec_bt_bank').on('select2:select', function (e) {
+        calculation_receipts();
+    });
+
+    //Advance Receipt Change Event
+    $('#rec_advance').on('select2:select', function (e) {
+        calculation_receipts();
+    });
+
+    //Voucher Receipt Change Event
+    $('#rec_voucher').on('select2:select', function (e) {
+        calculation_receipts();
+    });
+
+    //Loyalty Receipt Change Event
+    $('#rec_loyalty').on('select2:select', function (e) {
+        calculation_receipts();
+    });
+
+    //Calculation for Receipts
+    var calculation_receipts = function () {
+        var error = 0;
+
+        var _cash = $("#rec_cash").val();
+        var _cc = $("#rec_cc").val();
+        var _cc_per = $("#rec_cc_per").val();
+        var _chq = $("#rec_chq").val();
+        var _bt = $("#rec_bt").val();
+        var _allocated = $("#rec_allocated").val();
+        var _vamount = 0;
+        var _lamount = $("#rec_lamount").val();
+        var _debit = $("#rec_debit").val();
+        var _tabby = $("#rec_tabby").val();
+        var _self = $("#rec_self").val();
+        var _spoti = $("#rec_spoti").val();
+        var _cobone = $("#rec_cob").val();
+        var _group = $("#rec_group").val();
+        var _stripe = $("#rec_stripe").val();
+        var _tamara = $("#rec_tamara").val();
+
+        //Voucher Amount
+        if (parseInt($("#rec_voucher").val()) > 0) {
+            var selected_text = $("#rec_voucher option:selected").text();
+            var value_arr = selected_text.split("|");
+            var amount = value_arr[2].trim().replace(" ", "");
+
+            _vamount = amount;
+        }
+
+        //Advance Allocated
+        if (($("#rec_advance").val() != null) && ($("#rec_advance").val() != undefined) && ($("#rec_advance").val() != "") && ($("#rec_advance").val() != NaN)) {
+            var selected_text = $("#rec_advance option:selected").text();
+            var value_arr = selected_text.split("|");
+            var amount = value_arr[2].trim().replace(" ", "");
+
+            if (!(parseFloat(amount) >= parseFloat(_allocated))) {
+                error++;
+                $("#error_receipts").html("Allocated Amount Should be less than or equal to " + amount);
+                $("#rec_advance").attr("style", "border:1px solid red;color:red;");
+                $("#rec_allocated").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#error_receipts").html("");
+                $("#rec_advance").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#rec_allocated").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+        }
+
+
+        //Loyalty
+        if (parseInt($("#rec_loyalty").val()) > 0) {
+            var selected_text = $("#rec_loyalty option:selected").text();
+            var value_arr = selected_text.split("|");
+            var amount = value_arr[2].trim().replace(" ", "");
+
+            if (!(parseFloat(amount) >= parseFloat(_lamount))) {
+                error++;
+                $("#error_receipts").html("Loyalty Allocation be less than or equal to " + amount);
+                $("#rec_loyalty").attr("style", "border:1px solid red;color:red;");
+                $("#rec_lamount").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#error_receipts").html("");
+                $("#rec_loyalty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#rec_lamount").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+        }
+
+        //Cheque
+        if (parseFloat(_chq) > 0) {
+            if (!(($("#rec_chq_no").val() != null) && ($("#rec_chq_no").val() != undefined) && ($("#rec_chq_no").val() != "") && ($("#rec_chq_no").val() != NaN))){
+                error++;
+                $("#error_receipts").html("Cheque No is Required ");
+                $("#rec_chq_no").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#error_receipts").html("");
+                $("#rec_chq_no").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+
+            if (!(($("#rec_chq_date").val() != null) && ($("#rec_chq_date").val() != undefined) && ($("#rec_chq_date").val() != "") && ($("#rec_chq_date").val() != NaN))) {
+                error++;
+                $("#error_receipts").html("Cheque Date is Required ");
+                $("#rec_chq_date").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#error_receipts").html("");
+                $("#rec_chq_date").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+
+            if (!(($("#rec_chq_bank").val() != null) && ($("#rec_chq_bank").val() != undefined) && ($("#rec_chq_bank").val() != "") && ($("#rec_chq_bank").val() != NaN))) {
+                error++;
+                $("#error_receipts").html("Bank Name is Required ");
+                $("#rec_chq_bank").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#error_receipts").html("");
+                $("#rec_chq_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            }
+        }
+
+        //Bank Transfer
+        if (parseFloat(_bt) > 0) {
+            if (($("#rec_bt_bank").val() != null) && ($("#rec_bt_bank").val() != undefined) && ($("#rec_bt_bank").val() != "") && ($("#rec_bt_bank").val() != NaN)) {
+                $("#error_receipts").html("");
+                $("#rec_bt_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+
+                var selected_text = $("#rec_bt_bank option:selected").text();
+                var value_arr = selected_text.split("|");
+                var amount = value_arr[2].trim().replace(" ", "");
+
+                if (!(parseFloat(amount) >= parseFloat(_bt))) {
+                    error++;
+                    $("#error_receipts").html("Bank Transferred Should be less than or equal to " + amount);
+                    $("#rec_bt").attr("style", "border:1px solid red;color:red;");
+                    $("#rec_bt_bank").attr("style", "border:1px solid red;color:red;");
+                }
+                else {
+                    $("#error_receipts").html("");
+                    $("#rec_bt").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    $("#rec_bt_bank").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                }
+            }
+            else {
+                error++;
+                $("#error_receipts").html("Bank Account is Required for Bank Transfers");
+                $("#rec_bt_bank").attr("style", "border:1px solid red;color:red;");
+            }
+        }
+
+        if (error == 0) {
+            var rec_total = parseFloat(_cash) + parseFloat(_cc) + parseFloat(_chq) + parseFloat(_bt) + parseFloat(_allocated)  + parseFloat(_lamount) +
+                parseFloat(_debit) + parseFloat(_tabby) + parseFloat(_self) + parseFloat(_spoti) + parseFloat(_cobone) + parseFloat(_group) + parseFloat(_stripe) + parseFloat(_tamara);
+
+            var table = $('#dtTable_invAddTreatments').DataTable();
+            var invTotal = parseFloat($(table.column(16).footer()).text().replace(',', ''));
+
+            if (rec_total > 0) {
+                isReceipt = true;
+            }
+
+            if (parseFloat(invTotal) >= parseFloat(rec_total)) {
+
+                if (parseFloat(_vamount) > 0) {
+                    rec_total = rec_total + parseFloat(_vamount);
+
+                    if (parseFloat(invTotal) >= parseFloat(rec_total)) {
+                        $("#error_receipts").html("");
+                    }
+                    else {
+                        var selected_text = $("#rec_voucher option:selected").text();
+                        var value_arr = selected_text.split("|");
+                        var amount = value_arr[2].trim().replace(" ", "");
+
+                        var balance = parseFloat(rec_total) - parseFloat(invTotal);
+
+                        $("#error_receipts").html("<span class='text-info mt-1'><i class='fa fa-info-circle'></i><span class='ms-2'>" + balance +" AED of your voucher amount not redeemable</span></span>");
+                        rec_total = invTotal;
+                    }
+                }
+                else {
+                    $("#error_receipts").html("");
+                }
+
+                $("#btnConfirmBilling").show();
+                $("#btnConfirmBilling_Package").show();
+            }
+            else {
+                $("#error_receipts").html("Receipt total is not more than invoice total");
+                $("#btnConfirmBilling").hide();
+                $("#btnConfirmBilling_Package").hide();
+            }
+        }
+    }
+
+    //Clear Treatments
+    var clearReceipts = function () {
+        $("#rec_cash").val("0.00");
+        $("#rec_cc").val("0.00");
+        $("#rec_cc_per").val("0.00");
+        $("#rec_chq").val("0.00");
+        $("#rec_chq_no").val("");
+        $("#rec_chq_bank").val("");
+        $("#rec_chq_date").bootstrapdatepicker("setDate", 'today');
+        $("#rec_bt").val("0.00");
+        $("#rec_bt_bank").val("");
+        $("#rec_advance").empty();
+        $("#rec_allocated").val("0.00");
+        $("#rec_voucher").empty();
+        $("#rec_loyalty").empty();
+        $("#rec_lamount").val("0.00");
+        $("#rec_debit").val("0.00");
+        $("#rec_tabby").val("0.00");
+        $("#rec_self").val("0.00");
+        $("#rec_spoti").val("0.00");
+        $("#rec_cob").val("0.00");
+        $("#rec_group").val("0.00");
+        $("#rec_stripe").val("0.00");
+        $("#rec_tamara").val("0.00");
+        $("#rec_notes").val("");
+    }
+    //#endregion
+
+    //#region Generate Invoice
+    $('#btnConfirmBilling').on('click', function (e) {
+        e.preventDefault();
+
+        if (item_arr.length > 0) {
+            if (!isReceipt) {
+                Swal.fire({
+                    title: "Do you want to Proceed this Invoice without Receipt?",
+                    text: "This action will get confirmation to Generate Invoice!",
+                    icon: "info",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! Proceed',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        generate_invoice();
+                    }
+                });
+            }
+            else {
+                generate_invoice();
+            }
+        }
+    });
+
+    var generate_invoice = function () {
+        var _from = $('#quick_billing').attr("data-modal-from");
+
+        var _invoice_info = {
+            "appId": @Model.qc_invoice_info.appId,
+            "inv_no": '@Model.qc_invoice_info.inv_no',
+            "inv_notes": $("#inv_notes").val().trim(),
+            "pat_code": '@Model.qc_invoice_info.pat_code',
+            "pat_name": '@Model.qc_invoice_info.pat_name',
+            "inv_date": '@Model.qc_invoice_info.inv_date',
+        }
+
+        var _invoice_receipt = {
+            "recId": 0,
+            "rec_code": '@Model.qc_invoice_info.rec_no',
+            "rec_date": '@Model.qc_invoice_info.inv_date',
+            "rec_patient": @Model.qc_invoice_info.patId,
+            "rec_invoice": 0,
+            "rec_cash": parseFloat($("#rec_cash").val()),
+            "rec_cc": parseFloat($("#rec_cc").val()),
+            "rec_cc_per": parseFloat($("#rec_cc_per").val()),
+            "rec_chq": parseFloat($("#rec_chq").val()),
+            "rec_chq_no": $("#rec_chq_no").val(),
+            "rec_chq_date": $("#rec_chq_date").val(),
+            "rec_chq_bank": $("#rec_chq_bank").val(),
+            "rec_bt": parseFloat($("#rec_bt").val()),
+            "rec_bt_bank": $("#rec_bt_bank").val(),
+            "rec_advance": parseInt($("#rec_advance").val()),
+            "rec_allocated": parseFloat($("#rec_allocated").val()),
+            "rec_notes": $("#rec_notes").val(),
+            "rec_madeby": 0,
+            "rec_debit": parseFloat($("#rec_debit").val()),
+            "rec_branch": "@Model.qc_invoice_info.branch",
+            "rec_voucher": parseInt($("#rec_voucher").val()),
+            "rec_vamount": parseFloat($("#rec_vamount").val()),
+            "rec_loyalty": parseInt($("#rec_loyalty").val()),
+            "rec_lamount": parseFloat($("#rec_lamount").val()),
+            "rec_loy_value": parseFloat($("#rec_loy_value").val()),
+            "rec_tabby": parseFloat($("#rec_tabby").val()),
+            "rec_self": parseFloat($("#rec_self").val()),
+            "rec_spoti": parseFloat($("#rec_spoti").val()),
+            "rec_group": parseFloat($("#rec_group").val()),
+            "rec_cob": parseFloat($("#rec_cob").val()),
+            "rec_stripe": parseFloat($("#rec_stripe").val()),
+            "rec_tamara": parseFloat($("#rec_tamara").val())
+        }
+
+        var _invoice = {
+            invoice_info: _invoice_info,
+            invoice_items: item_arr,
+            invoice_receipt: _invoice_receipt
+        }
+
+        $.ajax({
+            url: '@Url.Action("GenerateQCInvoice", "Invoice", new { area = "Invoice" })',
+            type: "POST",
+            dataType: "json",
+            data: _invoice,
+            async: false,
+            success: function (data) {
+                if (data.isSuccess) {
+                    $("#hiInvId").val(data.invId);
+                    var message = JSON.stringify(data.msg);
+                    let html = "<div class='alert alert-success alert-dismissible' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                        "<strong>Success! " + message + "</strong><br/>" +
+                        "</div>";
+
+                    $("#error").html(html);
+
+                    Timeout();
+
+                    clearReceipts();
+
+                    if (_from == "appointment-list") {
+                        GetAppointments(1);
+                    }
+
+                    window.open("@Url.Action("PrintInvoice", "Invoice", new { area = "Invoice" })?invId=" + $("#hiInvId").val(), "Invoice Print")
+
+                    $('#quick_billing').modal('hide');
+                }
+                else {
+                    var message = JSON.stringify(data.msg);
+                    let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                        "<strong>Error! " + message + "</strong><br/>" +
+                        "</div>";
+
+                    $("#error").html(html);
+
+                    Timeout();
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Create Package and Generate Invoice
+    $('#btnConfirmBilling_Package').on('click', function (e) {
+        var _from = $('#quick_billing').attr("data-modal-from");
+
+        e.preventDefault();
+
+        if (item_arr.length > 0) {
+            var _invoice_info = {
+                "appId": @Model.qc_invoice_info.appId,
+                "inv_no": '@Model.qc_invoice_info.inv_no',
+                "inv_notes": $("#inv_notes").val(),
+                "pat_code": '@Model.qc_invoice_info.pat_code',
+                "pat_name": '@Model.qc_invoice_info.pat_name',
+                "inv_date": '@Model.qc_invoice_info.inv_date'
+            }
+
+            var _invoice_receipt = {
+                "recId": 0,
+                "rec_code": '@Model.qc_invoice_info.rec_no',
+                "rec_date": '@Model.qc_invoice_info.inv_date',
+                "rec_patient": @Model.qc_invoice_info.patId,
+                "rec_invoice": 0,
+                "rec_cash": parseFloat($("#rec_cash").val()),
+                "rec_cc": parseFloat($("#rec_cc").val()),
+                "rec_cc_per": parseFloat($("#rec_cc_per").val()),
+                "rec_chq": parseFloat($("#rec_chq").val()),
+                "rec_chq_no": $("#rec_chq_no").val(),
+                "rec_chq_date": $("#rec_chq_date").val(),
+                "rec_chq_bank": $("#rec_chq_bank").val(),
+                "rec_bt": parseFloat($("#rec_bt").val()),
+                "rec_bt_bank": $("#rec_bt_bank").val(),
+                "rec_advance": parseInt($("#rec_advance").val()),
+                "rec_allocated": parseFloat($("#rec_allocated").val()),
+                "rec_notes": $("#rec_notes").val(),
+                "rec_madeby": 0,
+                "rec_debit": parseFloat($("#rec_debit").val()),
+                "rec_branch": "@Model.qc_invoice_info.branch",
+                "rec_voucher": parseInt($("#rec_voucher").val()),
+                "rec_vamount": parseFloat($("#rec_vamount").val()),
+                "rec_loyalty": parseInt($("#rec_loyalty").val()),
+                "rec_lamount": parseFloat($("#rec_lamount").val()),
+                "rec_loy_value": parseFloat($("#rec_loy_value").val()),
+                "rec_tabby": parseFloat($("#rec_tabby").val()),
+                "rec_self": parseFloat($("#rec_self").val()),
+                "rec_spoti": parseFloat($("#rec_spoti").val()),
+                "rec_group": parseFloat($("#rec_group").val()),
+                "rec_cob": parseFloat($("#rec_cob").val()),
+                "rec_stripe": parseFloat($("#rec_stripe").val()),
+                "rec_tamara": parseFloat($("#rec_tamara").val())
+
+            }
+
+            var _invoice = {
+                invoice_info: _invoice_info,
+                invoice_items: item_arr,
+                invoice_receipt: _invoice_receipt
+            }
+
+            if (!isReceipt) {
+                Swal.fire({
+                    title: "Do you want to Proceed this Invoice without Receipt?",
+                    text: "This action will get confirmation to Generate Invoice!",
+                    icon: "info",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! Proceed',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                    buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        isReceipt = true;
+                    }
+                });
+            }
+
+            if (isReceipt) {
+                $.ajax({
+                    url: '@Url.Action("GenerateQCInvoiceWithPackage", "Invoice", new { area = "Invoice" })',
+                    type: "POST",
+                    dataType: "json",
+                    data: _invoice,
+                    async: false,
+                    success: function (data) {
+                        if (data.isSuccess) {
+                            $("#hiInvId").val(data.invId);
+                            let html = "<div class='alert alert-success alert-dismissible' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                "<strong>Success.. " + data.message + "</strong><br/>" +
+                                "</div>";
+                            $("#error").html(html);
+                            Timeout();
+                            clearReceipts();
+
+
+
+                            if (_from == "appointment-list") {
+                                // Load Appointments
+                                GetAppointments(0);
+                            }
+
+                            window.open("@Url.Action("PrintInvoice", "Invoice", new { area = "Invoice" })?invId=" + $("#hiInvId").val(), "Invoice Print")
+
+                            $('#quick_billing').modal('hide');
+                        }
+                        else {
+                            let html = "<div class='alert alert-danger alert-dismissible' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='Close' aria-label='Close'>×</button>" +
+                                "<strong>Error.. " + data.message +"</strong><br/>" +
+                                "</div>";
+                            $("#error").html(html);
+                            Timeout();
+                        }
+
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        alert(xhr);
+                    }
+                });
+            }
+        }
+    });
+    //#endregion
+
+    //#region Remove Content on modal Close
+    $('#quick_billing').on('hidden.bs.modal', function (e) {
+        $("#quick_billing_body").empty();
+    });
+    //#endregion
+</script>

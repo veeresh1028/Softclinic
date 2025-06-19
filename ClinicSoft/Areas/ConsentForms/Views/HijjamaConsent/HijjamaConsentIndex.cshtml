@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Hijjama Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Hijjama Assessment Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="HijjamaConsent_add" style="display:none">
+                </div>
+                <div id="HijjamaConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="HijjamaConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetHijjamaConsentInfo();
+        HijjamaConsentPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetHijjamaConsentInfo
+    var GetHijjamaConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetHijjamaConsentData", "HijjamaConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditHijjamaConsent();
+                        $("#HijjamaConsent_add").hide();
+                        $("#HijjamaConsent_edit").show();
+
+                    }
+                    else {
+                        $("#HijjamaConsent_add").show();
+                        $("#HijjamaConsent_edit").hide();
+                        AddHijjamaConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load HijjamaConsent
+
+    //#region Add HijjamaConsent
+    function AddHijjamaConsent() {
+        var x = $("#HijjamaConsent_add");
+        x.load("@Url.Action("CreateHijjamaConsent", "HijjamaConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add HijjamaConsent
+
+    // #region Update HijjamaConsent
+    function EditHijjamaConsent() {
+        var x = $("#HijjamaConsent_edit");
+        x.load("@Url.Action("UpdateHijjamaConsent", "HijjamaConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update HijjamaConsent
+
+    // #region Histroy of HijjamaConsent
+    function HijjamaConsentPreviousHistory() {
+        var x = $("#HijjamaConsent_history");
+        x.load("@Url.Action("HijjamaConsentPreviousHistory", "HijjamaConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

@@ -1,0 +1,337 @@
+﻿@model BusinessEntities.EMR.PatientPackage
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Update Packages for &nbsp;</h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<form id="form_Edit_Package" class="needs-validation" >
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+            <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+        </div>
+    </div>
+    @Html.HiddenFor(m => m.poId)
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label"> Package Order<span class="text-danger">*</span></label>
+                @Html.DropDownListFor(m => m.po_package, new List<SelectListItem> { }, "Search for", new { @class = "form-select select2 mb-4", @id = "upo_package" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label"> Package Service<span class="text-danger">*</span></label>
+                @Html.DropDownListFor(m => m.po_services, new List<SelectListItem> { }, "Search for", new { @class = "form-select select2 mb-4", @multiple = "multiple", @id = "upo_services" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label">Start Date&nbsp;<span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBoxFor(model => model.po_date, new { @class = "form-control", @placeholder = "YYYY-MM-DD", @id = "upo_date" })
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">End Date&nbsp;<span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBoxFor(model => model.po_exp_date, new { @class = "form-control", @placeholder = "YYYY-MM-DD", @id = "upo_exp_date" })
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label">Notes&nbsp;</label>
+                @Html.TextAreaFor(m => m.po_notes, new { @class = "form-control", @placeholder = "Enter Notes", @id = "upo_notes" })
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+            <button type="submit" class="btn btn-warning" id="btn_Update_package">Save Changes</button>
+            <button type="button" class="btn btn-outline-danger me-1" id="btn_Close_EditIP">
+                Close
+            </button>
+        </div>
+    </div>
+</form>
+<script type="text/javascript">
+    //#region Partial View Onload
+    $(function () {
+        $("#upo_package").select2({
+            placeholder: 'Select Package Order',
+            maximumInputLength: 10,
+            width: '100%',
+            dropdownParent: $('#form_Edit_Package')
+        });
+        $('#upo_date,#upo_exp_date').bootstrapdatepicker({
+            format: "yyyy-mm-dd",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: new Date()
+        });
+        $("#upo_date,#upo_exp_date").bootstrapdatepicker("setDate", "today");
+
+        $('#upo_services').SumoSelect({
+            placeholder: 'Select Service(s)',
+            captionFormat: '{0} Service(s) Selected',
+            captionFormatAllSelected: 'All {0} Service selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true,
+            dropdownParent: $('#form_Edit_Package'),
+        });
+        load_Packages('');
+        load_Services();
+        validation();
+    });
+    //#endregion
+    $('#btn_Close_EditIP').click(function () {
+        $('#ip_edit').hide();
+    });
+    //#region Load Packages
+        var load_Packages = function (query) {
+            var po_package_ = "@Model.po_package";
+            console.log(po_package_);
+            $.ajax({
+                url: '@Url.Action("PACKAGE_TYPE", "Appointment", new { area = "Appointment" })?query=' + query ,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#upo_package").select2({
+                        placeholder: 'Select Package Order ',
+                        width: '100%',
+                        minimumResultsForSearch: '',
+                        maximumInputLength: 3,
+                        dropdownParent: $('#form_Edit_Package'),
+
+                    });
+                    var newOption;
+
+                    if (response.length > 0) {
+
+                        $.each(response, function (j) {
+                            var newOption;
+                            if (po_package_ != null && po_package_ != "" && po_package_ != undefined && po_package_ != 0) {
+                                newOption = new Option(response[j].text, response[j].id, (response[j].id === po_package_) ? true : true, (response[j].id === po_package_) ? true : true);
+                            }
+                            else {
+                                newOption = new Option(response[j].text, response[j].id);
+                            }
+
+                            $('#upo_package').append(newOption).trigger('change');
+                        });
+
+                    }
+
+
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+
+    //#endregion
+    var load_Services = function () {
+        console.log("@Model.po_Servicesdetails");
+        var po_package_ = '80061, 85025, 81000';
+            $('#upo_services').SumoSelect({
+                    placeholder: 'Select Service(s)',
+                    captionFormat: '{0} Service(s) Selected',
+                    captionFormatAllSelected: 'All {0} Service selected!',
+                    csvDispCount: 3,
+                    okCancelInMulti: true,
+                    isClickAwayOk: true,
+                    search: true,
+                    searchText: 'Search here...',
+                    selectAll: true,
+                    dropdownParent: $('#form_Edit_Package'),
+                });
+
+                $.ajax({
+                    url: '@Url.Action("GetPackageServices", "Appointment", new { area = "Appointment" })?query=' + "@Model.po_package",
+                    type: "GET",
+                    dataType: "JSON",
+                    async: false,
+                    success: function (response) {
+                        $('#upo_services').html('');
+                        $('#upo_services')[0].sumo.reload();
+
+                        $.each(response, function (j) {
+                            $('#upo_services')[0].sumo.add(response[j].id, response[j].text);
+                        });
+                        var po_package_values = po_package_.split(', ');
+                        $('#upo_services')[0].sumo.selectItem(po_package_values);
+                        $('#upo_services')[0].sumo.reload();
+
+                    },
+                    error: function (xhr) {
+                        console.log("Failed to Load Service(es)! Error Message : " + xhr.statusText);
+                    }
+                }).done(function () {
+                    $('#upo_services')[0].sumo.reload();
+                });
+
+
+        }
+
+    //#region Package Order Select Event
+        $('#upo_package').on('select2:select', function (e) {
+
+
+        });
+    //#endregion
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Edit_Package").validate({
+            focusInvalid: true,
+            rules:
+            {
+                upo_package: {
+                    required: true
+                },
+                upo_services: {
+                    required: true,
+                },
+                upo_date: {
+                    required: true
+                },
+                upo_exp_date: {
+                    required: true
+                },
+
+            },
+            messages: {
+                upo_package: {
+                    required: "Select Package"
+                },
+                upo_services: {
+                    required: "Select Service",
+                },
+                upo_date: {
+                    required: "Select Package order Date"
+                },
+                upo_exp_date: {
+                    required: "Select Package Expiry"
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#upo_package').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#upo_services').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+    }
+   //#endregion
+
+    //#region Update Payer Button Click
+    $('#btn_Update_package').on('click', function (e) {
+        e.preventDefault();
+        if ($("#form_Edit_Package").valid()) {
+
+            var _dataUpdate = {
+                "poId": @Model.poId,
+                "po_patient": "@Model.po_patient",
+                "po_branch": "@Model.po_branch",
+                "po_services": $("#upo_services").val().join(', '),
+                "po_package": $("#upo_package").val(),
+                "po_notes": $("#upo_notes").val(),
+                "po_date": moment($("#upo_date").val()).format("YYYY-MM-DD"),
+                "po_exp_date": moment($("#upo_exp_date").val()).format("YYYY-MM-DD"),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdatePatientPackageOrder", "Packages", new { area = "EMR" })",
+                dataType: 'json',
+                data: _dataUpdate,
+                success: function (data) {
+                    $('#ip_edit').hide();
+                    $('#ip_add').show();
+
+                    if (data.isUpdated) {
+                       
+                        GetInsurancePayers();
+                        alert("<i class='fe fe-check-circle text-white'></i> Patient Package Updated Successfully!", "success");
+                        Timeout();
+                    }
+                    else {
+                       
+                        alert("<i class='fe fe-alert-triangle text-white'></i> Patient Package Already Exists!", "warning");
+                        Timeout();
+                    }
+                },
+                error: function (xhr) {
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Patient Package! Error : " + xhr.statusText +"", "danger");
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+</script>

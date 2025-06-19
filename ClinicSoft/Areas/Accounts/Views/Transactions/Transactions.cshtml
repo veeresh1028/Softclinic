@@ -1,0 +1,846 @@
+﻿@model IEnumerable<BusinessEntities.Accounts.Accounting.Transaction>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Accounts & Material Management - Accounts Trannsactions";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Transactions</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2 mb-2">
+    <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+        <div id="TransactionsAlert"></div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch<small>(es)</small></label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Account Period</label>
+                                <select class="form-control" id="select_period">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Accounts</label>
+                                <select class="form-control" id="select_account">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Entry For</label>
+                                <select class="form-control" id="select_for" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Type<small>(s)</small></label>
+                                <select class="form-control" id="select_types" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Status<small>(es)</small></label>
+                                <select class="form-control" id="select_status" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Referrence #</label>
+                            </div>
+                            <div class="input-group">
+                                <input id="select_refno" class="form-control" placeholder="Enter Ref No." type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">From Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_from" class="form-control" placeholder="Select Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">To Date</label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="select_date_to" class="form-control" placeholder="Select Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i>&nbsp;Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_transactions" class="table table-striped table-bordered table-hover text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Branch</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Ref. #</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Account</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Remarks</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Debit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Credit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="text-right fs-17 text-primary font-weight-bold">Total :</th>
+                                <th class="text-end fs-16 font-weight-bold"></th>
+                                <th class="text-end fs-16 font-weight-bold"></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* View Account Detail popup Model *@
+<div class="modal fade" id="AccountDetailView_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="AccountDetailView_body">
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            load_filters();
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_branches();
+
+            load_periods();
+
+            load_for();
+
+            load_types();
+
+            load_status();
+
+            setTimeout(function () {
+                $("#btnSearch").click();
+            }, 1000);
+        }
+
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetBranches", "AccountGroups", new { area = "Accounts" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $('#select_branch').html('');
+                    $('#select_branch')[0].sumo.reload();
+
+                    if ("@emp_designation.ToString()" != "Super Administrator") {
+                        $('#select_branch')[0].sumo.add(@emp_branch.ToString(), "@company.ToString()");
+                        $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                    }
+                    else {
+                        $.each(response, function (j) {
+                            $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                            $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+
+        // Load Periods
+        var load_periods = function () {
+            $("#select_period").select2({
+                placeholder: 'Select Period',
+                width: '100%',
+                minimumResultsForSearch: '',
+                maximumInputLength: 10,
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetActiveAccountPeriods", "AccountPeriods", new { area = "Accounts" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                        type: 0
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }).done(function (response) {
+                var select2 = $("#select_period");
+                select2.empty();
+
+                $.each(response, function (index, item) {
+                    select2.append(new Option(item.text, item.id, false, false));
+                });
+
+                var firstOption = response[0];
+                if (firstOption) {
+                    select2.val(firstOption.id).trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: firstOption
+                        }
+                    });
+                }
+
+                //getTransactions(0);
+            });
+        }
+
+        // Load Events
+        $('#select_period').on('select2:select', function (e) {
+            var inputString = e.params.data.text;
+
+            var datePattern = /\[(\d{2}\/[a-zA-Z]+\/\d{4}) - (\d{2}\/[a-zA-Z]+\/\d{4})\]/;
+
+            var matches = inputString.match(datePattern);
+
+            if (matches && matches.length === 3) {
+                var startDate = matches[1];
+                var endDate = matches[2];
+
+                startDate = moment(startDate, 'DD/MMM/YYYY');
+                endDate = moment(endDate, 'DD/MMM/YYYY');
+
+                $('#select_date_from').bootstrapdatepicker('destroy');
+                $('#select_date_to').bootstrapdatepicker('destroy');
+
+                $('#select_date_from').bootstrapdatepicker({
+                    format: "dd-MM-yyyy",
+                    viewMode: "date",
+                    todayHighlight: true,
+                    autoclose: true,
+                    multidate: false,
+                    multidateSeparator: "-",
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                });
+                $("#select_date_from").bootstrapdatepicker("setDate", "yesterday");
+
+                $('#select_date_to').bootstrapdatepicker({
+                    format: "dd-MM-yyyy",
+                    viewMode: "date",
+                    todayHighlight: true,
+                    autoclose: true,
+                    multidate: false,
+                    multidateSeparator: "-",
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate)
+                });
+                $("#select_date_to").bootstrapdatepicker("setDate", "today");
+
+                $('#select_date_from').keypress(function (e) {
+                    var charCode = (e.which) ? e.which : e.keyCode
+                    if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                        return false;
+                    }
+                    else {
+                        if (e.target.value.length >= 18)
+                            return false;
+                    }
+                });
+
+                $('#select_date_to').keypress(function (e) {
+                    var charCode = (e.which) ? e.which : e.keyCode
+                    if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                        return false;
+                    }
+                    else {
+                        if (e.target.value.length >= 18)
+                            return false;
+                    }
+                });
+
+                load_accounts();
+            }
+            else {
+                console.log("Invalid A/C Period Date");
+            }
+        });
+
+        var load_for = function () {
+            $('#select_for').SumoSelect({
+                placeholder: 'Select Entry For',
+                captionFormat: '{0} Selected',
+                captionFormatAllSelected: 'All {0} items selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetEmployees", "Marketing", new { area = "Marketing" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $('#select_for').html('');
+                    $('#select_for')[0].sumo.reload();
+
+                    $.each(response, function (j) {
+                        $('#select_for')[0].sumo.add(response[j].id, response[j].text);
+                    });
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                }
+            }).done(function () {
+                $('#select_for')[0].sumo.reload();
+            });
+        }
+
+        var load_accounts = function () {
+            if ($('#select_branch').val().toString() != "" && $('#select_period').val() != "") {
+                $('#select_account').select2({
+                    placeholder: 'Search Account',
+                    width: '100%',
+                    allowClear: true,
+                    minimumInputLength: 3,
+                    maximumInputLength: 12,
+                    escapeMarkup: function (markup) {
+                        return markup;
+                    },
+                    ajax: {
+                        url: '@Url.Action("GetAccountsDropdown", "ChartOfAccounts", new { area = "Accounts" })',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (query) {
+                            return {
+                                query: query.term,
+                                branches: $('#select_branch').val().toString(),
+                                period: $('#select_period').val()
+                            };
+                        },
+                        processResults: function (data) {
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    }
+                });
+            }
+        }
+
+        var load_types = function () {
+            $('#select_types').SumoSelect({
+                placeholder: 'Select Type(s)',
+                captionFormat: '{0} Type(s) Selected',
+                captionFormatAllSelected: 'All {0} Types selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_types').html('');
+            $('#select_types')[0].sumo.reload();
+            $('#select_types')[0].sumo.add("Sale", "Sale");
+            $('#select_types')[0].sumo.add("Receipt", "Receipt");
+            $('#select_types')[0].sumo.add("Purchase", "Purchase");
+            $('#select_types')[0].sumo.add("Payment", "Payment");
+            $('#select_types')[0].sumo.add("Journal", "Journal");
+            $('#select_types')[0].sumo.reload();
+        }
+
+        var load_status = function () {
+            $('#select_status').SumoSelect({
+                placeholder: 'Select Status(es)',
+                captionFormat: '{0} Status(es) Selected',
+                captionFormatAllSelected: 'All {0} Statuses selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $('#select_status').html('');
+            $('#select_status')[0].sumo.reload();
+            $('#select_status')[0].sumo.add("New", "New");
+            $('#select_status')[0].sumo.add("Deleted", "Deleted");
+            $('#select_status')[0].sumo.reload();
+        }
+        //#endregion
+
+        //#region Search Accounts Trannsactions
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#select_period").val() != null && $("#select_period").val() != 0 && $("#select_period").val() != "") ||
+                    ($("#select_refno").val() != null && $("#select_refno").val() != 0 && $("#select_refno").val() != "") ||
+                    ($("#select_account").val() != null && $("#select_account").val() != 0 && $("#select_account").val() != "") ||
+                    ($("#select_types").val() != null && $("#select_types").val() != 0 && $("#select_types").val() != "") ||
+                    ($("#select_status").val() != null && $("#select_status").val() != 0 && $("#select_status").val() != "") ||
+                    ($("#select_for").val() != null && $("#select_for").val() != 0 && $("#select_for").val() != "")) {
+
+                    let isValid = true;
+                    let date_frm = moment($("#select_date_from").val(), "DD-MMMM-YYYY");
+                    let date_to = moment($("#select_date_to").val(), "DD-MMMM-YYYY");
+
+                    // Check if Date From is a valid Date
+                    if ($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) {
+                        if (!date_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+
+                    // Check if Date To is a valid Date
+                    if ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined) {
+                        if (!date_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+
+                    // Check if Date Range is valid
+                    if (($("#select_date_from").val() != null && $("#select_date_from").val() != 0 && $("#select_date_from").val() != "" && $("#select_date_from").val() != undefined) && ($("#select_date_to").val() != null && $("#select_date_to").val() != 0 && $("#select_date_to").val() != "" && $("#select_date_to").val() != undefined)) {
+                        if (date_frm.isValid() && date_to.isValid()) {
+                            if (date_to.diff(date_frm, 'days') < 0) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("select_date_from");
+                                index.push("select_date_to");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+
+                    // Check If Valid
+                    if (isValid) {
+                        getTransactions(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "Search by Either of the following filters : Account Period / Account / Type(s) / Status(es) / Employee(s)",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Accounts Trannsactions!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Load Accounts Trannsactions
+        function getTransactions() {
+            var branch = "";
+
+            if ("@emp_designation.ToString()" != "Super Administrator") {
+                branch = @emp_branch.ToString();
+            }
+            else {
+                branch = $('#select_branch').val().toString();
+            }
+
+            var _data = {
+                "select_branch": branch,
+                "select_period": $("#select_period :selected").val(),
+                "select_refno": $("#select_refno").val(),
+                "select_account": $("#select_account").val(),
+                "select_for": $("#select_for").val().toString(),
+                "select_types": $("#select_types").val().toString(),
+                "select_status": $("#select_status").val().toString(),
+                "select_date_from": $("#select_date_from").val(),
+                "select_date_to": $("#select_date_to").val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetTransactionsDetail", "Transactions", new { area = "Accounts" })",
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                },
+                data: _data,
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_transactions')) {
+                            table = $('#tbl_transactions').DataTable();
+                            table.clear();
+                            table.rows.add(response.T_list).draw();
+                        }
+                        else {
+                            BindDataTable(response.T_list);
+                        }
+                    }
+                    $('#progress-loader').hide();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $('#progress-loader').hide();
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Transactions Datatable
+        var BindDataTable = function (response) {
+            var numberRenderer = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+            var table = $("#tbl_transactions").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "paging": false,
+                "retrieve": true,
+                lengthChange: true,
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "branch_name"
+                    },
+                    {
+                        "mData": "tr_date",
+                        "render": function (tr_date, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(tr_date).format("DD-MM-YYYY");
+                            }
+                            return moment(tr_date).format("YYYY-MM-DD");
+                        }
+                    },
+                    {
+                        "mData": "tr_refno"
+                    },
+                    {
+                        "mData": "tr_account",
+                        "className": "font-weight-bold text-info cur-pointer",
+                        "render": function (data, type, full, meta) {
+                            return '<a data-bs-toggle="modal" data-bs-target="#SupplierAccounts" onclick="AccountDetail(\'' + full.tr_account + '\',\'' + full.acc_name + '\',\'' + full.tr_branch + '\')">' + data + '</a>';
+                        }
+                    },
+                    {
+                        "mData": "acc_name"
+                    },
+                    {
+                        "mData": "tr_remark",
+                        "orderable": false,
+                        "searchable": false
+                    },
+                    {
+                        "mData": "tr_debit",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "mData": "tr_credit",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-end fs-12 font-weight-semibold",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "orderable": false,
+                        "searchable": false,
+                        visible: false,
+                        "mData": "trId",
+                    }
+                ],
+                order: [[2, 'desc']],
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Transactions Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Accounts Transactions to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Transactions Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Accounts Transactions to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Transactions Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Accounts Transactions to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Transactions Detail',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Accounts Transactions!");
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    zeroRecords: "No Record(s) Found",
+                    infoEmpty: "No Record(s) Available",
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Branch / Account / Type / Status</span>',
+                    scrollX: "100%",
+                    lengthMenu: '_MENU_ ',
+                    sEmptyTable: '<span class="text-secondary">No Record(s) Available Based On Request</span>',
+                },
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                    };
+
+                    const total_debit = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(6).footer()).html(numberRenderer(total_debit.toFixed(2)));
+
+                    const total_credit = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(7).footer()).html(numberRenderer(total_credit.toFixed(2)));
+                },
+            });
+
+            table.buttons().container().appendTo('#tbl_transactions_wrapper .col-md-6:eq(0)');
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+         //#region Accounts Transactions Detail
+        var AccountDetail = function (account, name, branch) {
+            $("#spinner2").show();
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("SupplierAccounts", "Supplier", new { area = "MaterialManagement" })?sup_account=" + account + "&sup_name=" + name + "&branch=" + branch,
+                contentType: "application/json",
+                dataType: "html",
+                //data: app,
+                success: function (data) {
+                    $("#AccountDetailView_body").html(data);
+                    $("#AccountDetailView_modal").modal("show");
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    $("#spinner2").hide();
+                },
+                complete: function () {
+                    // Hide spinner when request is complete
+                    $("#spinner2").hide();
+                }
+            });
+        };
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

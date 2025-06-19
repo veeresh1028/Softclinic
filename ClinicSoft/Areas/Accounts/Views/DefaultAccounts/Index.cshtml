@@ -1,0 +1,424 @@
+﻿@model IEnumerable<BusinessEntities.Accounts.Accounting.AccountReports>
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Accounts & Material Management - Default Accounts Settings";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_dept = claims.Where(c => c.Type == ClaimTypes.Locality).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">Default Accounts Settings</h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> Advanced Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Branch</label>
+                                <select class="form-control" id="select_branch">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Account Period</label>
+                                <select class="form-control" id="select_period">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i>&nbsp;Search
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-1">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">Account Year</label>
+                                @Html.DropDownList("account_year", new List<SelectListItem>
+                        { }, "Select Year", new { @class = "form-control select2" })
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12 col-md-6 col-lg-1">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-secondary ms-lg-2" type="button" id="btnCreateAccounts">
+                                    <i class="fe fe-check-circle"></i> &nbsp;Create Chart of Accounts
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+
+    <div class="col-sm-12 col-md-12 col-lg-12 mt-3">
+        <div class="card">
+            <div class="modal-body p-0">
+                <div class="panel panel-primary">
+                    <div class="tab_wrapper first_tab">
+                        <ul class="tab_list">
+                            <li class="active" id="li_group"><i class="fa fa-th-large"></i> Groups</li>
+                            <li id="li_categories"><i class="fa fa-th"></i> Categories</li>
+                            <li id="li_accounts"><i class="fa fa-th-list"></i> Accounts</li>
+                        </ul>
+                        <div class="content_wrapper">
+                            <div class="tab_content active" id="acc_group">
+
+                            </div>
+                            <div class="tab_content" id="acc_category">
+
+                            </div>
+                            <div class="tab_content" id="acc_account">
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style type="text/css">
+    .group-type {
+        cursor: pointer;
+    }
+</style>
+
+<script src="~/assets/js/tabs.js"></script>
+
+<script>
+    //#region Page Load
+    $(function () {
+        $('#account_year').select2({
+            minimumResultsForSearch: '',
+            placeholder: 'Select Account',
+            width: '100%'
+        });
+        load_filters();
+        Load_years();
+    });
+
+    var Load_years = function () {
+        $('#account_year').empty();
+
+        var currentYear = new Date().getFullYear();
+        var lastYear = currentYear - 1;
+        var nextYear = currentYear + 1;
+
+        $('#account_year').append('<option value="' + lastYear + '">' + lastYear + '</option>');
+        $('#account_year').append('<option value="' + currentYear + '">' + currentYear + '</option>');
+        $('#account_year').append('<option value="' + nextYear + '">' + nextYear + '</option>');
+
+        $('#account_year').val(currentYear); // Set current year as selected
+        $('#account_year').trigger('change');
+    }
+
+    //#endregion
+
+    //#region Load Advanced Filters
+    var load_filters = function () {
+        load_branches();
+        load_periods();
+    }
+
+    // Load Branches
+    var load_branches = function () {
+        $('#select_branch').SumoSelect({
+            placeholder: 'Select Branch',
+            captionFormat: '{0} Branch(es) Selected',
+            captionFormatAllSelected: 'All {0} Branches selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true
+        });
+
+        $.ajax({
+            url: '@Url.Action("GetBranches", "AccountGroups", new { area = "Accounts" })',
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+        });
+    }
+
+    // Load Periods
+    var load_periods = function () {
+        $("#select_period").select2({
+            placeholder: 'Select Period',
+            width: '100%',
+            minimumResultsForSearch: '',
+            maximumInputLength: 10,
+            escapeMarkup: function (markup) {
+                return markup;
+            }
+        });
+
+        $.ajax({
+            url: '@Url.Action("GetActiveAccountPeriods", "AccountPeriods", new { area = "Accounts" })',
+            dataType: 'json',
+            delay: 250,
+            data: function (query) {
+                return {
+                    query: query.term,
+                    type: 0
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        }).done(function (response) {
+            var select2 = $("#select_period");
+            select2.empty();
+
+            $.each(response, function (index, item) {
+                select2.append(new Option(item.text, item.id, false, false));
+            });
+
+            var firstOption = response[0];
+            if (firstOption) {
+                select2.val(firstOption.id).trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: firstOption
+                    }
+                });
+            }
+            getDefaultAccounts();
+        });
+    }
+
+    //#endregion
+
+    //#region Search Filter
+    $("#btnSearch").click(function (e) {
+        e.preventDefault();
+
+        if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+            if (($("#select_period").val() != null && $("#select_period").val() != 0 && $("#select_period").val() != "")) {
+                getDefaultAccounts();
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "Search by the following filters : branch / Period / Date",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        }
+        else {
+            Swal.fire({
+                title: "Attention!",
+                text: "You need to select atleast 1 Branch to Filter Default Accounts!",
+                icon: "warning",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+            });
+        }
+    });
+    //#endregion
+
+    //#region Load Default Accounts on Filter
+    function getDefaultAccounts() {
+         var viewUrl = '@Url.Action("AccountGroups", "DefaultAccounts", new { area = "Accounts" })';
+        LoadPartialView(viewUrl, "acc_group");
+    }
+    //#endregion
+
+    //#region Navigation Tabs
+    $('#li_group').on('click', function () {
+
+        var viewUrl = '@Url.Action("AccountGroups", "DefaultAccounts", new { area = "Accounts" })';
+        LoadPartialView(viewUrl, "acc_group");
+    });
+
+    $('#li_categories').on('click', function () {
+        var viewUrl = '@Url.Action("AccountCategories", "DefaultAccounts", new { area = "Accounts" })';
+        LoadPartialView(viewUrl, "acc_category");
+    });
+
+    $('#li_accounts').on('click', function () {
+        var viewUrl = '@Url.Action("Accounts", "DefaultAccounts", new { area = "Accounts" })';
+        LoadPartialView(viewUrl, "acc_account");
+    });
+
+    var LoadPartialView = function (viewUrl, tabName) {
+        $("#acc_group").hide();
+        $("#acc_category").hide();
+        $("#acc_account").hide();
+        $("#li_group").addClass('active');
+        $("#li_categories").removeClass('active');
+        $("#li_accounts").removeClass('active');
+        var _data = {
+            "branch": $('#select_branch').val().toString(),
+            "acc_period": $("#select_period :selected").val()
+        }
+        console.log(_data);
+        $.ajax({
+            type: "GET",
+            url: `${viewUrl}`,
+            contentType: "application/json",
+            data: _data,
+            dataType: "html",
+            success: function (data) {
+                $("#" + tabName).html(data);
+                $("#" + tabName).show();
+            },
+            error: function (xhr) {
+                console.log("Error :" + xhr.statusText);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Export General Logs
+    var exportLogs = function (desc) {
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc=" + desc,
+            contentType: "application/json",
+            dataType: "json"
+        });
+    }
+    //#endregion
+
+    //#region Create Chart of Accounts
+    $('#btnCreateAccounts').click(function () {
+        var _year = $('#account_year').val();
+        var branch = $('#select_branch').val();
+        if (_year.length > 0 && _year !== null && _year.length > 0 && branch.length > 0 && branch !== null && branch.length > 0) {
+            Swal.fire({
+                title: "Are you sure you want to Create?",
+                text: "This action will create select year chart of accounts and if already exist it will add missing default account",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {                
+                if (t.value) {
+                    $("#spinner2").show();
+                    var period = `FY - ${_year}`;
+                    $.ajax({
+                        url: "@Url.Action("CreateChartofAccounts", "DefaultAccounts", new { area = "Accounts" })?period=" + period + "&branch=" + branch,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            $("#spinner2").hide()
+                            return_value = data.isInserted;
+                            if (return_value > 0) {
+                                title = "Success!";
+                                text = "Account Created Successfully!";
+                                icon = "success";
+                            }
+                            else {
+                                title = "Error!";
+                                text = data.message;
+                                icon = "error";
+                            }
+
+                            if (title != '' && text != '' && icon != '') {
+                                Swal.fire({
+                                    title: title,
+                                    text: text,
+                                    icon: icon,
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            $("#spinner2").hide();
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Change Status! Please refresh the Page and Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            })
+                        }
+                    });
+                }
+            });
+        }
+        else {
+            Swal.fire({
+                title: "Alert!",
+                text: "select branch and year to create account!",
+                icon: "info",
+                showCancelButton: 0,
+                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+            });
+        }
+    });
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+</script>
+

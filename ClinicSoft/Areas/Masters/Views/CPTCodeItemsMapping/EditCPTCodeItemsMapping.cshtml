@@ -1,0 +1,454 @@
+﻿@model BusinessEntities.Masters.CPTCodeItemsMapping
+<style>
+    #size {
+        max-width: 800px;
+    }
+</style>
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Update CPT Code Item</h5>
+    <button type="button" class="btn-close btnCloseEdit" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Edit_CPTItem" autocomplete="off" ondrop="return false;" oncut="return false;">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.cptId)
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label">CPT Code&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.cpt_code, new List<SelectListItem> { }, "Select CPT Code", new { @class = "form-select  mb-2 select2", @id = "cpt_code" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Item&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.cpt_item, new List<SelectListItem> { }, "Select Item", new { @class = "form-select  mb-2 select2", @id = "cpt_item" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label">Quantity&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.cpt_qty, new { @class = "form-control", @placeholder = "Enter Quantity", @type = "number", @min = "1" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">UOM&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.cpt_uom, new List<SelectListItem>
+                      {
+                         new SelectListItem{ Text="Nos", Value = "Nos" },
+                         new SelectListItem{ Text="Boxes", Value = "Boxes" },
+                      }, "Select UOM", new { @class = "form-select select2" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label">Notes&nbsp;</label>
+                    @Html.TextAreaFor(m => m.cpt_notes, new { @class = "form-control", @placeholder = "Enter Your Notes here..." })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorEdit"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                    <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+
+    //#region Page Load
+    $(function () {
+        load_CPTCode("@Model.cpt_code");
+        load_Items("@Model.cpt_item");
+
+        $("#cpt_code").select2({
+            placeholder: 'Select CPT Code',
+            width: '100%',
+            minimumInputLength: 3,
+            maximumInputLength: 15,
+            dropdownParent: $('#form_Edit_CPTItem'),
+            ajax: {
+                url: '@Url.Action("GetCPTCodes", "CPTCodeItemsMapping", new { area = "Masters" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#cpt_item").select2({
+            placeholder: 'Select Item',
+            width: '100%',
+            minimumInputLength: 3,
+            maximumInputLength: 15,
+            dropdownParent: $('#form_Edit_CPTItem'),
+            ajax: {
+                url: '@Url.Action("GetItems", "CPTCodeItemsMapping", new { area = "Masters" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#cpt_uom").select2({
+            placeholder: 'Select UOM',
+            width: '100%',
+            minimumResultsForSearch: -1,
+            dropdownParent: $('#form_Edit_CPTItem')
+        });
+
+        validation();
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Edit_CPTItem").validate({
+            focusInvalid: true,
+            rules:
+            {
+                cpt_qty: {
+                    required: true
+                },
+                cpt_uom: {
+                    required: true,
+                },
+                cpt_code: {
+                    required: true
+                },
+                cpt_item: {
+                    required: true,
+                },
+            },
+            messages: {
+                cpt_qty: {
+                    required: "Enter Quantity"
+                },
+                cpt_uom: {
+                    required: "Select UOM",
+                },
+                cpt_code: {
+                    required: "Select CPT Code"
+                },
+                cpt_item: {
+                    required: "Select Item",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#cpt_uom').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#cpt_code').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#cpt_item').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#cpt_qty').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g)) {
+                return false;
+            }
+
+            if (parseFloat(inputValue) > 1000000) {
+                return false;
+            }
+        });
+
+        $("#cpt_qty").on('input', function () {
+            var disc = $(this).val();
+            if (disc == "" || disc == null || disc == undefined) {
+                $("#cpt_qty").val(0.00);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Load Items
+    var load_Items = function (cpt_item) {
+        $.ajax({
+            url: '@Url.Action("GetItems", "CPTCodeItemsMapping", new { area = "Masters" })?query=' + cpt_item,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                var data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+                $('#cpt_item').append(newOption).trigger('change');
+                $('#cpt_item').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Load CPT Codes
+    var load_CPTCode = function (cpt_code) {
+        $.ajax({
+            url: '@Url.Action("GetCPTCodes", "CPTCodeItemsMapping", new { area = "Masters" })?query=' + cpt_code,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                var data = {
+                    "id": response[0].id,
+                    "text": response[0].text,
+                };
+
+                var newOption = new Option(response[0].text, response[0].id, true, true);
+                $('#cpt_code').append(newOption).trigger('change');
+                $('#cpt_code').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: data
+                    }
+                });
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    };
+    //#endregion
+
+    //#region Item Select Event
+    $('#cpt_item').on('select2:select', function (e) {
+        var data = e.params.data;
+
+        if (data.id!="") {
+            $.ajax({
+                url: '@Url.Action("GetUOMByItem", "CPTCodeItemsMapping", new { area = "Masters" })?icode=' + data.id,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $("#cpt_uom").empty();
+
+                    if (response.length > 0) {
+
+                        var item_uom = response[0].item_uom;
+                        var item_uom2 = response[0].item_uom2;
+                        var item_uom3 = response[0].item_uom3;
+                        var newOption = "";
+
+
+                        var value = "@Model.cpt_uom";
+
+                        if (value != null && value != '' && value != undefined && value != 0) {
+                            newOption = new Option(item_uom, item_uom, (item_uom == value) ? true : false, (item_uom == value) ? true : false);
+                        }
+                        else {
+                            newOption = new Option(item_uom, item_uom, false, false);
+                        }
+
+                        $("#cpt_uom").append(newOption).trigger('change');
+
+                        if (item_uom != item_uom2) {
+                            newOption = new Option(item_uom2, item_uom2, (item_uom2 == value) ? true : false, (item_uom2 == value) ? true : false);
+                            $("#cpt_uom").append(newOption).trigger('change');
+                        }
+                        if (item_uom2 != item_uom3) {
+                            newOption = new Option(item_uom3, item_uom3, (item_uom3 == value) ? true : false, (item_uom3 == value) ? true : false);
+                            $("#cpt_uom").append(newOption).trigger('change');
+                        }
+                    }
+                    else {
+                        $('#cpt_uom').val("").trigger('change');
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+    });
+    //#endregion
+
+    //#region Update CPT Code Item Mapping Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Edit_CPTItem").valid()) {
+
+            $('#btn_Update').removeClass("btn btn-warning");
+            $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+            $('#btn_Update').parent().addClass("curdrop");
+            $('.btnCloseEdit').addClass("disabled");
+            $('#btn_Update').html("Saving Changes... Please Wait");
+
+            var _dataUpdate = {
+                "cptId": $("#cptId").val(),
+                "cpt_qty": $("#cpt_qty").val(),
+                "cpt_notes": $("#cpt_notes").val().trim(),
+                "cpt_uom": $("#cpt_uom :selected").val(),
+                "cpt_code": $("#cpt_code :selected").val(),
+                "cpt_item": $("#cpt_item :selected").val(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateCPTCodeItem", "CPTCodeItemsMapping", new {area = "Masters" })",
+                dataType: 'json',
+                data: _dataUpdate,
+                success: function (data) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    if (data.isSuccess) {
+                        if (data.isUpdated) {
+                            GetCPTCodeItems();
+                            alert("<i class='fe fe-check-circle text-white'></i> CPT Code Item Mapping Updated Successfully!", "success");
+                            $('#cptitem_modal').modal('toggle');
+                            Timeout();
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> CPT Code Item Mapping Already Exists with the same details!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorEdit").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+
+                        $("#errorEdit").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Update').parent().removeClass("curdrop");
+                    $('.btnCloseEdit').removeClass("disabled");
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+
+                    $('#cptitem_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+</script>

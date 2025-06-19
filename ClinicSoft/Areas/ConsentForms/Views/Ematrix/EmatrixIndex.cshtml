@@ -1,0 +1,107 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Ematrix";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"> E-Matrix Consent Form<br /><span dir="rtl">E-Matrix اقرار بالموافقة على العلاج بجهاز</span></h3>
+            </div>
+            <div class="card-body">
+                <div id="Ematrix_add" style="display:none">
+                </div>
+                <div id="Ematrix_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="Ematrix_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetEmatrixInfo();
+        EmatrixPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetEmatrixInfo
+    var GetEmatrixInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetEmatrixData", "Ematrix", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditEmatrix();
+                        $("#Ematrix_add").hide();
+                        $("#Ematrix_edit").show();
+
+                    }
+                    else {
+                        $("#Ematrix_add").show();
+                        $("#Ematrix_edit").hide();
+                        AddEmatrix();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load Ematrix
+
+    //#region Add Ematrix
+    function AddEmatrix() {
+        var x = $("#Ematrix_add");
+        x.load("@Url.Action("CreateEmatrix", "Ematrix", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add Ematrix
+
+    // #region Update Ematrix
+    function EditEmatrix() {
+        var x = $("#Ematrix_edit");
+        x.load("@Url.Action("UpdateEmatrix", "Ematrix", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+
+    //#region Histroy of Ematrix
+    function EmatrixPreviousHistory() {
+        var x = $("#Ematrix_history");
+        x.load("@Url.Action("EmatrixPreviousHistory", "Ematrix", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

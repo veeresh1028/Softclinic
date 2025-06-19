@@ -1,0 +1,104 @@
+﻿@model BusinessEntities.Patient.PatientLabel
+<style type="text/css">
+    #sizePL {
+        max-width: 800px;
+    }
+</style>
+@if (Model != null)
+{
+    <div class="modal-header py-3 px-4 noPrint">
+        <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Patient Label For <span class="tag tag-rounded tag-azure"> @Model.pat_name</span> </h5>
+        <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body p-4">
+        <div id="DivIdToPrint" style="display:none">
+            
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-sm-6 col-md-6 col-lg-6">
+                <ul class="list-group m-2">
+                    @Html.HiddenFor(m => m.patId)
+                    <li class="list-group-item">@Model.pat_code</li>
+                    <li class="list-group-item">@Model.pat_name</li>
+                    <li class="list-group-item">@Html.DisplayFor(model => model.pat_dob, "{0:dd/MM/yyyy}") / @Model.pat_gender</li>
+                    <li class="list-group-item">@Model.pat_mob</li>
+                    <li class="list-group-item">@Model.pat_ins / @Model.nationality</li>
+                </ul>
+            </div>
+        </div>
+        <div class="row mt-2 noPrint">
+            <div class="col-sm-12 col-lg-12 text-center">
+                <button type="submit" class="btn btn-primary" id="btn_Print" onclick="printLabel()">Print</button>
+                <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="modal-body p-4">
+        <div class="alert alert-warning" role="alert">
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true">×</button>
+            <i class="fa fa-exclamation me-2" aria-hidden="true"></i> Attention! Please Select View Label From Appointment!
+        </div>
+    </div>
+}
+
+<script type="text/javascript">
+    function printLabel() {
+        var patId = $('#patId').val();
+        var pat_code = "@Model.pat_code";
+        var pat_name = "@Model.pat_name";
+        var pat_dob = "@Model.pat_dob";
+        var pat_gender = "@Model.pat_gender";
+        var pat_mob = "@Model.pat_mob";
+        var pat_ins = "@Model.pat_ins";
+        var nationality = "@Model.nationality";
+
+        var _data = {
+            patId    : patId,
+            pat_code : pat_code,
+            pat_name: pat_name,
+            pat_dob: pat_dob,
+            pat_gender: pat_gender,
+            pat_mob: pat_mob,
+            pat_ins: pat_ins,
+            nationality: nationality,
+        }
+
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("PrintPatientLabel", "AppointmentList", new { area = "Appointment" })",
+            contentType: "application/json",
+            data: _data,
+            dataType: "html",
+            success: function (response) {
+                $("#DivIdToPrint").html(response);
+                exportLogs("Employee Printed Patient Label with patId = @Model.patId");
+            },
+            error: function (xhr) {
+                console.log("Error :" + xhr.statusText);
+            }
+        }).done(function () {
+            printDiv();
+        });
+    }
+
+    function printDiv() {
+        var divToPrint = document.getElementById('DivIdToPrint');
+
+        var newWin = window.open('', 'Print Patient Label');
+
+        newWin.document.open();
+
+        newWin.document.write('<html><body onload="window.print()">' + divToPrint.innerHTML + '</body></html>');
+
+        newWin.document.close();
+
+        setTimeout(function () { newWin.close(); }, 10);
+    }
+</script>

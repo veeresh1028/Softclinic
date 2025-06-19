@@ -1,0 +1,660 @@
+﻿@model BusinessEntities.Invoice.TreatmentItemView
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Treatment Items</h5>
+    <button type="button" class="btn-close close-titems-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Treatment_Item_Create" autocomplete="off">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                <span class="text-danger" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 col-md-10 col-lg-10">
+                <div class="form-group">
+                    <label class="form-label">Item<span class="text-danger">*</span></label>
+                    <select name="tit_item" id="tit_item" class="form-select select2 mb-2"></select>
+                    <input type="hidden" id="hi_titId" value="0" />
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-2 col-lg-2">
+                <div class="form-group">
+                    <label class="form-label">Qty<span class="text-danger">*</span></label>
+                    <input type="text" name="tit_qty" id="tit_qty" class="form-control mb-2" placeholder="Eg:5" />
+                </div>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group">
+                    <label class="form-label">Remarks/Notes</label>
+                    <textarea name="tit_notes" id="tit_notes" class="form-control mb-2" placeholder="Eg:Enter Notes...." rows="4"></textarea>
+                </div>
+            </div>
+
+
+        </div>
+        <div class="row">
+            <div id="div_item_error"> </div>
+            <div class="col-sm-12 col-md-8 col-lg-8">
+                <label class="form-label mt-1">&nbsp;<span class="text-danger" id="error_msg"></span></label>
+            </div>
+            <div class="col-sm-12 col-md-4 col-lg-4">
+                <div class="pull-right">
+                    <button type="submit" class="btn btn-success" id="btnAddTreatmentItem"><i class="fe fe-plus"></i> Add Treatment Item</button>
+                    <button type="button" class="btn btn-outline-dark" id="btn_ResetItem">Reset</button>
+                </div>
+            </div>
+        </div>
+    </form>
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive mt-2">
+                        <table id="tbl_treatmentItems" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                            <thead>
+                                <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:5%">#</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">Item Code</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap" style="width:40%">Item Name</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-end" style="width:5%">Qty</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Notes</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:10%">Status</th>
+                                    <th class="border-bottom-0 font-weight-semibold text-white" style="width:5%"></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer py-1 px-3">
+    <div class="form-group">
+        <button type="button" class="btn btn-outline-danger close-titems-modal" data-bs-dismiss="modal" aria-label="Close">
+            Close
+        </button>
+    </div>
+</div>
+
+<script>
+    //#region Document Load
+    $(function () {
+        $("#tit_item").select2({
+            placeholder: 'Select Treatment Item',
+            width: '100%',
+            dropdownParent: $('#form_Treatment_Item_Create'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchTreatments", "TreatmentItems", new { area = "Invoice" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term
+                    };
+                },
+                processResults: function (data) {
+                    console.log(data);
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        validation();
+
+        getTreatmentItems();
+        console.log("@Model.ptId");
+    });
+    //#endregion
+
+    //#region Load Treatment Items
+    var getTreatmentItems = function () {
+        var _from = $('#treatment_item_details').attr("data-modal-from");
+        var ptId = "@Model.ptId";
+        if (_from === "Patient-Treatment") {
+            ptId = getTreatmentItems(localStorage.getItem(ptId));
+            console.log("1");
+        }
+        else {
+            ptId = "@Model.ptId";
+            console.log("2");
+        }
+        console.log(ptId);
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetTreatmentItems", "TreatmentItems", new { area = "Invoice" })?ptId=" + ptId,
+            success: function (response) {
+                if (response.length > 0) {
+                    var table;
+                    if ($.fn.dataTable.isDataTable('#tbl_treatmentItems')) {
+                        table = $('#tbl_treatmentItems').DataTable();
+                        table.clear();
+                        table.rows.add(response).draw();
+                    }
+                    else {
+                        bindDataTable(response);
+                    }
+                }
+
+                setTimeout(function () {
+                    $('#tbl_treatmentItems').DataTable().columns.adjust().draw();
+                }, 450);
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        });
+    }
+    //#endregion
+
+    //#region Bind DataTable
+    var bindDataTable = function (response) {
+        var table = $("#tbl_treatmentItems").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "pageLength": 100,
+            "retrieve": true,
+            lengthChange: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "titId",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-center",
+                    "render": function (data, type, row, meta) {
+                        let _index = (meta.row) + 1;
+                        if (_index >= 10) {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                        }
+                        else {
+                            return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                        }
+                    }
+                },
+                { "mData": "tit_item_code" },
+                { "mData": "tit_item", "className": 'text-wrap text-justify' },
+                {
+                    "mData": "tit_qty",
+                    "className": 'text-end',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "className": 'text-wrap',
+                    "mData": "tit_notes"
+                },
+                {
+                    "mData": "tit_status",
+                    "className": 'text-center',
+                    "render": function (data, type, full, meta) {
+                        var titId = full.titId;
+
+                        if (data.toLowerCase() === "new") {
+                            return '<a onclick="updateTreatmentItemStatus(\'' + titId + '\',\' New \')"><span class="dot-label bg-primary me-2 w-2 h-2"></span>&nbsp;New</a>';
+                        }
+                        else if (data.toLowerCase() === "used") {
+                            return '<a onclick="updateTreatmentItemStatus(\'' + titId + '\',\' Used \')"><span class="dot-label bg-success me-2 w-2 h-2"></span>&nbsp;Used</a>';
+                        }
+                        else if (data.toLowerCase() === "deleted") {
+                            return '<a onclick="updateTreatmentItemStatus(\'' + titId + '\',\' Deleted \')"><span class="dot-label bg-danger me-2 w-2 h-2"></span>&nbsp;Deleted</a>';
+                        }
+                        else  {
+                            return '<span class="dot-label bg-dark me-2 w-2 h-2"></span>&nbsp;' + data;
+                        }
+                    }
+                },
+                {
+                    "mData": "titId",
+                    "className": 'text-center',
+                    "orderable": false,
+                    "searchable": false,
+                    "render": function (data, type, full, meta) {
+                        var status = full.tit_status;
+
+                        if (status !== "Deleted") {
+                            return '<a onclick="deleteTreatmentItem(' + data + ')"><i class="fe fe-trash text-danger" style="font-size: 15px;"></i></a>';
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                }
+
+            ],
+            order: [[0, 'asc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search</span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_ ',
+
+            },
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Treatment Items',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Treatment Items to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Treatment Items',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Treatment Items to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Treatment Itemsr',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Treatment Items to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Treatment Items',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Treatment Items!");
+                    }
+                }
+            ]
+        });
+        table.buttons().container().appendTo('#tbl_treatmentItems_wrapper .col-md-6:eq(0)');
+    };
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $('#tit_qty').keypress(function (e) {
+            var charCode = (e.which) ? e.which : event.keyCode
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+        });
+
+        $("#form_Treatment_Item_Create").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "tit_item": {
+                    required: true
+                },
+                "tit_qty": {
+                    required: true,
+                    min: 1
+                }
+            },
+            messages: {
+                "tit_item": {
+                    required: "Select Treatment Item"
+                },
+                "tit_qty": {
+                    required: "Enter Qty",
+                    min: "Min. Qty is 1"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#tit_item').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#tit_qty').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $("#tit_qty").focusin(function () {
+            localStorage.setItem("temp_tit_qty", $(this).val());
+        });
+
+        $("#tit_qty").focusout(function () {
+            var val = parseFloat($(this).val());
+            if (val >= 1) {
+                var selected_text = $("#tit_item option:selected").text();
+                var value_arr = selected_text.split("|");
+                var qty = value_arr[2].trim().replace(" ", "").replace("(", "").replace(")", "");
+
+                if ($.isNumeric(qty)) {
+                    if (!(parseFloat(qty) >= parseFloat(val))) {
+                        $("#error_msg").html("Item Qty should be less than or equal to available qty of " + qty);
+                        $("#tit_qty").attr("style", "border:1px solid red;color:red;");
+                        $("#btnAddTreatmentItem").hide();
+                    }
+                    else {
+                        $("#btnAddTreatmentItem").show();
+                        $("#error_msg").html("");
+                        $("#tit_qty").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    }
+                }
+
+                localStorage.removeItem("temp_tit_qty");
+            }
+            else {
+                $(this).val(localStorage.getItem("temp_tit_qty"));
+                localStorage.removeItem("temp_tit_qty");
+            }
+        });
+    }
+    //#endregion
+
+    //#region Add Treatment
+    $('#btnAddTreatmentItem').on('click', function (e) {
+        e.preventDefault();
+        if ($("#form_Treatment_Item_Create").valid()) {
+            $('#btnAddTreatmentItem').removeClass("btn btn-success");
+            $('#btnAddTreatmentItem').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btnAddTreatmentItem').html("Saving the Record....");
+
+            var selected_text = $("#tit_item option:selected").text();
+            var value_arr = selected_text.split("|");
+
+            var _model = {
+                "titId": 0,
+                "tit_ptId": @Model.ptId,
+                "tit_itemId": $("#tit_item").val(),
+                "tit_item_code": value_arr[0].trim().replace(" ", ""),
+                "tit_item": value_arr[1].trim().replace(" ", ""),
+                "tit_qty": parseFloat($("#tit_qty").val()),
+                "tit_notes": $("#tit_notes").val(),
+                "tit_status": '',
+                "tit_batch": '',
+                "tit_edate": '01/01/2099',
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "Post",
+                url: "@Url.Action("AddTreatmentItem", "TreatmentItems", new {area = "Invoice" })",
+                dataType: 'JSON',
+                data: _model,
+                success: function (data) {
+                    $('#btnAddTreatmentItem').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btnAddTreatmentItem').addClass("btn btn-success");
+                    $('#btnAddTreatmentItem').html('<i class="fe fe-plus"></i> Add Treatment Item');
+                    if (data.isSuccess) {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-success' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Success..&nbsp;</strong> Treatment Items inserted successfully!</div></div>";
+
+                        $("#div_item_error").html(html);
+                        timeout();
+                        
+
+                        $("#tit_item").empty();
+                        $("#tit_qty").val("0");
+                        $("#tit_notes").val("");
+                        getTreatmentItems();
+                      
+
+                    } else {
+
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Error..&nbsp;</strong> There is an error to create the treatment item!</div></div>";
+                        $("#div_item_error").html(html);
+                        timeout();
+                    }
+                },
+                error: function (xhr) {
+                    $('#btnAddTreatmentItem').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btnAddTreatmentItem').addClass("btn btn-success");
+                    $('#btnAddTreatmentItem').html('<i class="fe fe-plus"></i> Add Treatment Item');
+                    timeout();
+                }
+            })
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+    //#region Delete Item
+    var deleteTreatmentItem = function (titId) {
+        Swal.fire({
+            title: "Are you sure you want to delete this Treatment Item ?",
+            text: "This action will delete this Treatment Item!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteTreatmentItems", "TreatmentItems", new { area = "Invoice" })?titId=' + titId ,
+                        type: "POST",
+                        dataType: "JSON",
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Treatment Item is Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+
+                                    getTreatmentItems();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Delete Treatment Item!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to delete this Treatment Item!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Treatment Item! Please refresh the page and try again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+    }
+    //#endregion
+
+    //#region Update Status Function
+    var updateTreatmentItemStatus = function (titId, status) {
+        console.log(status)
+        var _status = (status.trim() == "Deleted" || status.trim() == "Used") ? "New" : "Used";
+        console.log(_status)
+
+        Swal.fire({
+            title: "Are you sure you want to change status ?",
+            text: "This action will change the status of the selected Treatment Item!",
+            icon: "question",
+            showCancelButton: !0,
+            confirmButtonText: 'Yes! I Confirm',
+            cancelButtonText: 'No! Cancel Please',
+            confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+        }).then(function (t) {
+            if (t.value) {
+                $.ajax({
+                    url: "@Url.Action("UpdateTreatmentItemStatus", "TreatmentItems", new { area = "Invoice" })?titId=" + titId + "&tit_status=" + _status,
+                    type: "POST",
+                    dataType: "JSON",
+                    success: function (data) {
+                        if (data.isAuthorized) {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: "Success!",
+                                    text: "Status Changed Successfully!!",
+                                    icon: "success",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                })
+                                getTreatmentItems();
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "You Can't Change the status! Already exist an active Item",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Access Denied!",
+                                text: "You do not have enough privileges to perform this action!",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        Swal.fire({
+                            title: "Error!",
+                            text: "Failed to Update Item Status! Please refresh the Page and Try Again.",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        })
+                    }
+                });
+            }
+        });
+    }
+    //#endregion
+
+    //#region Export General Logs
+    var exportLogs = function (desc) {
+        $.ajax({
+            type: "POST",
+            url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+            contentType: "application/json",
+            dataType: "json"
+        });
+    }
+    //#endregion
+
+    //#region On Treatment Items Modal Close
+    $('.close-titems-modal').on('click', function (e) {
+        e.preventDefault();
+        var _from = $('#treatment_item_details').attr("data-modal-from");
+
+        if (_from === "invoice-list") {
+            $('#treatment_item_details').modal('hide');
+            $('#edit_cash_invoice').modal('show');
+        }
+        else if (_from === "appointment-list") {
+            $('#treatment_item_details').modal('hide');
+            $('#quick_billing').modal('show');
+        }
+    });
+    //#endregion
+
+    //#region Alert Timeout
+    function timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion Alert Timeout
+</script>

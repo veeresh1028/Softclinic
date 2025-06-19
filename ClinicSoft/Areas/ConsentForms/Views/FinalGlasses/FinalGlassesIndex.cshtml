@@ -1,0 +1,115 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "FinalGlassesIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Final Prescription -  Glasses</h3>
+            </div>
+            <div class="card-body">
+                <div id="FinalGlasses_add" style="display:none">
+                </div>
+                <div id="FinalGlasses_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="FinalGlasses_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetFinalGlassesInfo();
+            FinalGlassesPreviousHistory();
+
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetFinalGlassesInfo
+        var GetFinalGlassesInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetFinalGlassesData", "FinalGlasses", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditFinalGlasses();
+                            $("#FinalGlasses_add").hide();
+                            $("#FinalGlasses_edit").show();
+
+                        }
+                        else {
+                            $("#FinalGlasses_add").show();
+                            $("#FinalGlasses_edit").hide();
+                            AddFinalGlasses();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load FinalGlasses
+
+        //#region Add FinalGlasses
+        function AddFinalGlasses() {
+            var x = $("#FinalGlasses_add");
+            x.load("@Url.Action("CreateFinalGlasses", "FinalGlasses", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add FinalGlasses
+
+        //#region Update FinalGlasses
+        function EditFinalGlasses() {
+            var x = $("#FinalGlasses_edit");
+            x.load("@Url.Action("UpdateFinalGlasses", "FinalGlasses", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update FinalGlasses
+
+          //#region Histroy of FinalGlasses
+        function FinalGlassesPreviousHistory() {
+            var x = $("#FinalGlasses_history");
+            x.load("@Url.Action("FinalGlassesPreviousHistory", "FinalGlasses", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of FinalGlasses
+
+
+    </script>
+@*}*@
+

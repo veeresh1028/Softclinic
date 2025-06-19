@@ -1,0 +1,179 @@
+﻿
+@model List<BusinessEntities.Accounts.MaterialManagement.GRN_ITEMS>
+
+<div class="card" id="myPartialViewContainer">
+    <div class="card-body p-1">
+        <div class="table-responsive" style="min-height:unset;">
+            <table id="tbl_grn_items" class="table table-striped table-bordered text-nowrap" style="width: 100%;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                        <th class="border-bottom-0 font-weight-semibold text-white">ID</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Item</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Batch No.</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Expiry Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty-UoM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Free Qty-UoM</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Unit Price</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">New Price</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Disc. / Type</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Disc. Value</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Net</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">NET + VAT</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        GetPurchaseItems();
+    });
+    //#endregion
+
+    //#region Load Purchase Order Items
+    var GetPurchaseItems = function () {
+            var response = @Html.Raw(Json.Encode(Model));
+            if (response != null && response != undefined) {
+                var table;
+                if ($.fn.dataTable.isDataTable('#tbl_grn_items')) {
+                    table = $('#tbl_grn_items').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindDataTable(response);
+                }
+            }
+        }
+    //#endregion
+
+    //#region Bind DataTable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_grn_items").DataTable({
+                processing: true,
+                "deferRender": true,
+                "pageLength": 50,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "pirId" },
+                    { "mData": "item_code" },
+                    {
+                        "mData": "item_name",
+                        "className": "td_max_width"
+                    },                    
+                    { "mData": "pir_batchno" },
+                    { "mData": "pir_edate" },
+                    {
+                        "mData": "pir_received",
+                        "className": "fs-13 text-center",
+                        "render": function (pir_received, type, full, meta) {
+                            return '<span>' + full.pir_received + " - " + full.pir_uom + '</span>'
+                        }
+                    },   
+                    {
+                        "mData": "pir_free_qty",
+                        "className": "fs-13 text-center",
+                        "render": function (pir_free_qty, type, full, meta) {
+                            return '<span>' + full.pir_free_qty + " - " + full.pir_fuom + '</span>'
+                        }
+                    }, 
+                    { "mData": "pir_uprice" },
+                    { "mData": "pir_nprice" },
+                    {
+                        "mData": "pir_disc_val",
+                        "className": "fs-13 text-center",
+                        "render": function (pir_disc_val, type, full, meta) {
+                            return '<span>' + parseFloat(parseFloat(full.pir_net) + parseFloat(full.pir_disc_val)).toFixed(2) + '</span>'
+                        }
+                    },
+                    {
+                        "mData": "pir_disc",
+                        "className": "fs-13 text-center",
+                        "render": function (pir_disc, type, full, meta) {
+                            return '<span>' + full.pir_disc + " - " + full.pir_disc_type + '</span>'
+                        }
+                    },
+
+                    { "mData": "pir_disc_val" },
+                    { "mData": "pir_net" },
+                    { "mData": "pir_vat" },
+                    {
+                        "mData": "pir_disc_val",
+                        "className": "fs-13 text-center",
+                        "render": function (pir_vat, type, full, meta) {
+                            return '<span>' + parseFloat(parseFloat(full.pir_net) + parseFloat(full.pir_vat)).toFixed(2) + '</span>'
+                        }
+                    },
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "visible": false
+                    },
+                    {
+                        "aTargets": [7],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [8],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [9],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [11],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [12],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [13],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    },
+                    {
+                        "aTargets": [14],
+                        "className": "fs-13 text-end",
+                        "render": $.fn.dataTable.render.number(',', '.', 2)
+                    }
+                ],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                }
+            });
+            table.buttons().container()
+                .appendTo('#tbl_grn_items_wrapper .col-md-6:eq(0)');
+       }
+        //#endregion Bind DataTable
+
+
+
+
+</script>
+
+

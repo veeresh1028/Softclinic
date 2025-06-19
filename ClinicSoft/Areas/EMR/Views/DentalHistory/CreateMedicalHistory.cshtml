@@ -1,0 +1,335 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.EMR.MedicalHistory
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_MedHis" autocomplete="off" name="MedicalHistory" ondrop="return false;" onpaste="return false;" oncut="return false;">
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-2">
+            <div>
+                <h4 class="page-title mb-0 text-primary">
+                    Medical History
+                </h4>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Infecious Disease&nbsp;</label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_infecious" value="Yes" id="1">
+                        <span class="custom-control-label">Yes</span>
+                    </label>
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_infecious" value="No" id="2">
+                        <span class="custom-control-label">No</span>
+                    </label>
+
+                </div>
+                @Html.TextBoxFor(m => m.oe_infecious_other, new { @class = "form-control", @placeholder = "Enter Infecious Disease" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Past Medication&nbsp;</label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_past_med" value="Yes" id="3">
+                        <span class="custom-control-label">Yes</span>
+                    </label>
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_past_med" value="No" id="4">
+                        <span class="custom-control-label">No</span>
+                    </label>
+
+                </div>
+                @Html.TextBoxFor(m => m.oe_past_med_other, new { @class = "form-control", @placeholder = "Enter Past Medication" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Fall Risk&nbsp;</label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_fall_risk" value="Yes" id="5">
+                        <span class="custom-control-label">Yes</span>
+                    </label>
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_fall_risk" value="No" id="6">
+                        <span class="custom-control-label">No</span>
+                    </label>
+                    <span class="ms-2 mb-2">
+                        @Html.DropDownListFor(m => m.oe_fall_risk_type, new List<SelectListItem>
+                       {
+                           new SelectListItem{ Text="No Risk", Value = "No Risk" },
+                           new SelectListItem{ Text="Low Risk", Value = "Low Risk" },
+                           new SelectListItem{ Text="High Risk", Value = "High Risk" },
+                       }, "Select Type", new { @class = "form-select select2", @id = "oe_fall_risk_type" })
+                    </span>
+                </div>
+                @Html.TextBoxFor(m => m.oe_fall_risk_other, new { @class = "form-control", @placeholder = "Enter Past Medication", @id = "oe_fall_risk_other" })
+
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-3">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Psychological History&nbsp;<span class="text-danger">*</span></label>
+                <div class="custom-controls d-lg-flex d-md-flex flex-row justify-content-left">
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_systemic" value="Yes" id="7">
+                        <span class="custom-control-label">Yes</span>
+                    </label>
+                    <label class="custom-control custom-radio  ms-2">
+                        <input type="radio" class="custom-control-input" name="oe_systemic" value="No" id="8">
+                        <span class="custom-control-label">No</span>
+                    </label>
+                </div>
+                @Html.TextBoxFor(m => m.oe_systemic_other, new { @class = "form-control", @placeholder = "Enter Psychological History" })
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-6 col-lg-12">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Notes&nbsp;</label>
+                @Html.TextAreaFor(m => m.oe_notes, new { @class = "form-control", @placeholder = "Enter Med Notes", @row = "6" })
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-sm btn-success" id="btn_Insert_MedHis">Add Medical History</button>
+                <button type="button" class="btn btn-sm btn-outline-dark" id="btn_Reset_MedHis">Reset</button>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Partial View Onload
+        $(function () {
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                    $("#btn_Insert_MedHis").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" == "NoLock")
+                {
+                    $("#btn_Insert_MedHis").show();
+                }
+                else
+                {
+                    if ("@emr.app_ae_date" >= "@emr.today")
+                    {
+                        $("#btn_Insert_MedHis").show();
+                    }
+                    else
+                    {
+                        $("#btn_Insert_MedHis").hide();
+                    }
+                }
+            }
+
+            validate();
+            GetCheckedValues();
+            $("#oe_fall_risk_type").select2({
+                placeholder: 'Select Type',
+                width: '100%',
+                minimumResultsForSearch: '',
+                dropdownParent: $('#form_MedHis'),
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+        });
+    //#endregion Partial View Onload
+
+    // #region Validation Initialization
+        var validate = function () {
+            $("#form_MedHis").validate({
+                rules: {
+                    oe_systemic_other: {
+                        required: true
+                    },
+
+                },
+                messages: {
+                    oe_systemic_other: {
+                        required: "Please enter Psychological History"
+                    },
+
+                },
+                highlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().addClass('has-error');
+                },
+                unhighlight: function (element) {
+                    var elem = $(element);
+                    $(element).parent().removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'text-danger fw-bold',
+                errorPlacement: function (error, element) {
+                    var elem = $(element);
+                    if (element.parent('.input-group').length) {
+                        error.insertAfter(element.parent());
+                    } else {
+                        error.insertAfter(element);
+                    }
+                }
+            });
+
+        }
+    //#endregion Validation Initialization
+
+    //#region Get CheckedValues
+    var GetCheckedValues = function () {
+        var pd_1_ = "@Model.oe_infecious";
+        if (pd_1_ !== "") {
+            var upd_1_ = $("input[name='oe_infecious'][value='" + "@Model.oe_infecious" + "']").attr("id");
+            $("#" + upd_1_).attr('checked', 'checked');
+            $("#" + upd_1_).prop("checked", true);
+        }
+        var pd_2_ = "@Model.oe_past_med";
+        if (pd_2_ !== "") {
+            var upd_2_ = $("input[name='oe_past_med'][value='" + "@Model.oe_past_med" + "']").attr("id");
+            $("#" + upd_2_).attr('checked', 'checked');
+            $("#" + upd_2_).prop("checked", true);
+        }
+
+        var pd_3_ = "@Model.oe_fall_risk";
+        if (pd_3_ !== "") {
+            var upd_3_ = $("input[name='oe_fall_risk'][value='" + "@Model.oe_fall_risk" + "']").attr("id");
+            $("#" + upd_3_).attr('checked', 'checked');
+            $("#" + upd_3_).prop("checked", true);
+        }
+            var pd_4_ = "@Model.oe_systemic";
+        if (pd_4_ !== "") {
+            var upd_4_ = $("input[name='oe_systemic'][value='" + "@Model.oe_systemic" + "']").attr("id");
+            $("#" + upd_4_).attr('checked', 'checked');
+            $("#" + upd_4_).prop("checked", true);
+        }
+    }
+    //#endregion Get CheckedValues
+
+    //#region Add  Click
+        $('#btn_Insert_MedHis').on('click', function (e) {
+            e.preventDefault();
+            if ($("#form_MedHis").valid()) {
+                $('#btn_Insert_MedHis').removeClass("btn btn-sm btn-success");
+                $('#btn_Insert_MedHis').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+                $('#btn_Insert_MedHis').html("Saving the Record....");
+
+                var _dateInsert = {
+                    "oeId": 0,
+                    "oe_appId": @emr.appId,
+                    "oe_infecious": $("input[name='oe_infecious']:checked").val(),
+                    "oe_past_med": $("input[name='oe_past_med']:checked").val(),
+                    "oe_fall_risk": $("input[name='oe_fall_risk']:checked").val(),
+                    "oe_systemic": $("input[name='oe_systemic']:checked").val(),
+                    "oe_fall_risk_other": $("#oe_fall_risk_other").val(),
+                    "oe_infecious_other": $("#oe_infecious_other").val(),
+                    "oe_past_med_other": $("#oe_past_med_other").val(),
+                    "oe_fall_risk_other": $("#oe_fall_risk_other").val(),
+                    "oe_systemic_other": $("#oe_systemic_other").val(),
+                    "oe_notes": $("#oe_notes").val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                        type: "Post",
+                        url: "@Url.Action("InsertMedicalHistory", "DentalHistory", new {area = "EMR" })",
+                        dataType: 'JSON',
+                        data: _dateInsert,
+                        success: function (data) {
+                            $('#btn_Insert_MedHis').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_MedHis').addClass("btn btn-sm btn-success");
+                            $('#btn_Insert_MedHis').html("Add SoftTissue");
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i>  Medical History Saved Successfully!", "success");
+                                    GetMedicalHistory();
+                                    Timeout();
+                                }
+                                else {
+
+                                    let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. Medical History Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#Alert").html(html);
+                                }
+                            }
+                            else {
+                            let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                        },
+                            error: function (xhr) {
+                                $('#btn_Insert_MedHis').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                                $('#btn_Insert_MedHis').addClass("btn btn-sm btn-warning");
+                                $('#btn_Insert_MedHis').html("Add SoftTissue");
+                            Timeout();
+                        }
+                });
+
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Add Click
+
+    //#region Reset
+    $('#btn_Reset_MedHis').on('click', function (e) {
+        e.preventDefault();
+        clearControls();
+    });
+    //#endregion Reset
+
+    //#region Clear Controls
+    var clearControls = function () {
+        $(".form-control").val("");
+        $(".custom-control-input").prop("checked", false);
+    }
+    //#endregion Clear Controls
+</script>

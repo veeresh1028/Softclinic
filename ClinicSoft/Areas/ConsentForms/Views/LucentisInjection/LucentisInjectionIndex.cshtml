@@ -1,0 +1,111 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "LucentisInjectionIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Informed Consent For Intravitreal Lucentis Injection Procedure</h3>
+            </div>
+            <div class="card-body">
+                <div id="LucentisInjection_add" style="display:none">
+                </div>
+                <div id="LucentisInjection_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="LucentisInjection_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script>
+        //#region Page Load
+        $(function () {
+            GetLucentisInjectionInfo();
+            LucentisInjectionPreviousHistory();
+
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetLucentisInjectionInfo
+        var GetLucentisInjectionInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetLucentisInjectionData", "LucentisInjection", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditLucentisInjection();
+                            $("#LucentisInjection_add").hide();
+                            $("#LucentisInjection_edit").show();
+
+                        }
+                        else {
+                            $("#LucentisInjection_add").show();
+                            $("#LucentisInjection_edit").hide();
+                            AddLucentisInjection();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load LucentisInjection
+
+        //#region Add LucentisInjection
+        function AddLucentisInjection() {
+            var x = $("#LucentisInjection_add");
+            x.load("@Url.Action("CreateLucentisInjection", "LucentisInjection", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add LucentisInjection
+
+        //#region Update LucentisInjection
+        function EditLucentisInjection() {
+            var x = $("#LucentisInjection_edit");
+            x.load("@Url.Action("UpdateLucentisInjection", "LucentisInjection", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update LucentisInjection
+
+          //#region Histroy of LucentisInjection
+        function LucentisInjectionPreviousHistory() {
+            var x = $("#LucentisInjection_history");
+            x.load("@Url.Action("LucentisInjectionPreviousHistory", "LucentisInjection", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of LucentisInjection
+
+
+    </script>
+}
+

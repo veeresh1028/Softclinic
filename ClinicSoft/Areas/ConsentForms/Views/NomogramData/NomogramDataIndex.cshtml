@@ -1,0 +1,116 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "NomogramDataIndex";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Nomogram Data</h3>
+            </div>
+            <div class="card-body">
+                <div id="NomogramData_add" style="display:none">
+                </div>
+                <div id="NomogramData_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="NomogramData_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*@section myScripts{*@
+    <script>
+        //#region Page Load
+        $(function () {
+            GetNomogramDataInfo();
+            NomogramDataPreviousHistory();
+
+        });
+
+        //#endregion Page Load
+
+        //#region Load GetNomogramDataInfo
+        var GetNomogramDataInfo = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetNomogramDataData", "NomogramData", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        if (response.length > 0) {
+                            EditNomogramData();
+                            $("#NomogramData_add").hide();
+                            $("#NomogramData_edit").show();
+
+                        }
+                        else {
+                            $("#NomogramData_add").show();
+                            $("#NomogramData_edit").hide();
+                            AddNomogramData();
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+        //#endregion Load NomogramData
+
+        //#region Add NomogramData
+        function AddNomogramData() {
+            var x = $("#NomogramData_add");
+            x.load("@Url.Action("CreateNomogramData", "NomogramData", new { area = "ConsentForms" })", function () {
+          });
+        }
+        //#endregion Add NomogramData
+
+        //#region Update NomogramData
+        function EditNomogramData() {
+            var x = $("#NomogramData_edit");
+            x.load("@Url.Action("UpdateNomogramData", "NomogramData", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+          //#endregion Update NomogramData
+
+          //#region Histroy of NomogramData
+        function NomogramDataPreviousHistory() {
+            var x = $("#NomogramData_history");
+            x.load("@Url.Action("NomogramDataPreviousHistory", "NomogramData", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+          });
+        }
+        //#endregion History of NomogramData
+
+
+    </script>
+@*}*@
+

@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Colposcopy Form";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Colposcopy Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="ColposcopyForm_add" style="display:none">
+                </div>
+                <div id="ColposcopyForm_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="ColposcopyForm_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetColposcopyFormInfo();
+        ColposcopyFormPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetColposcopyFormInfo
+    var GetColposcopyFormInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetColposcopyFormData", "ColposcopyForm", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditColposcopyForm();
+                        $("#ColposcopyForm_add").hide();
+                        $("#ColposcopyForm_edit").show();
+
+                    }
+                    else {
+                        $("#ColposcopyForm_add").show();
+                        $("#ColposcopyForm_edit").hide();
+                        AddColposcopyForm();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load ColposcopyForm
+
+    //#region Add ColposcopyForm
+    function AddColposcopyForm() {
+        var x = $("#ColposcopyForm_add");
+        x.load("@Url.Action("CreateColposcopyForm", "ColposcopyForm", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add ColposcopyForm
+
+    // #region Update ColposcopyForm
+    function EditColposcopyForm() {
+        var x = $("#ColposcopyForm_edit");
+        x.load("@Url.Action("UpdateColposcopyForm", "ColposcopyForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update ColposcopyForm
+
+    // #region Histroy of ColposcopyForm
+    function ColposcopyFormPreviousHistory() {
+        var x = $("#ColposcopyForm_history");
+        x.load("@Url.Action("ColposcopyFormPreviousHistory", "ColposcopyForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

@@ -1,0 +1,372 @@
+﻿@model BusinessEntities.Accounts.Masters.Items
+
+<div class="modal-header py-4 px-5">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Item Opening Stock</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_ItemOpeningStock" >
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(model => model.itemId)
+        @Html.HiddenFor(model => model.item_branch)
+        @Html.HiddenFor(model => model.item_code)
+        @Html.HiddenFor(model => model.item_m_factor)
+        @Html.HiddenFor(model => model.item_m_factor2)
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group">
+                    <div class="input-group"></div>
+                    <span class="text-info fs-14 semibold-text"> Code : @Html.DisplayFor(m => m.item_code)</span><br />
+                    <span class="text-cyan fs-14 semibold-text"> Name : @Html.DisplayFor(m => m.item_name)</span><br />
+                    <span class="text-indigo fs-14 semibold-text"> Branch : @Html.DisplayFor(m => m.branch_name)</span>
+                    
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group">
+                    <label class="form-label text-black">Opening Balance Date</label>
+                    <div class="input-group"></div>
+                    @Html.TextBoxFor(model => model.item_opening_date, new { @class = "form-control", maxlength = "20", @placeholder = "DD-MMMM-YYYY" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-4">
+                <div class="form-group">
+                    <label class="form-label text-black">Level 0 Qty&nbsp;<span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        @Html.TextBoxFor(model => model.item_opening_qty, new { @class = "form-control text-right", @placeholder = "0.00", maxlength = "10", @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                    </div>
+                    <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                        <span class="fs-11 text-info font-italic font-weight-semibold">UOM - @Html.DisplayFor(m => m.item_uom)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-4">
+                <div class="form-group">
+                    <label class="form-label text-black">Level 1 Qty&nbsp;<span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        @Html.TextBoxFor(model => model.item_opening_qty2, new { @class = "form-control text-right", @readonly = "true", @placeholder = "0.00", maxlength = "10", @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                    </div>
+                    <div class="valid-feedback" style="color: #3904dc; display: block; ">
+                        <span class="fs-11 text-info font-italic font-weight-semibold">UOM - @Html.DisplayFor(m => m.item_uom2)</span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-4">
+                <div class="form-group">
+                    <label class="form-label text-black">Level 2 Qty&nbsp;<span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        @Html.TextBoxFor(model => model.item_opening_qty3, new { @class = "form-control text-right", @readonly = "true", @placeholder = "0.00", maxlength = "10", @onkeypress = "return validateOneDecimalNumeric(this,event);" })
+                    </div>
+                    <div class="valid-feedback" style="color: #3904dc; display: block; ">                        
+                        <span class="fs-11 text-info font-italic font-weight-semibold">UOM - @Html.DisplayFor(m => m.item_uom3)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="opening_stok_error"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $('#item_opening_date').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-"
+        });
+        $("#item_opening_date").bootstrapdatepicker("setDate", moment(new Date("@Model.item_opening_date")).format("DD-MMMM-YYYY"));
+       validation();
+    });
+    //#endregion
+
+    //#region Add Item Opening Stock on Button Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+        if ($('#form_ItemOpeningStock').valid()) {
+            var _dataUpdate = {
+                "itemId": '@Model.itemId',
+                "item_code": '@Model.item_code',
+                "item_branch": '@Model.item_branch',
+                "item_opening_date": $('#item_opening_date').val().trim(),
+                "item_opening_qty": $('#item_opening_qty').val().trim(),
+                "item_opening_qty2": $('#item_opening_qty2').val().trim(),
+                "item_opening_qty3": $('#item_opening_qty3').val().trim(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertItemOpeningStock", "CentralStore", new { area = "MaterialManagement"})",
+                dataType: "JSON",
+                data: _dataUpdate, beforeSend: function () {
+                    $('#btn_Update').removeClass("btn btn-warning");
+                    $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').html("Saving....");
+                },
+                success: function (data) {
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+                    var error_message = data.message;
+                    if (data.code > 0) {
+                        clearData();
+                        GetItems();
+                        var alertPlaceholder = document.getElementById("ItemsAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> Item Opening Stock Added Successfully!", "success");
+                        $('#ItemOpeningStock_modal').modal('toggle');
+                        Timeout();
+                    }
+                    else if (data.code == -1) {
+                        $("#opening_stok_error").html('');
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-triangle '></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+                        $("#opening_stok_error").html(html);
+                    }
+                    else if (data.code == -2) {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-circle text-white' ></i>&nbsp;Validation Error.. Please correct before you submit!&nbsp;</strong><br/><ul>";
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+                        $("#opening_stok_error").html(html);
+                    }
+                    else {
+                        $("#opening_stok_error").html('');
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert' style=';color:#744f04'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-circle'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+                        $("#opening_stok_error").html(html);
+                    }
+                    Timeout();
+                },
+                error: function (xhr) {
+                    clearData();
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+                    var alertPlaceholder = document.getElementById("ItemsAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Add Item Opening Stock!", "danger");
+                    $('#ItemOpeningStock_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+     //#endregion
+
+    //#region Adding Validation on Feilds
+    var validation = function () {
+        $("#form_ItemOpeningStock").validate({
+            focusInvalid: true,
+            rules:
+            {
+                item_opening_date: {
+                    required: true
+                },
+                item_opening_qty: {
+                    required: true,
+                    number: true
+                },
+                item_opening_qty2: {
+                    required: true,
+                    number: true
+                },
+                item_opening_qty3: {
+                    required: true,
+                    number: true
+                },
+            },
+            messages: {
+                item_opening_date: {
+                    required: "Enter Stock Opening Date",
+                },
+                item_opening_qty: {
+                    required: "Enter Opening Stock Qty",
+                },
+                item_opening_qty2: {
+                    required: "Enter Opening Stock Qty",
+                },
+                item_opening_qty3: {
+                    required: "Enter Opening Stock Qty",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Clear Text Boxes Data
+    var clearData = function () {
+        $('#item_opening_qty').val('0');
+        $('#item_opening_qty2').val('0');
+        $('#item_opening_qty3').val('0');
+    }
+    //#endregion
+
+    //#region Validate Text Box with One Decimal and numeric only on Key Press
+    function validateOneDecimalNumeric(el, evt) {
+        var charCode = (evt.which) ? evt.which : event.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        return true;
+    }
+    function validateOneDecimalNumeric2(el, evt) {
+        var charCode = (evt.which) ? evt.which : event.keyCode;
+        var number = el.value.split('.');
+        if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+        }
+        //just one dot
+        if (number.length > 1 && charCode == 46) {
+            return false;
+        }
+        //get the Current position
+        var caratPos = getSelectionStart(el);
+        var dotPos = el.value.indexOf(".");
+        if (caratPos > dotPos && dotPos > -1 && (number[1].length > 1)) {
+            return false;
+        }
+        //if (el.value > 10)
+        //    return false;
+
+        return true;
+    }
+    function getSelectionStart(o) {
+        if (o.createTextRange) {
+            var r = document.selection.createRange().duplicate()
+            r.moveEnd('character', o.value.length)
+            if (r.text == '') return o.value.length
+            return o.value.lastIndexOf(r.text)
+        } else return o.selectionStart
+    }
+
+    //#endregion
+
+    //#region caluclation
+    $('#item_opening_qty').keyup(function () {
+        let item_opening_qty = $('#item_opening_qty').val();
+        let m_factor = '@Model.item_m_factor';
+        let m_factor2 = '@Model.item_m_factor2';
+        let item_opening_qty2 = parseFloat(item_opening_qty * m_factor);
+        let item_opening_qty3 = parseFloat(item_opening_qty2 * m_factor2);
+        $('#item_opening_qty2').val(item_opening_qty2);
+        $('#item_opening_qty3').val(item_opening_qty3);
+    });
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+</script>
+

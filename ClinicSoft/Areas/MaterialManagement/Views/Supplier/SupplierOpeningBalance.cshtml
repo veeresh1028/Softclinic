@@ -1,0 +1,255 @@
+﻿
+@model BusinessEntities.Accounts.Masters.Supplier
+
+<div class="modal-header py-4 px-5">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Supplier Opening Balace</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Supplier_obal" >
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.sup_account)
+        @Html.HiddenFor(m => m.sup_branch)
+        <div class="row">
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group">
+                    <label class="form-label text-black">Opening Balance</label>
+                    @Html.TextBoxFor(sup => sup.sup_obal, new { @class = "form-control", maxlength = "10" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-lg-6">
+                <div class="form-group">
+                    <label class="form-label text-black">Type&nbsp;<span class="text-danger">*</span></label>
+                    @Html.DropDownListFor(m => m.sup_obal_type, new List<SelectListItem>
+                       {
+                          new SelectListItem{ Text="Debit", Value = "D" },
+                          new SelectListItem{ Text="Credit", Value = "C" },
+                       }, "Select Type", new { @class = "form-control select2" })
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="sup_open_error"></div>
+            <div class="col-sm-12 col-md-12 col-lg-12 text-center">
+                <button type="submit" class="btn btn-warning" id="btn_Update">Save Changes</button>
+                <button type="button" class="btn btn-outline-danger me-1" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        $('#sup_obal_type').select2({
+            minimumResultsForSearch: '',
+            dropdownParent: $('#SupplierOpeningBalance_body'),
+            width: '100%'
+        });
+        $('#sup_obal').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57))
+                return false;
+        });
+       validation();
+    });
+    //#endregion
+
+    //#region Add Supplier Opening Balacne on Button Click
+    $('#btn_Update').on('click', function (e) {
+        e.preventDefault();
+        if ($('#form_Supplier_obal').valid()) {
+            var _dataUpdate = {
+                "supId": 0,
+                "sup_account": '@Model.sup_account',
+                "sup_branch": '@Model.sup_branch',
+                "sup_obal": $('#sup_obal').val(),
+                "sup_obal_type": $('#sup_obal_type').val().trim(),
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertSupplierOpeningBalace", "Supplier", new { area = "MaterialManagement"})",
+                dataType: "JSON",
+                data: _dataUpdate, beforeSend: function () {
+                    $('#btn_Update').removeClass("btn btn-warning");
+                    $('#btn_Update').addClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').html("Saving....");
+                },
+                success: function (data) {
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+                    var error_message = data.message;
+                    if (data.code > 0) {
+                        clearData();
+                        var alertPlaceholder = document.getElementById("SupplierAlert");
+                        function alert(e, t) {
+                            var l = document.createElement("div");
+                            l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                        }
+                        alert("<i class='fe fe-check-circle text-white'></i> Supplier Opening Balance Added Successfully!", "success");
+                        $('#SupplierOpeningBalance_modal').modal('toggle');
+                        Timeout();
+                    }
+                    else if (data.code == -1) {
+                        $("#sup_open_error").html('');
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-warning' role='alert' style=';color:#744f04'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-triangle '></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+                        $("#sup_open_error").html(html);
+                    }
+                    else if (data.code == -2) {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-danger' role='alert'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-circle text-white' ></i>&nbsp;Validation Error.. Please correct before you submit!&nbsp;</strong><br/><ul>";
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+                        $("#sup_open_error").html(html);
+                    }
+                    else {
+                        $("#sup_open_error").html('');
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert' style=';color:#744f04'>" +
+                            "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fe fe-alert-circle'></i>&nbsp;" + error_message + "&nbsp;</strong></div></div>";
+                        $("#sup_open_error").html(html);
+                    }
+                    Timeout();
+                },
+                error: function (xhr) {
+                    clearData();
+                    $('#btn_Update').removeClass("btn btn-warning btn-loaders btn-icon");
+                    $('#btn_Update').addClass("btn btn-warning");
+                    $('#btn_Update').html("Save Changes");
+                    var alertPlaceholder = document.getElementById("SupplierAlert");
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-hidden="true">x</button></div>', alertPlaceholder.append(l)
+                    }
+                    alert("<i class='fe fe-x-circle text-white'></i> Failed to Update Supplier Opening Balance!", "danger");
+                    $('#SupplierOpeningBalance_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+     //#endregion
+
+    //#region Adding Validation on Feilds
+    var validation = function () {
+        $("#form_Supplier_obal").validate({
+            focusInvalid: true,
+            rules:
+            {
+                sup_obal: {
+                    required: true,
+                },
+                sup_obal_type: {
+                    required: true,
+                },
+            },
+            messages: {
+                sup_obal: {
+                    required: "Enter Opening Balance",
+                },
+                sup_obal_type: {
+                    required: "Select Balance Type",
+                },
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+                Error_Timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Clear Text Boxes Data
+    var clearData = function () {
+        $('#sup_obal').val('0');
+        $('#sup_obal_type').val('D').trigger('change');
+    }
+    //#endregion
+
+    //#region Remove Valiate Error Class Timeout
+    function Error_Timeout(_id) {
+        setTimeout(function () {
+            $(".has-error").removeClass("has-error");
+            $(".error").removeClass("error");
+            $("#" + _id +"-error").text("");
+        }, 4200);
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+</script>
+

@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Carbon Peel";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Carbon Peel Consent Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="CarbonPeel_add" style="display:none">
+                </div>
+                <div id="CarbonPeel_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="CarbonPeel_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetCarbonPeelInfo();
+        CarbonPeelPreviousHistory();
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetCarbonPeelInfo
+    var GetCarbonPeelInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetCarbonPeelData", "CarbonPeel", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    console.log(response.length);
+                    if (response.length > 0) {
+                        EditCarbonPeel();
+                        $("#CarbonPeel_add").hide();
+                        $("#CarbonPeel_edit").show();
+
+                    }
+                    else {
+                        $("#CarbonPeel_add").show();
+                        $("#CarbonPeel_edit").hide();
+                        AddCarbonPeel();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load CarbonPeel
+
+    //#region Add SocialConsent
+    function AddCarbonPeel() {
+        var x = $("#CarbonPeel_add");
+        x.load("@Url.Action("CreateCarbonPeel", "CarbonPeel", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add CarbonPeel
+
+    //#region Update CarbonPeel
+    function EditCarbonPeel() {
+        var x = $("#CarbonPeel_edit");
+        x.load("@Url.Action("UpdateCarbonPeel", "CarbonPeel", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update CarbonPeel
+
+    //#region History of CarbonPeel
+    function CarbonPeelPreviousHistory() {
+        var x = $("#CarbonPeel_history");
+        x.load("@Url.Action("CarbonPeelPreviousHistory", "CarbonPeel", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

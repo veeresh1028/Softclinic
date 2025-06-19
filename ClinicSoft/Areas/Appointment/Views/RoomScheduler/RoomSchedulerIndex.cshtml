@@ -1,0 +1,993 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@{
+    ViewBag.Title = "Appointment Scheduler - Rooms";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var empId = claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
+    var emp_name = claims.Where(c => c.Type == ClaimTypes.GivenName).Select(c => c.Value).SingleOrDefault();
+    var emp_department = claims.Where(c => c.Type == ClaimTypes.Surname).Select(c => c.Value).SingleOrDefault();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    var company = claims.Where(c => c.Type == ClaimTypes.PrimarySid).Select(c => c.Value).SingleOrDefault();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-lang-key="room-scheduler">Room Scheduler</span>
+            <span class="badge bg-primary mt-2" style="background-color: #CFF5E7 !important; color: #0b8124;" data-lang-key="today"><small>Today</small></span>
+            <span class="badge bg-primary mt-2" style="background-color: #BFEAF5 !important; color: #0940a5;" data-lang-key="future"><small>Future</small></span>
+            <span class="badge bg-primary mt-2" style="background-color: #F8EDE3 !important; color: #9d4d08;" data-lang-key="past"><small>Past</small></span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <select id="select_branch" class="form-control custom-select select2">
+        </select>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-2">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="card-body">
+                    <input type="hidden" id="hi_designation" value="0" />
+                    <input type="hidden" id="hi_empId" value="0" />
+                    <input type="hidden" id="hi_branch" value="0" />
+                    <input type="hidden" id="hi_branch_selected" value="0" />
+                    <div class="mb-1 d-grid">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">
+                                <span data-lang-key="select-date">Select Date</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                <input id="dt_select" class="form-control form-control-sm" placeholder="YYYY/MM/DD" type="text">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-1 d-grid">
+                        <div class="form-group">
+                            <label class="form-label font-weight-semibold">
+                                <span data-lang-key="select-rooms">Rooms</span>
+                            </label>
+                            <label class="custom-switch">
+                                <input type="checkbox" class="custom-switch-input d-none" id="chkRoomAll" name="chkRoomAll">
+                                <span class="custom-switch-indicator d-none" style="background: #fc7303;"></span>
+                                <span class="custom-switch-description font-weight-semibold text-orange d-none">
+                                    <span data-lang-key="select-all-rooms">Select All Rooms</span>
+                                </span>
+
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="chkAll" name="chkAll" />
+                                    <span class="custom-control-label font-weight-semibold text-orange">
+                                        <span data-lang-key="select-all-rooms">Un/Select All Rooms</span>
+                                    </span>
+                                </label>
+                            </label>
+
+                            <div id="loadRooms"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-body">
+                <div class="demo-static-toast">
+                    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1000000">
+                        <div id="calenderToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        </div>
+                    </div>
+                </div>
+                <div class="" id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="create_appointment_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="create_appointment_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="update_appointment_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="update_appointment_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customer_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="customer_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="create_patient_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="create-appointment">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="size">
+        <div class="modal-content" id="create_patient_modal_body">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="inquiry_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="sizeI">
+        <div class="modal-content" id="inquiry_modal_body">
+        </div>
+    </div>
+</div>
+<!-- Modal Quick Cash Billings -->
+<div class="modal fade overflow-auto" id="quick_billing" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="quick_billing_body">
+        </div>
+    </div>
+</div>
+<!-- End Quick Cash Billings -->
+<!-- Modal Appointment Remarks -->
+<div class="modal fade overflow-auto" id="patient_remarks" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="patient_remarks_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Appointment Remarks -->
+<!-- Modal Edit Patient -->
+<div class="modal fade overflow-auto" id="edit_patient_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg " id="size">
+        <div class="modal-content" id="edit_patient_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Edit Patient -->
+<!-- Modal Add New Receipt -->
+<div class="modal fade overflow-auto" id="addnew_receipt_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="addnew_receipt_modal_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Add New Receipt -->
+@section myScripts{
+    <script src='~/assets/plugins/fullcalenderV2/main.js'></script>
+
+    <style type="text/css">
+        .modal-lg {
+            max-width: 1500px;
+        }
+    </style>
+
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            if (localStorage.getItem("initial_view") == null) {
+                localStorage.setItem("initial_view", "resourceTimeGridDay");
+            }
+
+            if (parseInt(@empId) > 0) {
+                $("#hi_empId").val("@empId.ToString()");
+                $("#hi_designation").val("@emp_designation.ToString()");
+                $("#hi_branch").val("@emp_branch.ToString()");
+                $("#hi_branch_selected").val("@emp_branch.ToString()");
+            }
+            else {
+                $("#hi_empId").val("1");
+                $("#hi_designation").val("Super Administrator");
+                $("#hi_branch").val("1");
+                $("#hi_branch_selected").val("1");
+            }
+
+            load_all_branches();
+            run_all_rooms();
+
+            $('#dt_select').bootstrapdatepicker({
+                format: "yyyy-mm-dd",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+            });
+
+            $('#dt_select').val(moment().format("YYYY-MM-DD"));
+
+            $('#loadRooms input:checkbox').attr('checked', 'checked');
+
+            $('#chkAll').attr('checked', 'checked');
+
+            Calendar.init();
+        });
+        //#endregion
+
+        //#region Select All Rooms
+        $('#chkAll').click(function () {
+            var isChecked = $(this).prop('checked');
+
+            var $checkboxes = $("#loadRooms input[name='room-check']");
+
+            $checkboxes.prop('checked', isChecked);
+
+            $checkboxes.trigger("change");
+        });
+
+        $('#chkRoomAll').click(function () {
+            if ($(this).is(':checked')) {
+                $('#loadRooms').html('');
+
+                var _param = "";
+                _param = "?docId=0&setId=" + $('#select_branch').val();
+
+                $.ajax({
+                    url: '@Url.Action("GetActiveRooms", "RoomScheduler", new { area = "Appointment" })' + _param,
+                    type: "GET",
+                    dataType: "json",
+                    async: false,
+                    success: function (response) {
+                        load_rooms_by_selection(response);
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        alert(xhr);
+                    }
+                })
+            }
+            else {
+                $('#loadRooms').html('');
+
+                var _param = "?docId=0&setId=0";
+
+                $.ajax({
+                    url: '@Url.Action("GetActiveRooms", "RoomScheduler", new { area = "Appointment" })' + _param,
+                    type: "GET",
+                    dataType: "json",
+                    async: false,
+                    success: function (response) {
+                        load_rooms_by_selection(response);
+                    },
+                    error: function (xhr) {
+                        console.log(xhr);
+                        alert(xhr);
+                    }
+                })
+            }
+        });
+        //#endregion
+
+        //#region Branch Select Event
+        $('#select_branch').on('select2:select', function (e) {
+            $("#hi_branch_selected").val($('#select_branch').val());
+            $('#loadRooms').html('');
+
+            var _param = "";
+            _param = "?docId=0&setId=" + $('#select_branch').val();
+
+            $.ajax({
+                url: '@Url.Action("GetActiveRooms", "RoomScheduler", new { area = "Appointment" })' + _param,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    load_rooms_by_selection(response);
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            })
+        });
+        //#endregion
+
+        //#region Load All Branch(es)
+        var load_all_branches = function () {
+            $("#select_branch").select2({
+                placeholder: 'Select a Branch',
+                width: '100%'
+            });
+
+            $.ajax({
+                url: '@Url.Action("GetBranches", "RoomScheduler", new { area = "Appointment" })',
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    $.each(response, function (j) {
+                        var newOption = new Option(response[j].text, response[j].id, (j === 0) ? true : false, (j === 0) ? true : false);
+                        $('#select_branch').append(newOption).trigger('change');
+                    });
+                    $('#select_branch').val($("#hi_branch_selected").val());
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Load All Rooms
+        var run_all_rooms = function () {
+            $('#loadRooms').html('');
+            var _param = "";
+            _param = "?roomId=0&setId=" + $("#hi_branch_selected").val();
+
+            $.ajax({
+                url: '@Url.Action("GetActiveRooms", "RoomScheduler", new { area = "Appointment" })' + _param,
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var ids = '';
+                    $.each(response, function (j) {
+                        ids += "," + response[j]["id"];
+                        var popover_id = "pos_" + response[j]["id"];
+                        $('#loadRooms')
+                            .append('<label class="custom-control custom-checkbox" id="' + popover_id + '">' +
+                                '<input type="checkbox" class="custom-control-input" name="room-check" value="" id=' + response[j]["id"] + '>' +
+                                '<span class="custom-control-label">' + response[j]["title"] +
+                                '<span class="dot-label bg-success ms-2 me-2 w-2 h-2" style="background-color:' + response[j]["extendedProps"]["room_color"] + ' !important;"></span>' +
+                                '</span>' +
+                                '</label>');
+                    });
+                    ids = ids.substring(1, ids.length);
+                    localStorage.setItem("selected_rooms", ids);
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                    alert(xhr);
+                }
+            });
+        };
+        //#endregion
+
+        //#region Room Selection By Branch/Department (With Popover)
+        var load_rooms_by_selection = function (response) {
+            if (response.length > 0) {
+                var ids = '';
+                $.each(response, function (j) {
+                    ids += "," + response[j]["id"];
+                    var popover_id = "pos_" + response[j]["id"];
+                    $('#loadRooms')
+                        .append('<label class="custom-control custom-checkbox" id="' + popover_id + '">' +
+                            '<input type="checkbox" class="custom-control-input" name="room-check" value="" id=' + response[j]["id"] + '>' +
+                            '<span class="custom-control-label">' +
+                             response[j]["title"] +
+                            '<span class="dot-label bg-success ms-2 me-2 w-2 h-2" style="background-color:' + response[j]["extendedProps"]["room_color"] + ' !important;"></span>' +
+                            '</span>' +
+                            '</label>');
+                });
+
+                ids = ids.substring(1, ids.length);
+                localStorage.setItem("selected_rooms", ids);
+                $('#loadRooms input:checkbox').attr('checked', 'checked');
+                Calendar.init();
+            }
+            else {
+                $('#loadRooms').html('<p class="text-danger text-wrap">No Rooms Found on the selected Branch</p>');
+                localStorage.setItem("selected_rooms", "");
+                Calendar.init();
+            }
+        };
+        //#endregion
+
+        //#region Calender
+        var Calendar = function () {
+            "use strict";
+
+            //#region Room Check/Uncheck Event
+            $("#loadRooms").on("change", ":checkbox", function () {
+                if ($(this).is(':checked')) {
+                    if (localStorage.getItem("selected_rooms").indexOf($(this).attr("id") + ",") == -1) {
+                        var str = localStorage.getItem("selected_rooms");
+
+                        if (str != "") {
+                            str = str + "," + $(this).attr("id");
+                        }
+                        else {
+                            str = $(this).attr("id");
+                        }
+
+                        localStorage.setItem("selected_rooms", str);
+                    }
+                    else {
+                        var str = localStorage.getItem("selected_rooms").replace($(this).attr("id") + ",", "");
+                        str = str + "," + $(this).attr("id");
+                        localStorage.setItem("selected_rooms", str);
+                    }
+                }
+                else {
+                    if (localStorage.getItem("selected_rooms").indexOf($(this).attr("id")) >= 0) {
+                        if (localStorage.getItem("selected_rooms").indexOf($(this).attr("id") + ",") >= 0) {
+                            var str = localStorage.getItem("selected_rooms").replace($(this).attr("id") + ",", "");
+                            localStorage.setItem("selected_rooms", str);
+                        }
+                        else {
+                            var str = localStorage.getItem("selected_rooms").replace($(this).attr("id"), "");
+                            localStorage.setItem("selected_rooms", str);
+                        }
+                    }
+                }
+
+                setFullCalendarEvents();
+            });
+            //#endregion
+
+            var setFullCalendarEvents = function () {
+                //#region Calender Resources(Doctors)
+                var resource_data = function () {
+                    var result;
+                    var _param = "?roomIds=" + localStorage.getItem("selected_rooms") + "&setId=" + $('#hi_branch_selected').val();
+
+                    $.ajax({
+                        url: '@Url.Action("GetRooms", "RoomScheduler", new { area = "Appointment" })' + _param,
+                        type: "GET",
+                        dataType: "json",
+                        async: false,
+                        success: function (response) {
+                            result = response;
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            alert(xhr);
+                        }
+                    });
+                    return result;
+                };
+                //#endregion Calender Resources(Doctors)
+
+                //#region Get TimeSlot Id
+                var getTimeSlotId = function (app_time) {
+                    var result;
+                    var _param = "?app_branch=" + parseInt($('#hi_branch_selected').val()) + "&app_time=" + app_time;
+
+                    $.ajax({
+                        url: '@Url.Action("GetTimeSlotId", "RoomScheduler", new { area = "Appointment" })' + _param,
+                        type: "GET",
+                        dataType: "json",
+                        async: false,
+                        success: function (response) {
+                            result = response;
+                        },
+                        error: function (xhr) {
+                            console.log(xhr);
+                            alert(xhr);
+                        }
+                    });
+                    return result;
+                }
+                //#endregion Get TimeSlot Id
+
+                //Get Calender Object
+                var calendarEl = document.getElementById('calendar');
+
+                //Calender Initialization/Settings
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: localStorage.getItem("initial_view"),
+                    initialDate: $('#dt_select').val(),
+                    editable: true,
+                    selectable: true,
+                    dayMaxEvents: true, // allow "more" link when too many events
+                    nowIndicator: true,
+                    dayMinWidth: 200,
+                    slotDuration: '00:15',
+                    slotMinTime: '08:00',
+                    slotMaxTime: '23:59',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'resourceTimeGridDay,resourceTimeGridTwoDay,resourceTimeGridThreeDay,timeGridWeek,resourceTimeGridWeek,dayGridMonth'
+                    },
+                    views: {
+                        resourceTimeGridDay: {
+                            titleFormat: { year: 'numeric', month: 'long', day: '2-digit', weekday: 'long' },
+                            buttonText: 'Day',
+                        },
+                        resourceTimeGridTwoDay: {
+                            type: 'resourceTimeGrid',
+                            duration: { days: 2 },
+                            buttonText: '2 Days',
+                        },
+                        resourceTimeGridThreeDay: {
+                            type: 'resourceTimeGrid',
+                            duration: { days: 3 },
+                            buttonText: '3 Days',
+                        },
+                        timeGridWeek: {
+                            buttonText: 'Week',
+                        },
+                        resourceTimeGridWeek: {
+                            buttonText: 'Week & Rooms',
+                        },
+                        dayGridMonth: {
+                            buttonText: 'Month',
+                        }
+                    },
+                    height: 700,
+                    allDaySlot: false,
+                    displayEventTime: false,
+                    refetchResourcesOnNavigate: true,
+                    resources: function (fetchInfo, successCallback, failureCallback) {
+                        var _param = "?roomIds=" + localStorage.getItem("selected_rooms") + "&setId=" + $('#hi_branch_selected').val();
+                        $.ajax({
+                            url: '@Url.Action("GetRooms", "RoomScheduler", new { area = "Appointment" })' + _param,
+                            type: "GET",
+                            dataType: "json",
+                            async: false,
+                            success: function (response) {
+                                successCallback(response);
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                                alert(xhr);
+                            }
+                        });
+                    },
+                    //resources: resource_data(),
+                    resourceOrder: 'emp_rank',
+                    resourceLabelContent: (info) => {
+                        var popover_id = "po_" + info.resource.id;
+
+                        var html = '<a id="' + popover_id +'">';
+                        html +=  '<span class="doc_header">' + info.resource.title + '</span>';
+                        html += '</a>'
+                        return { html: html }
+                    },
+                    events: function (info, successCallback, failureCallback) {
+                        var _param = "?start=" + moment(info.startStr).format("YYYY-MM-DD") + "&end=" + moment(info.endStr).format("YYYY-MM-DD") + "&roomIds=" + localStorage.getItem("selected_room") + "&setId=" + $('#hi_branch_selected').val();
+
+                        $.ajax({
+                            url: '@Url.Action("GetAppointmentsForRoomSchedule", "RoomScheduler", new { area = "Appointment" })' + _param,
+                            type: "GET",
+                            dataType: "json",
+                            async: false,
+                            success: function (response) {
+                                successCallback(response);
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                        });
+                    },
+                    eventContent: (info) => {
+                        var epopover_id = "epo_" + info.event.id;
+
+                        var html = '<a id="' + epopover_id + '" data-trigger="hover">';
+                        html += '<div>';
+                        html += '<span class="p-1">' + info.event.title + '<small> (' + info.event.extendedProps.emp_name +') </small></span>';
+                        html += '<span class="dot-label bg-success me-2 w-2 h-2" style="background-color:' + info.event.extendedProps.room_color + ' !important;"></span>';
+                        html += '</div>'
+                        html += '</a>'
+                        return { html: html }
+                    },
+                    eventDidMount: function (arg) {
+                        var html = '<div class="row">' +
+                            '<div class="border p-0 shadow-none">' +
+                                '<div class="d-flex p-1 justify-content-center">' +
+                                    '<img class="avatar avatar-xxl br-7 d-block cover-image text-center" src="' + arg.event.extendedProps.pat_photo + '">	</img>' +
+                                '</div>' +
+                                '<div class="border-top">' +
+                                    '<p class="mb-1">' + arg.event.extendedProps.app_resnforvisit +'</p>' +
+                                        '<ul class="mb-0 user-details p-1">' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">MRN # :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_code + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Fullname :</span><span class="h6 ps-2">' + arg.event.title + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Gender :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_gender + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Age :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_age + ' Years</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">DOB :</span><span class="h6 ps-2">' + moment(arg.event.extendedProps.pat_dob).format("YYYY-MM-DD") + ' </span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Nationality :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_nationality + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Emirates ID :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_emirateid +'</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Mobile No :</span><span class="h6 ps-2">' + arg.event.extendedProps.pat_mob + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Doctor :</span><span class="h6 ps-2">' + arg.event.extendedProps.emp_name + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Appointment Date :</span><span class="h6 ps-2">' + moment(arg.event.start).format("YYYY-MM-DD HH:mm")  + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Type :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_type + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Status :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_status + '</span></small></li>' +
+                                            '<li class="mb-1"><small><span class="font-weight-semibold">Insurance :</span><span class="h6 ps-2">' + arg.event.extendedProps.app_ic_name + '</span></small></li>' +
+                                        '</ul>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+
+                        var epopover_id = "epo_" + arg.event.id;
+
+                        $('#' + epopover_id).popover({
+                            trigger: 'hover',
+                            title: 'Patient & Appointment Information',
+                            html: true,
+                            content: html,
+                            placement: 'bottom'
+                        })
+                        .popover({ trigger: "hover" });
+                    },
+                    select: function (arg) {
+                        localStorage.setItem("initial_view", arg.view.type);
+                        $('#dt_select').val(moment(arg.startStr).format("YYYY-MM-DD"));
+
+                        //Clone Appointment
+                        if (localStorage.getItem("clone_appointment") != null) {
+                            Swal.fire({
+                                title: "Are you sure you want to clone this appointment ?",
+                                text: "This action will Clone/Duplicate this Appointment!",
+                                icon: "question",
+                                showCancelButton: !0,
+                                confirmButtonText: 'Yes! I confirm',
+                                cancelButtonText: 'No! Cancel Please',
+                                confirmButtonClass: "btn btn-success mt-2",
+                                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                buttonsStyling: !1
+                            }).then(function (t) {
+                                if (t.value) {
+                                    var app = {
+                                        "appId": parseInt(localStorage.getItem("clone_appointment")),
+                                        "app_fdate": moment(arg.startStr).format("YYYY-MM-DD"),
+                                        "app_tdate": moment(arg.endStr).format("YYYY-MM-DD"),
+                                        "app_doc_ftime": moment(arg.startStr).format("HH:mm"),
+                                        "app_doc_ttime": moment(arg.endStr).format("HH:mm"),
+                                        "app_room": parseInt(arg.resource.id),
+                                        "app_branch": $('#hi_branch_selected').val(),
+                                        "app_madeby": parseInt(@empId)
+                                    }
+
+                                    $.ajax({
+                                        type: "GET",
+                                        url: "@Url.Action("CloneAppointment", "RoomScheduler",  new { area = "Appointment" })",
+                                        contentType: "application/json",
+                                        dataType: "json",
+                                        data: app,
+                                        success: function (response) {
+                                            setFullCalendarEvents();
+
+                                            var _toast_html = "";
+                                            _toast_html = toast_html('success', 'Appointment', 'You have successfully Cloned/Duplicated the appointment!');
+                                            var calenderToast = document.getElementById('calenderToast');
+                                            calenderToast.innerHTML = _toast_html;
+                                            var toast = new bootstrap.Toast(calenderToast)
+                                            toast.show();
+                                            localStorage.removeItem("clone_appointment")
+                                        },
+                                        error: function (xhr) {
+                                            console.log(xhr);
+                                            alert(xhr);
+                                        }
+                                    });
+                                }
+                                else {
+                                    localStorage.removeItem("clone_appointment")
+                                }
+                            });
+                        }
+                        //Re-book Appointment
+                        else if (localStorage.getItem("copy_appointment") != null) {
+                            Swal.fire({
+                                title: "Are you sure you want to Re-Book this appointment ?",
+                                text: "This action will Re-Book this Appointment with selected date!",
+                                icon: "question",
+                                showCancelButton: !0,
+                                confirmButtonText: 'Yes! I confirm',
+                                cancelButtonText: 'No! Cancel Please',
+                                confirmButtonClass: "btn btn-success mt-2",
+                                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                                buttonsStyling: !1
+                            }).then(function (t) {
+                                if (t.value) {
+                                    var app = {
+                                        "appId": parseInt(localStorage.getItem("copy_appointment")),
+                                        "app_fdate": moment(arg.startStr).format("YYYY-MM-DD"),
+                                        "app_tdate": moment(arg.endStr).format("YYYY-MM-DD"),
+                                        "app_doc_ftime": moment(arg.startStr).format("HH:mm"),
+                                        "app_doc_ttime": moment(arg.endStr).format("HH:mm"),
+                                        "app_room": parseInt(arg.resource.id),
+                                        "app_branch": $('#hi_branch_selected').val(),
+                                        "app_madeby": parseInt(@empId)
+                                    }
+
+                                    $.ajax({
+                                        type: "GET",
+                                        url: "@Url.Action("RebookAppointment", "RoomScheduler", new { area = "Appointment" })",
+                                        contentType: "application/json",
+                                        dataType: "json",
+                                        data: app,
+                                        success: function (response) {
+                                            setFullCalendarEvents();
+
+                                            var _toast_html = "";
+                                            _toast_html = toast_html('success', 'Appointment', 'You have successfully Rebooked the appointment...');
+                                            var calenderToast = document.getElementById('calenderToast');
+                                            calenderToast.innerHTML = _toast_html;
+                                            var toast = new bootstrap.Toast(calenderToast)
+                                            toast.show();
+                                            localStorage.removeItem("copy_appointment")
+                                        },
+                                        error: function (xhr) {
+                                            console.log(xhr);
+                                            alert(xhr);
+                                        }
+                                    });
+                                }
+                                else {
+                                    localStorage.removeItem("copy_appointment")
+                                }
+                            });
+                        }
+                        // Create Appointment
+                        else {
+                            let _resource_id = 0;
+                            if (arg.resource !== null && arg.resource !== undefined) {
+                                _resource_id = arg.resource.id;
+                            }
+
+                            let _app_ftime = getTimeSlotId(moment(arg.startStr).format("HH:mm"));
+                            let _app_ttime = getTimeSlotId(moment(arg.endStr).format("HH:mm"));
+
+                            //Binding Appointment Modal
+                            var app = {
+                                "appId": 0,
+                                "app_inout": "Out Patient",
+                                "app_branch": parseInt($('#hi_branch_selected').val()),
+                                "app_doctor": 0,
+                                "app_fdate": moment(arg.startStr).format("YYYY-MM-DD"),
+                                "app_doc_ftime": moment(arg.startStr).format("HH:mm"),
+                                "app_doc_ttime": moment(arg.endStr).format("HH:mm"),
+                                "app_room": parseInt(_resource_id),
+                                "app_ftime": parseInt(_app_ftime),
+                                "app_ttime": parseInt(_app_ttime),
+                                "app_patient": 0,
+                                "app_type": "First Time",
+                                "app_status": "Booked",
+                                "app_emergency": "NO",
+                                "app_eligibility": "",
+                                "app_reason_for_visit": "",
+                                "app_comments": "",
+                                "app_package_order": 0,
+                                "app_service":0
+                            }
+
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("CreateAppointment", "RoomScheduler", new { area = "Appointment" })",
+                                contentType: "application/json",
+                                dataType: "html",
+                                data: app,
+                                success: function (data) {
+                                    $('#create_appointment_modal').attr("data-modal-from", "create-appointment");
+                                    $("#create_appointment_modal_body").html(data);
+                                    $("#create_appointment_modal").modal("show");
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                    },
+                    dateClick: function (arg) {
+                        localStorage.setItem("initial_view", arg.view.type);
+                        $('#dt_select').val(moment(arg.date).format("YYYY-MM-DD"));
+                        //console.log(
+                        //    'dateClick',
+                        //    arg.date,
+                        //    arg.resource ? arg.resource.id : '(no resource)'
+                        //);
+                    },
+                    eventClick: function (info) {
+                        localStorage.setItem("initial_view", info.view.type);
+                        $('#dt_select').val(moment(info.event.startStr).format("YYYY-MM-DD"));
+
+                        // Binding Update Appointment Modal
+                        var app = {
+                            "appId": parseInt(info.event.id),
+                            "app_inout": info.event.extendedProps.app_inout,
+                            "app_branch": parseInt(info.event.extendedProps.app_branch),
+                            "app_doctor": parseInt(info.event.extendedProps.app_doctor),
+                            "app_fdate": info.event.extendedProps.app_fdate,
+                            "app_doc_ftime": moment(info.event.startStr).format("HH:mm"),
+                            "app_doc_ttime": moment(info.event.endStr).format("HH:mm"),
+                            "app_room": parseInt(info.event.extendedProps.app_room),
+                            "app_ftime": parseInt(info.event.extendedProps.app_ftime),
+                            "app_ttime": parseInt(info.event.extendedProps.app_ttime),
+                            "app_patient": parseInt(info.event.extendedProps.app_ins),
+                            "app_type": info.event.extendedProps.app_type,
+                            "app_status": info.event.extendedProps.app_status,
+                            "app_emergency": info.event.extendedProps.app_emergency,
+                            "app_eligibility": info.event.extendedProps.app_eligibility,
+                            "app_reason_for_visit": info.event.extendedProps.app_resnforvisit,
+                            "app_comments": info.event.extendedProps.app_comments,
+                            "app_package_order": parseInt(info.event.extendedProps.app_po),
+                            "app_service": parseInt(info.event.extendedProps.app_service)
+                        }
+
+                        $.ajax({
+                            type: "GET",
+                            url: "@Url.Action("UpdateAppointment", "RoomScheduler", new { area = "Appointment" })",
+                            contentType: "application/json",
+                            dataType: "html",
+                            data: app,
+                            success: function (data) {
+                                $('#update_appointment_modal').attr("data-modal-from", "update-appointment");
+                                $("#update_appointment_modal_body").html(data);
+                                $("#update_appointment_modal").modal("show");
+                            },
+                            error: function (xhr) {
+                                console.log(xhr);
+                            }
+                        });
+                    },
+                    eventDrop: function (info) {
+                        localStorage.setItem("initial_view", info.view.type);
+
+                        var event = calendar.getEventById(info.event.id);
+                        var resources = event.getResources();
+                        var resourceIds = resources.map(function (resource) { return resource.id });
+
+                        var app_status = info.event.extendedProps.app_status;
+                        $('#dt_select').val(moment(info.event.extendedProps.app_fdate).format("YYYY-MM-DD"));
+
+                        if (app_status != "Invoiced") {
+                            // Binding ReBooking-Appointment Modal
+                            var app = {
+                                "appId": parseInt(info.event.id),
+                                "app_fdate": moment(info.event.startStr).format("YYYY-MM-DD"),
+                                "app_tdate": moment(info.event.endStr).format("YYYY-MM-DD"),
+                                "app_doc_ftime": moment(info.event.startStr).format("HH:mm"),
+                                "app_doc_ttime": moment(info.event.endStr).format("HH:mm"),
+                                "app_room": parseInt(resourceIds[0]),
+                                "app_branch": $('#hi_branch_selected').val(),
+                                "app_madeby": parseInt(@empId)
+                            }
+
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("RebookAppointment", "RoomScheduler", new { area = "Appointment" })",
+                                contentType: "application/json",
+                                dataType: "json",
+                                data: app,
+                                success: function (response) {
+                                    setFullCalendarEvents();
+
+                                    var _toast_html = "";
+                                    _toast_html = toast_html('success', 'Appointment', 'You have successfully update the appointment...');
+                                    var calenderToast = document.getElementById('calenderToast');
+                                    calenderToast.innerHTML = _toast_html;
+                                    var toast = new bootstrap.Toast(calenderToast)
+                                    toast.show();
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                        else {
+                            setFullCalendarEvents();
+
+                            var _toast_html = "";
+
+                            _toast_html = toast_html('warning', 'Appointment', "<i class='fe fe-alert-triangle me-2 text-warning'></i> <b>" + app_status + "</b> Appointment can't be Updated!");
+                            var calenderToast = document.getElementById('calenderToast');
+                            calenderToast.innerHTML = _toast_html;
+                            var toast = new bootstrap.Toast(calenderToast)
+                            toast.show();
+                        }
+                    },
+                    eventResize: function (info) {
+                        localStorage.setItem("initial_view", info.view.type);
+
+                        var event = calendar.getEventById(info.event.id);
+                        var resources = event.getResources();
+                        var resourceIds = resources.map(function (resource) { return resource.id });
+
+                        var app_status = info.event.extendedProps.app_status;
+                        $('#dt_select').val(moment(info.event.extendedProps.app_fdate).format("YYYY-MM-DD"));
+
+                        if (app_status != "Invoiced") {
+                            // Binding ReBooking-Appointment Modal
+                            var app = {
+                                "appId": parseInt(info.event.id),
+                                "app_fdate": moment(info.event.startStr).format("YYYY-MM-DD"),
+                                "app_tdate": moment(info.event.endStr).format("YYYY-MM-DD"),
+                                "app_doc_ftime": moment(info.event.startStr).format("HH:mm"),
+                                "app_doc_ttime": moment(info.event.endStr).format("HH:mm"),
+                                "app_room": parseInt(resourceIds[0]),
+                                "app_branch": $('#hi_branch_selected').val(),
+                                "app_madeby": parseInt(@empId)
+                            }
+
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("RebookAppointment", "RoomScheduler", new { area = "Appointment" })",
+                                contentType: "application/json",
+                                dataType: "json",
+                                data: app,
+                                success: function (response) {
+                                    setFullCalendarEvents();
+
+                                    var _toast_html = "";
+                                    _toast_html = toast_html('success', 'Appointment', 'You have successfully update the appointment...');
+                                    var calenderToast = document.getElementById('calenderToast');
+                                    calenderToast.innerHTML = _toast_html;
+                                    var toast = new bootstrap.Toast(calenderToast)
+                                    toast.show();
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                        else {
+                            setFullCalendarEvents();
+
+                            var _toast_html = "";
+
+                            _toast_html = toast_html('warning', 'Appointment', "<i class='fe fe-alert-triangle me-2 text-warning'></i> <b>" + app_status + "</b> Appointment can't be Updated!");
+                            var calenderToast = document.getElementById('calenderToast');
+                            calenderToast.innerHTML = _toast_html;
+                            var toast = new bootstrap.Toast(calenderToast)
+                            toast.show();
+                        }
+                    },
+                    dayCellDidMount: ({ date, el }) => {
+                        if (date.getDate() == new Date().getDate()) {
+                            el.style.backgroundColor = '#CFF5E7'
+                        }
+                        else if (date.getDate() > new Date().getDate()) {
+                            el.style.backgroundColor = '#BFEAF5'
+                        }
+                        else {
+                            el.style.backgroundColor = '#F8EDE3'
+                        }
+                    }
+                });
+                calendar.render();
+
+                //#region Change Calender Date on DatePickerChange
+                $('#dt_select').change(function () {
+                    calendar.gotoDate($(this).val());
+                });
+                //#endregion Change Calender Date on DatePickerChange
+            }
+            return {
+                init: function () {
+                    setFullCalendarEvents();
+                }
+            };
+        }();
+        //#endregion
+
+        //#region Toast Body
+        var toast_html = function (type, heading, content) {
+            var div = "";
+
+            if (type === "success") {
+                div = '<div class="toast-header bg-success text-white">';
+            }
+            else if (type === "error") {
+                div = '<div class="toast-header bg-danger text-white">';
+            }
+            else if (type === "info") {
+                div = '<div class="toast-header bg-info text-white">';
+            }
+            else if (type === "warning") {
+                div = '<div class="toast-header bg-warning text-white">';
+            }
+            else {
+                div = '<div class="toast-header bg-primary text-white">';
+            }
+
+            var html = div +
+                '<strong class="me-auto">' + heading + '</strong>' +
+                '<small>just now</small>' +
+                '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close">' +
+                '<span aria-hidden="true">×</span>' +
+                '</button>' +
+                '</div>' +
+                '<div class="toast-body">' +
+                content
+            '</div>';
+
+            return html;
+        }
+        //#endregion
+    </script>
+}

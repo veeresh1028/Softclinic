@@ -1,0 +1,110 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Medical Expenses Form";
+
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div id="alert_form">
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Medical Expenses Claim Form</h3>
+            </div>
+            <div class="text-red p-2">Required fields are marked with *</div>
+            <div class="card-body">
+                <div id="MedicalExpensesForm_add" style="display:none">
+                </div>
+                <div id="MedicalExpensesForm_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="MedicalExpensesForm_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        GetMedicalExpensesFormInfo();
+        MedicalExpensesFormPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetMedicalExpensesFormInfo
+    var GetMedicalExpensesFormInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetMedicalExpensesFormData", "MedicalExpensesForm", new { area = "InsuranceForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditMedicalExpensesForm();
+                        $("#MedicalExpensesForm_add").hide();
+                        $("#MedicalExpensesForm_edit").show();
+
+                    }
+                    else {
+                        $("#MedicalExpensesForm_add").show();
+                        $("#MedicalExpensesForm_edit").hide();
+                        AddMedicalExpensesForm();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load MedicalExpensesForm
+
+    //#region Add MedicalExpensesForm
+    function AddMedicalExpensesForm() {
+        var x = $("#MedicalExpensesForm_add");
+        x.load("@Url.Action("CreateMedicalExpensesForm", "MedicalExpensesForm", new { area = "InsuranceForms" })", function () {
+        });
+    }
+    //#endregion Add MedicalExpensesForm
+
+    // #region Update MedicalExpensesForm
+    function EditMedicalExpensesForm() {
+        var x = $("#MedicalExpensesForm_edit");
+        x.load("@Url.Action("UpdateMedicalExpensesForm", "MedicalExpensesForm", new { area = "InsuranceForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update MedicalExpensesForm
+
+    // #region Histroy of MedicalExpensesForm
+    function MedicalExpensesFormPreviousHistory() {
+        var x = $("#MedicalExpensesForm_history");
+        x.load("@Url.Action("MedicalExpensesFormPreviousHistory", "MedicalExpensesForm", new { area = "InsuranceForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

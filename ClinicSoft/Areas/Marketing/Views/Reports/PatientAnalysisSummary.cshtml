@@ -1,0 +1,622 @@
+﻿@using System.Security.Claims;
+@{
+    ViewBag.Title = "Patient Analysis Summary Report";
+    ViewBag.pat_active = "background: none !important; color: #664dc9 !important;";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_branch = claims.Where(c => c.Type == ClaimTypes.GroupSid).Select(c => c.Value).SingleOrDefault();
+}
+<div class="page-header">
+    <div class="page-leftheader">
+        <h4 class="page-title mb-0 text-primary">
+            <span data-ang-key="patient-analysis-summary">Patient Analysis Summary Report</span>
+        </h4>
+    </div>
+    <div class="page-rightheader">
+        <div class="btn-list btn-animation">
+            <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilter" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fa fa-filter"></i> 
+                <span data-lang-key="advance-filter">Advanced Filters</span>
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    @if (TempData["InfoMessage"] != null)
+    {
+        <div class="col-12 d-flex justify-content-center">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Information!&nbsp;</strong><i class="fa fa-info-circle"></i> @TempData["InfoMessage"]
+            </div>
+        </div>
+    }
+    else if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong><i class="fa fa-ban"></i> @TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12 d-flex justify-content-center">
+        <div class="mt-2" id="PatientSummaryReportAlert"></div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card mb-0">
+            <div class="card-status bg-primary-1"></div>
+            <div class="collapse" id="searchFilter">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="branches">Branch<small>(es)</small></span>
+                                </label>
+                                <select class="form-control" id="select_branch" multiple="multiple">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="from-date">From Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_from_sum" class="form-control" placeholder="Select Enquiry Date From" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">
+                                    <span data-lang-key="to-date">To Date</span></label>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fe fe-calendar"></i>
+                                    </div>
+                                </div>
+                                <input id="date_to_sum" class="form-control" placeholder="Select Enquiry Date To" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-4 col-lg-2">
+                            <div class="form-group mb-2">
+                                <label class="form-label font-weight-semibold">&nbsp;</label>
+                                <button class="btn btn-primary mb-2" type="button" id="btnSearch">
+                                    <i class="fa fa-search-plus"></i> 
+                                    <span data-lang-key="search">Search</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="progress-loader" style="display:none;">
+                    <div class="progress progress-sm mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_patient_summary_report" class="table table-bordered table-hover text-nowrap resize-table" style="width: 100%;">
+                        <tfoot>
+                            <tr id="tfooter">
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Patient Analysis Summary Toast -->
+    <div class="text-wrap">
+        <div class="toast-main p-5">
+            <div class="demo-static-toast">
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="PatientReportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header text-dark">
+                            <img src="~/assets/images/brand/favicon.ico" class="rounded me-2" alt="img" height="16">
+                            <strong class="me-auto"><span data-lang-kiss="patient-summary">Patient Summary</span></strong>
+                            <small><span data-lang-key="just-now">Just Now</span></small>
+                            <button type="button" class="btn-close btn-close" data-bs-dismiss="toast" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="toast-body" id="toastBody">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ModalPatient Analysis Summary Details -->
+<div class="modal fade overflow-auto" id="pat_analysis" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" id="pat_analysis_body">
+        </div>
+    </div>
+</div>
+<!-- End Patient Analysis Summary Details -->
+@section myScripts{
+    <script>
+        //#region Page Load & Initialization
+        $(function () {
+            // Focus on select2 Dropdown
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+            // Load Advanced Filters
+            load_filters();
+            // Load Patient Analysis Summary Report
+            GetPatientSummary(0);
+        });
+        //#endregion
+
+        //#region Load Advanced Filters
+        var load_filters = function () {
+            load_branches();
+
+            $('#date_from_sum').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate:'today'
+            });
+            $("#date_from_sum").bootstrapdatepicker("setDate", "-1m");
+
+            $('#date_to_sum').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-",
+                endDate: 'today'
+            });
+            $("#date_to_sum").bootstrapdatepicker("setDate", "today");
+
+            $('#date_from_sum').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+
+            $('#date_to_sum').keypress(function (e) {
+                var charCode = (e.which) ? e.which : e.keyCode
+                if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                    return false;
+
+                }
+                else {
+                    if (e.target.value.length >= 18)
+                        return false;
+                }
+            });
+        }
+        // Load Branches
+        var load_branches = function () {
+            $('#select_branch').SumoSelect({
+                placeholder: 'Select Branch(es)',
+                captionFormat: '{0} Branch(es) Selected',
+                captionFormatAllSelected: 'All {0} Branches selected!',
+                csvDispCount: 3,
+                okCancelInMulti: true,
+                isClickAwayOk: true,
+                search: true,
+                searchText: 'Search here...',
+                selectAll: true
+            });
+
+            $.ajax({
+            url: '@Url.Action("GetBranches", "AppointmentList", new { area = "Appointment" })',
+            type: "GET",
+            dataType: "JSON",
+            async: false,
+            success: function (response) {
+                pageLoad = true;
+                $('#select_branch').html('');
+                $('#select_branch')[0].sumo.reload();
+
+                $.each(response, function (j) {
+                    $('#select_branch')[0].sumo.add(response[j].id, response[j].text);
+                    $('#select_branch')[0].sumo.selectItem(["@emp_branch.ToString()"]);
+                });
+            },
+            error: function (xhr) {
+                console.log("Failed! Error Message : " + xhr.statusText);
+            }
+            }).done(function (){
+                $('#select_branch')[0].sumo.reload();
+            });
+        }
+        //#endregion
+
+        //#region Search Patient Analysis Report Click
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+            if ($("#select_branch").val() != null && $("#select_branch").val() != 0 && $("#select_branch").val() != "") {
+                if (($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "") &&
+                    ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "")) {
+                    let isValid = true;
+                    let daily_frm = moment($("#date_from_sum").val());
+                    let daily_to = moment($("#date_to_sum").val());
+
+                    // Check if Date From is a valid Date
+                    if ($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "" && $("#date_from_sum").val() != undefined) {
+                        if (!daily_frm.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid From Date!"
+                            });
+                        }
+                    }
+                    // Check if Date To is a valid Date
+                    if ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "" && $("#date_to_sum").val() != undefined) {
+                        if (!daily_to.isValid()) {
+                            isValid = false;
+                            e.stopPropagation();
+                            return $.growl.error({
+                                title: "Error",
+                                message: "Invalid To Date!"
+                            });
+                        }
+                    }
+                    // Check if Date Range is valid
+                    if (($("#date_from_sum").val() != null && $("#date_from_sum").val() != 0 && $("#date_from_sum").val() != "" && $("#date_from_sum").val() != undefined) && ($("#date_to_sum").val() != null && $("#date_to_sum").val() != 0 && $("#date_to_sum").val() != "" && $("#date_to_sum").val() != undefined)) {
+                        if (daily_frm.isValid() && daily_to.isValid()) {
+                            date_to_sum
+                            if (daily_to.diff(daily_frm, 'days') <= 0) {
+                                isValid = false;
+
+                                var index = [];
+                                index.push("date_from_sum");
+                                index.push("date_to_sum");
+
+                                $.each(index, function (i, v) {
+                                    if (index[i] != null && index[i] != "") {
+                                        var elem = $("#" + index[i]);
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                        }
+                                        else {
+                                            $(elem).addClass(" is-invalid");
+                                        }
+
+                                        setTimeout(function () {
+                                            if (elem.hasClass("select2-hidden-accessible")) {
+                                                $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                            }
+                                            else {
+                                                $(elem).removeClass("is-invalid");
+                                            }
+                                        }, 5000);
+                                    }
+                                });
+
+                                e.stopPropagation();
+
+                                return $.growl.error({
+                                    title: "Error!",
+                                    message: "From Date Filter should be less than To Date Filter!"
+                                });
+                            }
+                        }
+                    }
+                    // Check If Valid
+                    if (isValid) {
+                        GetPatientSummary(1);
+                    }
+                }
+                else {
+                    Swal.fire({
+                        title: "Attention!",
+                        text: "From Date & To Date is required to filter record(s)!",
+                        icon: "warning",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+                }
+            }
+            else {
+                Swal.fire({
+                    title: "Attention!",
+                    text: "You need to select atleast 1 Branch to Filter Report!",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                });
+            }
+        });
+        //#endregion
+
+        //#region Datatable Client Side Processing
+        // Get Patient Analysis Summary Report
+        var GetPatientSummary = function (search_type) {
+
+            var _data = {
+                "search_type"   : search_type,
+                "branch_ids"    : $('#select_branch').val().toString(),
+                "date_from"     : $('#date_from_sum').val(),
+                "date_to"       : $('#date_to_sum').val()
+            }
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetPatientAnalysisSummaryReport", "Reports", new { area = "Marketing" })",
+                data: _data,
+                beforeSend: function () {
+                    $('#progress-loader').show();
+                    $('#toastBody').html('');
+                    $('#toastBody').html('<i class="fe fe-info me-2 text-info"></i> <b>Generating Report..</b> Please wait!');
+                    $('#PatientReportToast').show();
+                },
+                start_time: new Date().getTime(),
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+
+                        var dt = JSON.parse(response);
+                        var dt_rows = dt.report;
+                        var dt_cols = dt.columnNames;
+
+
+                        let html = "";
+                        var _columns = dt_cols.map(function (value) {
+                            if (value == "Date") {
+                                html += "<th class='text-primary font-weight-semibold'>Total </th>";
+                            }
+                            else {
+                                html += "<th></th>";
+                            }
+
+                            return {
+                                title: value,
+                                data: value,
+                                className: value === "Total" ? "text-center bg-success-light text-dark" : "text-center"
+                            };
+                        });
+
+                        $('#tfooter').html(html);
+
+                        //#region Load Datatable
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_patient_summary_report')) {
+                            table = $('#tbl_patient_summary_report').DataTable();
+                            table.clear();
+                            table.rows.add(dt_rows).draw();
+                        }
+                        else {
+                            BindDataTable(_columns, dt_rows);
+                        }
+                        //#endregion
+
+                        //#region Toast Before / After Filtering
+                        var count_total;
+                        var etime = new Date().getTime() - this.start_time;
+
+                        if (dt_rows.length > 0) {
+                            count_total = dt_rows.length;
+                            $('#toastBody').html('');
+                            $('#toastBody').html('<i class="fe fe-check-circle me-2 text-success"></i> <b class="text-dark">Filtered </b> <b class="text-primary" id="report_count">' + count_total.toLocaleString() + ' </b> record(s) in about <b id="etime">' + etime +'</b> ms');
+                            $('#PatientReportToast').show();
+                        }
+                        //#endregion
+                    }
+                    else
+                    {
+                        console.log("You are not Authorized To View This Page!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log("Failed! Error Message : " + xhr.statusText);
+                    $('#progress-loader').hide();
+                }
+            }).done(function () {
+                resizedt();
+                setTimeout(function () {
+                    $('#PatientReportToast').fadeOut('fast');
+                }, 5000);
+                $('#progress-loader').hide();
+            });
+        }
+        //#endregion
+
+        //#region Bind DataTable
+        var BindDataTable = function (_columns, _rows) {
+            var table = $("#tbl_patient_summary_report").DataTable({
+                "columns": _columns,
+                "data": _rows,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "className": "text-dark",
+                        "render": function (data, type, row, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(data).format("DD-MM-YYYY");
+                            }
+                            return moment(data).format("YYYY-MM-DD");
+                        }
+                    },
+                ],
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                order: [[0, 'desc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Date</span>',
+                    lengthMenu: '_MENU_',
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Patient Analysis Report Summary Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Patient Analysis Report Summary Report to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Patient Analysis Report Summary Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Patient Analysis Report Summary Report to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Patient Analysis Report Summary Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Patient Analysis Report Summary Report to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Patient Analysis Report Summary Report',
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Patient Analysis Report Summary Report!");
+                        }
+                    }
+                ],
+                "fnDrawCallback": function (settings) {
+                    var api = this.api();
+                    var _date = "";
+
+                    api.cells().every(function (rowIndex, colIndex) {
+                        var column = api.column(colIndex);
+                        var columnName = column.header().textContent;
+                        var cell = api.cell(rowIndex, colIndex).node();
+                        var cellData = api.cell(rowIndex, colIndex).data();
+
+                        if (colIndex === 0) {
+                            _date = cellData;
+                        }
+                        else if (colIndex === api.columns().count() - 1) {
+                            $(cell).html('<b>' + cellData + '</b>');
+                        }
+                        else {
+                            if (cellData > 0) {
+                                $(cell).html('<a class="text-info font-weight-semibold" style="cursor:pointer" onclick="patientHistory(\'' + _date + '\',\'' + columnName + '\')">' + cellData + '</a>');
+                            }
+                            else {
+                                $(cell).html('<a class="text-danger font-weight-semibold">' + cellData + '</a>');
+                            }
+                        }
+                    });
+                },
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    $.each(_columns, function (i, v) {
+                        var _total = api.column(i).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        if (!isNaN(_total)) {
+                            if (_total > 0) {
+                                $(api.column(i).footer()).html("<span class='text-info font-weight-semibold'>" + _total + "</span>");
+                            }
+                            else {
+                                $(api.column(i).footer()).html("<span class='text-danger font-weight-semibold'>" + _total + "</span>");
+                            }
+                        }
+                    });
+                }
+            });
+            table.buttons().container().appendTo('#tbl_patient_summary_report_wrapper .col-md-6:eq(0)');
+            $('#tbl_patient_summary_report_wrapper thead tr th').each(function () { $(this).addClass('text-white bg-primary border-bottom-0 font-weight-semibold') });
+        }
+        //#endregion
+
+        //#region Get Patient Analysis Detailed History
+        var patientHistory = function (fdate, app_status) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetPatientHistory", "Reports", new { area = "Marketing" })?app_fdate=" + fdate + "&app_status=" + app_status,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (response) {
+                    $("#pat_analysis_body").html(response);
+                    $("#pat_analysis").modal("show");
+                },
+                error: function (xhr) {
+                    console.log("Error :" + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Export General Logs
+        var exportLogs = function (desc) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("ExportLogs", "AuditLogs", new { area = "Common" })?desc="+ desc,
+                contentType: "application/json",
+                dataType: "json"
+            });
+        }
+        //#endregion
+
+        //#region UI Functions
+        // Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        // Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        // Remove Error Class
+        function error_Timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+        //#endregion
+    </script>
+}

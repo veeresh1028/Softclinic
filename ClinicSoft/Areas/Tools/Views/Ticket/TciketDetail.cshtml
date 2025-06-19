@@ -1,0 +1,209 @@
+﻿
+
+@model BusinessEntities.Tools.TicketsList
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">ClinicSoft Ticket Detail</h5>
+    <button aria-label="Close" data-bs-dismiss="modal" class="btn-close" type="button"><span aria-hidden="true">×</span></button>
+</div>
+<div class="modal-body p-4">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div id="progress-loader" style="display:none;">
+            <div class="progress progress-sm mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table id="tbl_ticket_detail" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer; color: #000 !important;">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                        <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Priority</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Department</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Subject</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Description</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Last Remindfer</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Reminder Date</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Closed on</th>                        
+                        <th class="border-bottom-0 font-weight-semibold text-white">Created By</th>
+                    </tr>
+                </thead>                
+            </table>
+        </div>
+
+    </div>
+</div>
+<script>
+    var logs_arr = [];
+    //#region Page Load
+    $(function () {
+        logs_arr = @Html.Raw(Json.Encode(Model.ticketList));
+        BindDataTable(logs_arr);
+    });
+    //#endregion
+
+    //#region Bind Datatable
+    var BindDataTable = function (response) {
+        var table = $("#tbl_ticket_detail").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "ticket_code",
+                },
+                {
+                    "orderable": false,
+                    "searchable": false,
+                    "className": 'text-center',
+                    "mData": "ticket_priority",
+                    "render": function (ticket_priority, type, full, meta) {
+                        if (full.ticket_priority === 'Low')
+                            return '<i class="fa fa-star text-lime" title="Low"></i>';
+                        else if (full.ticket_priority === 'Medium')
+                            return '<i class="fa fa-star text-warning" title="Medium"></i>';
+                        else if (full.ticket_priority === 'High')
+                            return '<i class="fa fa-star text-orange" title="High"></i>';
+                        else if (full.ticket_priority === 'Critical')
+                            return '<i class="fa fa-star text-red" title="Critical"></i>';
+                    }
+                },
+                {
+                    "mData": "ticket_date",
+                },
+                {
+                    "mData": "ticket_to_dept"
+                },
+                {
+                    "className": "td_max_width",
+                    "mData": "ticket_subject"
+                },
+                {
+                    "orderable": false,
+                    "className": "td_max_width",
+                    "data": "ticket_description",
+                    "render": function (data, type, row) {
+                        if (type === 'display') {
+                            return decodeURIComponent(data);
+                        }
+                        return data;
+                    }
+                },
+                {
+                    "mData": "ticketId",
+                    "className": 'text-center',
+                    "render": function (dpId, type, full, meta) {
+                        var ticket_status = full.ticket_status;
+                        if (ticket_status === "Open") {
+                            return '<i class="dot-label bg-azure me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-azure">Open</span>'
+                        }
+                        else if (ticket_status === "In Progress") {
+                            return '<i class="dot-label bg-green-light me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-green-light">In Progress</span>'
+                        }
+                        else if (ticket_status === "On Hold") {
+                            return '<i class="dot-label bg-warning me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-warning">On Hold</span>'
+                        }
+                        else if (ticket_status === "Closed") {
+                            return '<i class="dot-label bg-success me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-success">Closed</span>'
+                        }
+                        else if (ticket_status === "Cancelled") {
+                            return '<i class="dot-label bg-danger me-2 w-2 h-2"></i>&nbsp;<span class="font-weight-semibold text-danger">Cancelled</span>'
+                        }
+                        else {
+                            return ''
+                        }
+                    }
+                },
+                {
+                    "orderable": false,
+                    "data": "ticket_reminder_message",
+                    "className": "td_max_width",
+                    "render": function (data, type, row) {
+                        if (type === 'display') {
+                            return decodeURIComponent(data);
+                        }
+                        return data;
+                    }
+                },
+                {
+                    "mData": "ticket_reminder_date"
+                },
+                {
+                    "mData": "ticket_closed"
+                },
+                {
+                    "mData": "madeby"
+                },
+            ],            
+            order: [[2, 'desc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Ticket Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Ticket Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Ticket Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Ticket Detail',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record Match - Sorry",
+                scrollX: "100%",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By Status / Date </span>',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+                lengthMenu: '_MENU_ ',
+            }
+        });
+        table.buttons().container()
+            .appendTo('#tbl_ticket_detail_wrapper .col-md-6:eq(0)');
+        resizedt_name("tbl_ticket_detail");
+    }
+        //#endregion Bind Datatable
+
+    //#region Resizing Table
+    function resizedt() {
+        setTimeout(function () {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }, 350);
+    }
+    //#endregion
+
+</script>
+
+

@@ -1,0 +1,239 @@
+﻿@model BusinessEntities.Masters.ComplaintsMaster
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold">Create New Complaint</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <form id="form_Add_Complaint" autocomplete="off" ondrop="return false;" oncut="return false;">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Title&nbsp;<span class="text-danger">*</span></label>
+                    @Html.TextBoxFor(m => m.cm_title, new { @class = "form-control", @placeholder = "Ex : Fever", @maxlenth = "15" })
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-12">
+                <div class="form-group mb-3">
+                    <label class="form-label text-black">Complaints&nbsp;<span class="text-danger">*</span></label>
+                    <div id="cm_desc">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div id="errorCreate"></div>
+            <div class="col-sm-12 col-lg-12 text-center">
+                <div class="btn-list btn-animation">
+                    <button type="submit" class="btn btn-success" id="btn_Insert">Create Complaint</button>
+                    <button type="button" class="btn btn-outline-danger me-1 btnCloseCreate" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+
+    //#region Page Load
+    $(function () {
+        validation();
+        var icons = Quill.import('ui/icons');
+        icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+        icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+        icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+        icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+        icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+        icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+        var toolbarOptions = [
+            [{
+                'header': [1, 2, 3, 4, 5, 6, false]
+            }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{
+                'list': 'ordered'
+            }, {
+                'list': 'bullet'
+            }]
+
+        ];
+
+        quilld = new Quill('#cm_desc', {
+            modules: {
+                toolbar: toolbarOptions
+            },
+            theme: 'snow'
+        });
+    });
+    //#endregion
+
+    //#region Validation Initialization
+    var validation = function () {
+        $("#form_Add_Complaint").validate({
+            focusInvalid: true,
+            rules:
+            {
+                cm_title: {
+                    required: true
+                },
+                
+            },
+            messages: {
+                cm_title: {
+                    required: "Enter Complaint Title"
+                },
+               
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    }
+    //#endregion
+
+    //#region Insert Complaint Click
+    $('#btn_Insert').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Add_Complaint").valid()) {
+
+            $('#btn_Insert').removeClass("btn btn-success");
+            $('#btn_Insert').addClass("btn btn-success btn-loaders btn-icon");
+            $('#btn_Insert').parent().addClass("curdrop");
+            $('.btnCloseCreate').addClass("disabled");
+            $('#btn_Insert').html("Creating... Please Wait");
+
+            var _dataInsert = {
+                "dcId": 0,
+                "cm_title": $("#cm_title").val().trim(),
+                "cm_desc": quilld.root.innerHTML,
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("InsertComplaint", "ComplaintsMaster", new {area = "Masters" })",
+                dataType: 'json',
+                data: _dataInsert,
+                success: function (data) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Complaint");
+
+                    if (data.isSuccess) {
+                        if (data.isInserted) {
+                            var _from = $('#complaint_modal').attr("data-modal-from");
+
+                            if (_from === "create-complaint") {
+                                var complaint = {
+                                    "id": quilld.root.innerHTML,
+                                    "text": $("#cm_title").val().trim()
+                                }
+                                localStorage.setItem("newComplaint", JSON.stringify(complaint));
+                                $('#complaint_modal').modal('hide');
+                                $('#complaints_edit').hide();
+                                $("#complaints_add").show()
+                            }
+                            else {
+                                alert("<i class='fe fe-check-circle text-white'></i> Complaint Created Successfully!", "success");
+                                $('#complaint_modal').modal('toggle');
+                                GetComplaintsMasters();
+                                Timeout();
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-light-warning' role='alert'>" +
+                                "<button type='button' class='btn-close text-warning' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong><i class='fa fa-exclamation-triangle text-warning'></i> Complaint Already Exists with the same details!</strong><br/>" +
+                                "</div></div>";
+                            $("#errorCreate").html(html);
+                        }
+                    }
+                    else {
+                        let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                            "<div class='alert alert-light-danger' role='alert'>" +
+                            "<button type='button' class='btn-close text-danger' style='margin-bottom:-5px;' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                            "<strong><i class='fa fa-ban text-danger'></i> Validation Error! Please validate before submitting.&nbsp;</strong><br/><ul>";
+
+                        $.each(data.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+
+                        html += "</ul></div></div>";
+                        $("#errorCreate").html(html);
+                    }
+                },
+                error: function (xhr) {
+                    $('#btn_Insert').parent().removeClass("curdrop");
+                    $('.btnCloseCreate').removeClass("disabled");
+                    $('#btn_Insert').removeClass("btn btn-success btn-loaders btn-icon");
+                    $('#btn_Insert').addClass("btn btn-success");
+                    $('#btn_Insert').html("Create Complaint");
+                    $('#complaint_modal').modal('toggle');
+                    Timeout();
+                }
+            });
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+    //#endregion
+
+</script>

@@ -1,0 +1,672 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    var id = TempData["Layout"] as string; 
+    var layoutPath = string.IsNullOrEmpty(id)
+        ? "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml"
+        : null;
+    Layout = layoutPath;
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="vital_add">
+                    @Html.Action("CreateVitalSigns", "VitalSigns", new { area = "NurseStation" })
+                </div>
+                <div id="vital_edit">
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_vital" class="table table-striped table-bordered text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Temperature</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Pulse</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">BPS</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">BPD</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Height</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Weight</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">BMI</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Respiratory</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">SpO2</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Hip</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Waist</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Head<br /> Circumference</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Urinalysis</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Other <br /> Details</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Sugar</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div>
+                    <h4 class="page-title mb-0 text-primary">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_Prevital" class="table table-striped table-bordered text-nowrap" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Temperature</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Pulse</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">BPS</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">BPD/th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Height</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Weight</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">BMI</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Respiratory</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">SpO2</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Hip</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Waist</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Head <br /> Circumference</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Urinalysis</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Other <br /> Details</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Sugar</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+        $(function () {
+            $("body").addClass("app sidebar-mini sidenav-toggled");
+            BindDataTableVital(null);
+            BindDataTableVitalP(null);
+            GetVitalSigns();
+            GetPreviousVitalSigns();
+        });
+    //#endregion Page Load
+
+    //#region Load VitalSigns
+        var GetVitalSigns = function () {
+            $("#vital_add").show();
+            AddVitalSigns(0);
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllVitalSigns", "VitalSigns", new { area = "NurseStation" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_vital')) {
+                            table = $('#tbl_vital').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableVital(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load VitalSigns
+
+    //#region Load PreviousVitalSigns
+        var GetPreviousVitalSigns = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreVitalSigns", "VitalSigns", new { area = "NurseStation" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_Prevital')) {
+                            table = $('#tbl_Prevital').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableVitalP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+        }
+    //#endregion Load PreviousVitalSigns
+
+    //#region Bind Datatable
+        var BindDataTableVital = function (response) {
+            var table = $("#tbl_vital").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "signId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "sign_temp",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_pulse",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "sign_bp",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_bpd",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_height",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_weight",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_bmi",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_resp",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_spo2",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_hip",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_waist",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_head",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_uri",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_notes",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_sugar",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "signId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (signId, type, full, meta) {
+                            var status = full.sign_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button"  onclick="EditVitalSigns(' + signId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="EditVitalSigns(' + signId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+
+                                        
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditVitalSigns(' + signId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                                return ''
+                                            }
+                                    }
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "signId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (signId, type, full, meta) {
+                            var status = full.sign_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteVitalSigns(' + signId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button" onclick="DeleteVitalSigns(' + signId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+
+                                        }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteVitalSigns(' + signId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Vital Signs',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Vital Signs',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Vital Signs',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Vital Signs',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_vital_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Previous Bind Datatable
+        var BindDataTableVitalP = function (response) {
+            var table = $("#tbl_Prevital").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "signId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_temp",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_pulse",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "sign_bp",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_bpd",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_height",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_weight",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_bmi",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_resp",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_spo2",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_hip",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_waist",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_head",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_uri",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_notes",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "sign_sugar",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "signId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (signId, type, full, meta) {
+                            var Action = '';
+                            //Copy Data
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_Vital  onclick="AddVitalSigns(' + full.signId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        Action += '<a id=btn_Copy_Vital  onclick="AddVitalSigns(' + full.signId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            Action += '<a id=btn_Copy_Vital  onclick="AddVitalSigns(' + full.signId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                        }
+                                        else {
+                                            Action += ''
+                                            }
+                                    }
+                                }
+
+                                return Action;
+                            }
+                    },
+
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous VitalSigns',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous VitalSigns',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous VitalSigns',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous VitalSigns',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_Prevital_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+    //#region Add VitalSigns
+        function AddVitalSigns(signId) {
+            $('#allergy_edit').hide();
+            var x = $("#vital_add");
+            x.load("@Url.Action("CreateVitalSigns", "VitalSigns", new { area = "NurseStation" })?signId=" + signId, function () {
+                $("#vital_add").show();
+            });
+        }
+    //#endregion Add VitalSigns
+    //#region Edit VitalSigns
+        function EditVitalSigns(signId) {
+            $('#vital_add').hide();
+            var x = $("#vital_edit");
+            x.load("@Url.Action("EditVitalSigns", "VitalSigns", new { area = "NurseStation" })?signId=" + signId + "&appId=" + @emr.appId, function () {
+            $("#vital_edit").show();
+            });
+
+            //hide the Copy Data
+            var dt = $('#tbl_Prevital').DataTable();
+            dt.columns([18]).visible(false);
+        }
+    //#endregion Edit VitalSigns
+
+    //#region Delete VitalSigns
+        var DeleteVitalSigns = function (signId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Vital Signs ?",
+                text: "The selected Vital Signs will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteVitalSigns", "VitalSigns", new { area = "NurseStation" })?signId=' + signId ,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetVitalSigns();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active Vital Signs",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Vital Signs!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Vital Signs! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetVitalSigns();
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion Delete VitalSigns
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+    //#region Remove Error Class
+        function error_timeout(_id) {
+            setTimeout(function () {
+                $(".has-error").removeClass("has-error");
+                $(".error").removeClass("error");
+                $("#" + _id + "-error").text("");
+            }, 5200);
+        }
+    //#endregion
+</script>

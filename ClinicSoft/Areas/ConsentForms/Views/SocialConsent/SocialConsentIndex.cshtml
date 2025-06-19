@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Social Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Social Media Photo Consent</h3>
+            </div>
+            <div class="card-body">
+                <div id="SocialConsent_add" style="display:none">
+                </div>
+                <div id="SocialConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="SocialConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetSocialConsentInfo();
+        SocialConsentPreviousHistory();
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetSocialConsentInfo
+    var GetSocialConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetSocialConsentData", "SocialConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    console.log(response.length);
+                    if (response.length > 0) {
+                        EditSocialConsent();
+                        $("#SocialConsent_add").hide();
+                        $("#SocialConsent_edit").show();
+
+                    }
+                    else {
+                        $("#SocialConsent_add").show();
+                        $("#SocialConsent_edit").hide();
+                        AddSocialConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load SocialConsent
+
+    //#region Add SocialConsent
+    function AddSocialConsent() {
+        var x = $("#SocialConsent_add");
+        x.load("@Url.Action("CreateSocialConsent", "SocialConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add SocialConsent
+
+    //#region Update SocialConsent
+    function EditSocialConsent() {
+        var x = $("#SocialConsent_edit");
+        x.load("@Url.Action("UpdateSocialConsent", "SocialConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update SocialConsent
+
+    //#region History of SocialConsent
+    function SocialConsentPreviousHistory() {
+        var x = $("#SocialConsent_history");
+        x.load("@Url.Action("SocialConsentPreviousHistory", "SocialConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

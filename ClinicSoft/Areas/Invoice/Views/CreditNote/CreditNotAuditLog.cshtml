@@ -1,0 +1,133 @@
+﻿@model List<BusinessEntities.Invoice.CreditNoteAudit>
+@{ string invc_no = "";}
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Credit Note Audit Logs </h5>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body p-4">
+    <div class="row">
+        @if (Model.Any())
+        {
+            <div class="col-md-12 col-lg-12">
+                <div class="table-responsive" style="min-height:unset;">
+                    <table id="tbl_cn_logs" class="table table-bordered text-nowrap resize-table" style="width:100%;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Credit Note #</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Net</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Operation</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Log Date &amp; Time</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Made By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (BusinessEntities.Invoice.CreditNoteAudit dr in Model)
+                            {
+                                invc_no = dr.invca_no;
+                                <tr>
+                                    <td class="fs-13">@dr.invca_no</td>
+                                    <td class="fs-13">@dr.invca_date.ToString("dd-MM-yyyy")</td>
+                                    <td class="fs-13 text-end">@dr.invca_net.ToString("N2")</td>
+                                    <td class="fs-13 text-end">@dr.invca_vat.ToString("N2")</td>
+                                    <td class="fs-13">@dr.invca_status.ToString()</td>
+                                    @if (dr.invca_operation == "Inserted")
+                                    {
+                                        <td class="fs-13 bg-success-transparent-2 font-weight-semibold">@dr.invca_operation</td>
+                                        <td class="fs-13 bg-success-transparent-2 font-weight-semibold">@dr.invca_date_modified.ToString("dd-MM-yyyy | hh:mm:ss")</td>
+                                        <td class="fs-13 bg-success-transparent-2 font-weight-semibold">@dr.madeby</td>
+                                    }
+                                    else if (dr.invca_operation == "Updated")
+                                    {
+                                        <td class="fs-13 bg-warning-transparent-2 font-weight-semibold">@dr.invca_operation</td>
+                                        <td class="fs-13 bg-warning-transparent-2 font-weight-semibold">@dr.invca_date_modified.ToString("dd-MM-yyyy | hh:mm:ss")</td>
+                                        <td class="fs-13 bg-warning-transparent-2 font-weight-semibold">@dr.madeby</td>
+                                    }
+                                    else
+                                    {
+                                        <td class="fs-13 bg-danger-transparent-2 font-weight-semibold">@dr.invca_operation</td>
+                                        <td class="fs-13 bg-danger-transparent-2 font-weight-semibold">@dr.invca_date_modified.ToString("dd-MM-yyyy | hh:mm:ss")</td>
+                                        <td class="fs-13 bg-danger-transparent-2 font-weight-semibold">@dr.madeby</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th class="border-bottom-0 font-weight-bold text-primary" colspan="2"></th>
+                                <th class="border-bottom-0 font-weight-bold text-primary text-end">@Model.Sum(e => e.invca_net).ToString("N2")</th>
+                                <th class="border-bottom-0 font-weight-bold text-primary text-end">@Model.Sum(e => e.invca_vat).ToString("N2")</th>
+                                <th class="border-bottom-0 font-weight-bold text-primary" colspan="4"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+                <div class="alert alert-light-info alert-dismissiblefade show" role="alert">
+                    <strong><i class="fa fa-exclamation-circle pt-2"></i> Info!&nbsp;</strong> Invoice Credit Notes Log(s) Not Available!
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        var table = $('#tbl_cn_logs').DataTable({
+            lengthChange: true,
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Credit Note Audit Logs',
+                    className: 'btn-secondary',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Credit Note Audit Logs for invc_no = @invc_no to Excel!");
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Credit Note Audit Logs',
+                    className: 'btn-secondary',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Credit Note Audit Logs for invc_no = @invc_no to PDF!");
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Credit Note Audit Logs',
+                    className: 'btn-secondary',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Exported Credit Note Audit Logs for invc_no = @invc_no to CSV!");
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Credit Note Audit Logs',
+                    className: 'btn-secondary',
+                    action: function (e, dt, node, config) {
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                        exportLogs("Employee Printed Credit Note Audit Logs for invc_no = @invc_no!");
+                    }
+                }
+            ],
+            order: [[6, 'desc']],
+            language: {
+                searchPlaceholder: 'Search...',
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search Logs</span>',
+                lengthMenu: '_MENU_ ',
+            }
+        });
+        table.buttons().container().appendTo('#tbl_inv_logs_wrapper .col-md-6:eq(0)');
+    });
+</script>

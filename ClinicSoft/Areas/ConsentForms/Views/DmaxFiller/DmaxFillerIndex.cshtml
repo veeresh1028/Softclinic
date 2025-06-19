@@ -1,0 +1,106 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Dmax Filler";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Filler Consent Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="DmaxFiller_add" style="display:none">
+                </div>
+                <div id="DmaxFiller_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="DmaxFiller_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        GetDmaxFillerInfo();
+        DmaxFillerPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetDmaxFillerInfo
+    var GetDmaxFillerInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetDmaxFillerData", "DmaxFiller", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditDmaxFiller();
+                        $("#DmaxFiller_add").hide();
+                        $("#DmaxFiller_edit").show();
+
+                    }
+                    else {
+                        $("#DmaxFiller_add").show();
+                        $("#DmaxFiller_edit").hide();
+                        AddDmaxFiller();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load DmaxFiller
+
+    //#region Add DmaxFiller
+    function AddDmaxFiller() {
+        var x = $("#DmaxFiller_add");
+        x.load("@Url.Action("CreateDmaxFiller", "DmaxFiller", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add DmaxFiller
+
+    //#region Update DmaxFiller
+    function EditDmaxFiller() {
+        var x = $("#DmaxFiller_edit");
+        x.load("@Url.Action("UpdateDmaxFiller", "DmaxFiller", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update DmaxFiller
+
+    //#region Histroy of DmaxFiller
+    function DmaxFillerPreviousHistory() {
+        var x = $("#DmaxFiller_history");
+        x.load("@Url.Action("DmaxFillerPreviousHistory", "DmaxFiller", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

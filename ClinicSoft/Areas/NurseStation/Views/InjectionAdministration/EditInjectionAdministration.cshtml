@@ -1,0 +1,269 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.NurseStation.InjectionAdministration
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+<form id="form_EditInjection" class="needs-validation" >
+
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.mrfId)
+    @Html.HiddenFor(m => m.mrf_appId)
+    @Html.HiddenFor(m => m.mrfId, new { @id = "umrfId", @value = "@Model.mrfId" })
+    <div class="row">
+        <div class="col-sm-12 col-md-6 col-lg-12 mb-4 ">
+
+            <div class="row mt-2">
+
+                <div class="col-sm-12 col-md-6 col-lg-3">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Date of Order&nbsp;</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div>
+                            @Html.TextBoxFor(m => m.mrf_5, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "umrf_5" })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-6 col-lg-3">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Time&nbsp;</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div>
+                            @Html.TextBoxFor(m => m.mrf_3, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "umrf_3" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-sm-12 col-md-6 col-lg-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Treatment Medication, Dosage, Route, Site&nbsp;<span class="text-danger">*</span></label>
+                        @Html.TextAreaFor(m => m.mrf_1, new { @class = "form-control", @placeholder = "Enter Others", @id = "umrf_1" })
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-6 col-lg-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label text-black">Remarks</label>
+                        @Html.TextAreaFor(m => m.mrf_2, new { @class = "form-control", @placeholder = "Enter Others", @id = "umrf_2" })
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+                    <div class="btn-list btn-animation">
+                        <button type="submit" class="btn btn-sm btn-warning" id="btn_Update_Injection">Save Changes</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger me-1" id="btn_Close_EditInjection">
+                            Close
+                        </button>
+                        <button type="submit" class="btn btn-sm btn-outline-danger d-none" id="btn_Delete_Injection">Delete</button>
+                        <button type="submit" class="btn btn-sm btn-outline-light d-none" id="btn_Print_Injection" onclick="PrintInjectionAdministration(@Model.mrfId)">
+                            <i class="fa fa-print">&nbsp;&nbsp;</i>Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    //#region Page Load
+        $(function () {
+
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                $("#btn_Update_Injection,#btn_Delete_Injection").show();
+            } else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Update_Injection,#btn_Delete_Injection").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Update_Injection,#btn_Delete_Injection").show();
+                    }
+                    else {
+                        $("#btn_Update_Injection,#btn_Delete_Injection").hide();
+                    }
+                }
+            }
+            validate();
+            $('#umrf_5').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+
+            $("#umrf_5").bootstrapdatepicker("setDate", moment(new Date("@Model.mrf_5")).format("DD-MMMM-YYYY"));
+
+        });
+
+    //#endregion Page Load
+
+    $('#btn_Close_EditInjection').click(function () {
+        $('#Injection_edit').hide();
+        $('#Injection_add').show();
+        clearControls();
+    });
+    //#region Update  Button Click
+        $('#btn_Update_Injection').on('click', function (e) {
+             e.preventDefault();
+            if ($("#form_EditInjection").valid()) {
+                $('#btn_Update_Injection').removeClass("btn btn-sm btn-success");
+                $('#btn_Update_Injection').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+
+                var _dataInsert = {
+                    "mrfId": @Model.mrfId,
+                    "mrf_appId": $("#mrf_appId").val(),
+                    "mrf_1": $('#umrf_1').val(),
+                    "mrf_2": $('#umrf_2').val(),
+                    "mrf_3": $('#umrf_3').val(),
+                    "mrf_4": $('#umrf_4').val(),
+                    "mrf_5": $('#umrf_5').val(),
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("UpdateInjectionAdministration", "InjectionAdministration", new { area = "NurseStation" })",
+                    dataType: 'JSON',
+                    data: _dataInsert,
+                    success: function (data) {
+                        $('#btn_Update_Injection').removeClass("btn btn-sm btn-warning btn-loaders btn-icon");
+                        $('#btn_Update_Injection').addClass("btn btn-sm btn-warning");
+                        $('#btn_Update_Injection').html("Save Changes");
+                        if (data.isSuccess) {
+                            if (data.isInserted) {
+                                var alertPlaceholder = document.getElementById("Alert");
+                                function alert(e, t) {
+                                    var l = document.createElement("div");
+                                    l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                }
+                                alert("<i class='fe fe-check-circle text-white'></i> Justification Letter Updated Successfully!", "success");
+                                Timeout();
+                                GetInjectionAdministration();
+                                clearControls();
+                                $('#Injection_add').show();
+                                $('#Injection_edit').hide();
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-warning' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Warning.. Justification Letter Alredy Exists..</strong><br/>" +
+                                    "</div></div>";
+                                $("#error").html(html);
+                            }
+                        }
+                        else {
+                            let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                "<div class='alert alert-danger' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                            $.each(data.message, function (index, value) {
+                                html += "<li><small>" + value + "</small><li>";
+                                var elem = $("#" + index);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            });
+                            html += "</ul></div></div>";
+                            $("#error").html(html);
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#btn_Update_Injection').removeClass("btn btn-sm btn-warning btn-loaders btn-icon");
+                        $('#btn_Update_Injection').addClass("btn btn-sm btn-warning");
+                        $('#btn_Update_Injection').html("Save Changes");
+                        Timeout();
+                    }
+                });
+            }
+            else {
+                $('.modal-body').animate({
+                    scrollTop: ($('.has-error').offset().top - 300)
+                }, 2000);
+            }
+        });
+    //#endregion Update  Button Click
+
+
+  
+    //#region Validation Initialization
+    var validate = function () {
+
+        $("#form_EditInjection").validate({
+            rules: {
+                mrf_1: {
+                    required: true
+                },
+
+            },
+            messages: {
+                mrf_1: {
+                    required: "Please Enter Treatment Medication, Dosage, Route, Site!"
+                },
+
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                $(element).parent().addClass('has-error');
+                error_timeout(elem.attr("id"));
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+    }
+//#endregion Validation Initialization
+
+   //#region Clear Controls
+    var clearControls = function () {
+        $("#umrf_1").val("");
+        $("#umrf_2").val("");
+        $("#umrf_3").val("");
+        $("#umrf_4").val("");
+        $("#umrf_5").bootstrapdatepicker("setDate", moment(new Date("@emr.today")).format("DD-MMMM-YYYY"));
+    }
+    //#endregion Clear Controls
+</script>
+
+

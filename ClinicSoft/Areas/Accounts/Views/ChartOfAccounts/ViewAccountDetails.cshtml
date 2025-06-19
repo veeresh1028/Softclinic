@@ -1,0 +1,489 @@
+﻿@model BusinessEntities.Accounts.Accounting.ChartOfAccountsDetails
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold fs-16">Account Transactions </h5>&nbsp;
+    <b class="fs-16 text-secondary font-weight-semibold">(@Model.acc_code)</b> &nbsp;
+    <span class="badge bg-secondary fs-16 font-weight-semibold">@Model.acc_name</span>
+    <button type="button" class="btn-close close-modal" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
+<div class="modal-body p-4">
+    <input type="hidden" id="vaccId" value="@Model.accId" />
+    <input type="hidden" id="vacc_code" value="@Model.acc_code" />
+
+    <div class="panel">
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="form-group mb-2">
+                        <label class="form-label font-weight-semibold">From Date</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div><input id="date_from" class="form-control" placeholder="DD-MMMM-YYYY" type="text" autocomplete="off" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="form-group mb-2">
+                        <label class="form-label font-weight-semibold">To Date</label>
+                        <div class="input-group" style="align-content:center !important;">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fe fe-calendar"></i>
+                                </div>
+                            </div>
+                            <input id="date_to" class="form-control" placeholder="DD-MMMM-YYYY" type="text" autocomplete="off" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-4 col-lg-2">
+                    <div class="form-group mb-2">
+                        <label class="form-label font-weight-semibold">&nbsp;</label>
+                        <button class="btn btn-primary mb-2" type="button" id="btnAccSearch">
+                            <i class="fa fa-search-plus"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="table-responsive" style="margin-top:10px !important;">
+                <div class="card">
+                    <div id="progress-loader1" style="display:none;">
+                        <div class="progress progress-sm mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-teal progress-bar-indeterminate"></div>
+                        </div>
+                    </div>
+                    <table id="tbl_coa_ledgers" class="table table-striped table-bordered text-nowrap resize-table" style="cursor: pointer;width:100%">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">Transaction Id</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Ref No.#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Details</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Debit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Credit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">View</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th class="table_footer_align"><span class="text-right text-dark"> Total : &nbsp;</span></th>
+                                <th class="table_footer_align"></th>
+                                <th class="table_footer_align"></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    //#region Page Load
+    $(function () {
+        var yearPattern = /\b\d{4}\b/;
+        var year = "@Model.acc_period";
+        year = year.match(yearPattern)[0];
+
+        var fdate = "01-January-" + year;
+        var tdate = "31-December-" + year;
+
+        $('#date_from').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: fdate,
+            endDate: tdate
+        });
+
+        $("#date_from").bootstrapdatepicker("setDate", fdate);
+
+        $('#date_to').bootstrapdatepicker({
+            format: "dd-MM-yyyy",
+            viewMode: "date",
+            todayHighlight: true,
+            autoclose: true,
+            multidate: false,
+            multidateSeparator: "-",
+            startDate: fdate,
+            endDate: new Date()
+        });
+
+        $("#date_to").bootstrapdatepicker("setDate", "today");
+
+        $('#date_from').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        $('#date_to').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode
+
+            if (String.fromCharCode(charCode).match(/[^0-9./-]/g)) {
+                return false;
+            }
+            else {
+                if (e.target.value.length >= 18)
+                    return false;
+            }
+        });
+
+        getAccountDetails();
+    });
+    //#endregion
+
+    //#region Search Click
+    $('#btnAccSearch').click(function (e) {
+        e.preventDefault();
+
+        if (($("#date_from").val() != null && $("#date_from").val() != 0 && $("#date_from").val() != "") &&
+            ($("#date_to").val() != null && $("#date_to").val() != 0 && $("#date_to").val() != "")) {
+
+            let isValid = true;
+            let date_frm = moment($("#date_from").val(), "DD-MMMM-YYYY");
+            let date_to = moment($("#date_to").val(), "DD-MMMM-YYYY");
+
+            // Check if Date From is a valid Date
+            if ($("#date_from").val() != null && $("#date_from").val() != 0 && $("#date_from").val() != "" && $("#date_from").val() != undefined) {
+                if (!date_frm.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid From Date!"
+                    });
+                }
+            }
+
+            // Check if Date To is a valid Date
+            if ($("#date_to").val() != null && $("#date_to").val() != 0 && $("#date_to").val() != "" && $("#date_to").val() != undefined) {
+                if (!date_to.isValid()) {
+                    isValid = false;
+                    e.stopPropagation();
+
+                    return $.growl.error({
+                        title: "Error",
+                        message: "Invalid To Date!"
+                    });
+                }
+            }
+
+            // Check if Date Range is valid
+            if (($("#date_from").val() != null && $("#date_from").val() != 0 && $("#date_from").val() != "" && $("#date_from").val() != undefined) && ($("#date_to").val() != null && $("#date_to").val() != 0 && $("#date_to").val() != "" && $("#date_to").val() != undefined)) {
+                if (date_frm.isValid() && date_to.isValid()) {
+                    if (date_to.diff(date_frm, 'days') < 0) {
+                        isValid = false;
+
+                        var index = [];
+                        index.push("date_from");
+                        index.push("date_to");
+
+                        $.each(index, function (i, v) {
+                            if (index[i] != null && index[i] != "") {
+                                var elem = $("#" + index[i]);
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                }
+                                else {
+                                    $(elem).addClass(" is-invalid");
+                                }
+
+                                setTimeout(function () {
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                    }
+                                    else {
+                                        $(elem).removeClass("is-invalid");
+                                    }
+                                }, 5000);
+                            }
+                        });
+
+                        e.stopPropagation();
+
+                        return $.growl.error({
+                            title: "Error!",
+                            message: "From Date Filter should be less than To Date Filter!"
+                        });
+                    }
+                }
+            }
+
+            // Check If Valid
+            if (isValid) {
+                getAccountDetails();
+            }
+        }
+        else {
+            e.stopPropagation();
+
+            return $.growl.error({
+                title: "Required",
+                message: "From And To Date are required"
+            });
+        }
+    });
+    //#endregion
+
+    //#region Load Account Details
+    function getAccountDetails() {
+        var accId = $('#vaccId').val();
+        var acc_code = $('#vacc_code').val();
+        var dt_from = $('#date_from').val();
+        var dt_to = $('#date_to').val();
+
+        $.ajax({
+            type: "GET",
+            url: '@Url.Action("GetAccountDetails", "ChartOfAccounts", new { area = "Accounts" })?tr_account=' + acc_code + "&date_from=" + dt_from + "&date_to=" + dt_to,
+            beforeSend: function () {
+                $('#progress-loader1').show();
+            },
+            success: function (response) {
+                if ($.fn.dataTable.isDataTable('#tbl_coa_ledgers')) {
+                    table = $('#tbl_coa_ledgers').DataTable();
+                    table.clear();
+                    table.rows.add(response).draw();
+                }
+                else {
+                    BindAccDataTable(response);
+                }
+
+                $('#progress-loader1').hide();
+            },
+            error: function (xhr) {
+                console.log(xhr);
+                $('#progress-loader1').hide();
+            }
+        }).done(function () {
+            resizedt();
+        });
+    }
+    //#endregion
+
+    //#region Bind Datatable
+    var BindAccDataTable = function (response) {
+        var table = $("#tbl_coa_ledgers").DataTable({
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            processing: true,
+            "deferRender": true,
+            "retrieve": true,
+            lengthChange: true,
+            scrollX: true,
+            scrollY: 500,
+            "pageLength": 10,
+            scrollCollapse: true,
+            "aaData": response,
+            "aoColumns": [
+                {
+                    "mData": "trId"
+                },
+                {
+                    "mData": "tr_type"
+                },
+                {
+                    "mData": "tr_date",
+                    "render": function (tr_date, type, full, meta) {
+                        if (type === 'display' || type === 'filter') {
+                            return moment(tr_date).format("DD-MM-YYYY");
+                        }
+
+                        return moment(tr_date).format("YYYY-MM-DD");
+                    }
+                },
+                {
+                    "mData": "tr_refno"
+                },
+                {
+                    "mData": "tr_remark",
+                    "orderable": false,
+                    "searchable": false
+                },
+                {
+                    "mData": "tr_debit",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": 'text-right',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "tr_credit",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": 'text-right',
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "mData": "tr_id",
+                    "orderable": false,
+                    "searchable": false,
+                    "className": 'text-center',
+                    "render": function (tr_id, type, full, meta) {
+                        if (full.tr_type !== "J" && full.tr_type !== "C" && full.tr_type !== "FT")
+                            return '<button type="button" onclick="ViewTypeDetails(' + tr_id + ',\'' + full.tr_type + '\',\'' + full.tr_branch + '\')" class="btn btn-sm btn-outline-primary">View</button>';
+                        else
+                            return '';
+                    }
+                },
+            ],
+            order: [[0, 'asc']],
+            buttons: [
+                {
+                    extend: 'excel',
+                    title: 'Chart of Accounts Transactions',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Chart of Accounts Transactions',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6]
+                    }
+                },
+                {
+                    extend: 'csv',
+                    title: 'Chart of Accounts Transactions',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6]
+                    }
+                },
+                {
+                    extend: 'print',
+                    title: 'Chart of Accounts Transactions',
+                    footer: 'true',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6]
+                    }
+                }
+            ],
+            language: {
+                searchPlaceholder: 'Search...',
+                zeroRecords: "No Record(s) Found",
+                infoEmpty: "No Records Available",
+                sSearch: '<span class="text-primary font-weight-semi-bold">Search By ID / Type / Date / Ref No. </span>',
+                scrollX: "100%",
+                lengthMenu: '_MENU_ ',
+                sEmptyTable: '<span class="text-secondary">No Records Available Based On Request</span>',
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+
+                var numFormat = $.fn.dataTable.render.number('\,', '.', 2, '').display;
+
+                total_obal = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(5).footer()).html(numFormat(total_obal));
+
+                total_grn_purchase = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(6).footer()).html(numFormat(total_grn_purchase));
+
+            }
+        });
+
+        table.buttons().container().appendTo('#tbl_coa_ledgers_wrapper .col-md-6:eq(0)');
+    }
+    //#endregion
+
+    //#region View Account Details
+    var ViewTypeDetails = function (tr_id, tr_type, tr_branch) {
+        if (tr_type == "I") {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetInvoiceType", "ChartOfAccounts", new { area = "Accounts" })?invId=" + tr_id,
+                contentType: "application/json",
+                success: function (data) {
+                    if (data == "Cash") {
+                        window.open("@Url.Action("PrintInvoice", "Invoice", new { area = "Invoice" })?invId=" + tr_id, "Print Invoice");
+                    }
+                    else {
+                        window.open("@Url.Action("printInsInvoice", "Invoice", new { area = "Invoice" })?invId=" + tr_id, "Print Insurance Invoice");
+                    }
+                },
+                error : function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        else if (tr_type == "R" || tr_type == "AR" || tr_type == "RAR" || tr_type == "RI" ) {
+            window.open("@Url.Action("PrintReceipt", "Receipt", new { area = "Invoice" })?recId=" + tr_id, "Print Receipt");
+        }
+        else if (tr_type == "CN") {
+            window.open("@Url.Action("PrintCreditNote", "CreditNote", new { area = "Invoice" })?invcId=" + tr_id, "Print Credit Note");
+        }
+        else if (tr_type == "P") {
+            window.open("@Url.Action("PrintPurchaseInvoice", "PurchaseInvoice", new { area = "MaterialManagement" })?pinvId=" + tr_id, "Print Purchase Invoice");
+        }
+        else if (tr_type == "G") {
+            window.open("@Url.Action("PrintGoodsReceivedNote", "GRN", new { area = "MaterialManagement" })?prId=" + tr_id + "&pr_branch=" + tr_branch, "Print Goods Received Notes");
+        }
+        else if (tr_type == "PR") {
+            window.open("@Url.Action("PrintPurchaseReturn", "PurchaseReturn", new { area = "MaterialManagement" })?porId=" + tr_id, "Print Purchase Return");
+        }
+        else if (tr_type == "SC") {
+            window.open("@Url.Action("PrintMaterialsConsumption", "MaterialsConsumption", new { area = "MaterialManagement" })?scr_refno=" + tr_id, "Print Material Consumption Detail");
+        }
+        else if (tr_type == "DT") {
+            window.open("@Url.Action("PrintDirectStockTransfer", "StockTransfer", new { area = "MaterialManagement" })?std_refno=" + tr_id, "Print Direct Stock Transfer Detail");
+        }
+        else if (tr_type == "Y") {
+            window.open("@Url.Action("PrintPayment", "PaymentAgainstInvoices", new { area = "MaterialManagement" })?payId=" + tr_id, "Print Purchase Invoice Payment");
+        }
+        else if (tr_type == "DP") {
+            window.open("@Url.Action("PrintDirectPayment", "DirectPayments", new { area = "MaterialManagement" })?dpId=" + tr_id, "Print Direct Payment");
+        }
+        else if (tr_type == "AP" || tr_type == "RP") {
+            window.open("@Url.Action("PrintAdvancePayment", "AdvancePayments", new { area = "MaterialManagement" })?payId=" + tr_id, "Print Advance/Refunded Payment");
+        }
+
+    }
+    //#endregion
+
+    //#region Resize Datatable
+    function resizedt() {
+        setTimeout(function () {
+            var tables = $.fn.dataTable.tables({ visible: true, api: true });
+            if (tables) {
+                $('#tbl_coa_ledgers').DataTable().columns.adjust();
+            }
+        }, 500);
+    }
+    //#endregion
+</script>

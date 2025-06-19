@@ -1,0 +1,113 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Physiotherapy Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Physiotherapy Consent Form
+                    <br /><span dir="rtl" class="text-right">نموذج موافقة العلاج الطبيعي </span>
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="PhysiotherapyConsent_add" style="display:none">
+                </div>
+                <div id="PhysiotherapyConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="PhysiotherapyConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetPhysiotherapyConsentInfo();
+        PhysiotherapyConsentPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetPhysiotherapyConsentInfo
+    var GetPhysiotherapyConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetPhysiotherapyConsentData", "PhysiotherapyConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditPhysiotherapyConsent();
+                        $("#PhysiotherapyConsent_add").hide();
+                        $("#PhysiotherapyConsent_edit").show();
+
+                    }
+                    else {
+                        $("#PhysiotherapyConsent_add").show();
+                        $("#PhysiotherapyConsent_edit").hide();
+                        AddPhysiotherapyConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load PhysiotherapyConsent
+
+    //#region Add PhysiotherapyConsent
+    function AddPhysiotherapyConsent() {
+        var x = $("#PhysiotherapyConsent_add");
+        x.load("@Url.Action("CreatePhysiotherapyConsent", "PhysiotherapyConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add PhysiotherapyConsent
+
+    // #region Update PhysiotherapyConsent
+    function EditPhysiotherapyConsent() {
+        var x = $("#PhysiotherapyConsent_edit");
+        x.load("@Url.Action("UpdatePhysiotherapyConsent", "PhysiotherapyConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update PhysiotherapyConsent
+
+    //#region Histroy of PhysiotherapyConsent
+    function PhysiotherapyConsentPreviousHistory() {
+        var x = $("#PhysiotherapyConsent_history");
+        x.load("@Url.Action("PhysiotherapyConsentPreviousHistory", "PhysiotherapyConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

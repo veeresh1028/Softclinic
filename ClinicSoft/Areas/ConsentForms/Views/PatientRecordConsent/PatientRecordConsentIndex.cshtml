@@ -1,0 +1,107 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "Index";
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Patient Record Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"> Patient Record Laser Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="PatientRecordConsent_add" style="display:none">
+                </div>
+                <div id="PatientRecordConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="PatientRecordConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetPatientRecordConsentInfo();
+        PatientRecordConsentPreviousHistory();
+
+    });
+
+    //#endregion Page Load
+
+    //#region Load GetPatientRecordConsentInfo
+    var GetPatientRecordConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetPatientRecordConsentData", "PatientRecordConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditPatientRecordConsent();
+                        $("#PatientRecordConsent_add").hide();
+                        $("#PatientRecordConsent_edit").show();
+
+                    }
+                    else {
+                        $("#PatientRecordConsent_add").show();
+                        $("#PatientRecordConsent_edit").hide();
+                        AddPatientRecordConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load PatientRecordConsent
+
+    //#region Add PatientRecordConsent
+    function AddPatientRecordConsent() {
+        var x = $("#PatientRecordConsent_add");
+        x.load("@Url.Action("CreatePatientRecordConsent", "PatientRecordConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add PatientRecordConsent
+
+    // #region Update PatientRecordConsent
+    function EditPatientRecordConsent() {
+        var x = $("#PatientRecordConsent_edit");
+        x.load("@Url.Action("UpdatePatientRecordConsent", "PatientRecordConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion Update PatientRecordConsent
+
+    // #region Histroy of PatientRecordConsent
+    function PatientRecordConsentPreviousHistory() {
+        var x = $("#PatientRecordConsent_history");
+        x.load("@Url.Action("PatientRecordConsentPreviousHistory", "PatientRecordConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

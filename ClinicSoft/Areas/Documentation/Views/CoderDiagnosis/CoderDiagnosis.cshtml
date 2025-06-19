@@ -1,0 +1,719 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Coder Diagnosis";
+    Layout = "~/Areas/Documentation/Views/Shared/_Doc_layout.cshtml";
+}
+
+<style type="text/css">
+    #tbl_coderDiagnosis_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 100px;
+    }
+
+    #tbl_PreCoderdignosis_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 100px;
+    }
+</style>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between">
+                <h3 class="card-title text-primary fs-16">Coder Diagnosis</h3>
+                <span class="text-danger font-weight-semibold" style="font-size:smaller">Required fields are marked with *</span>
+            </div>
+            <div class="card-body">
+                <div id="coderdignosis_add" style="display:none;">
+                </div>
+
+                <div id="coderdignosis_edit">
+                </div>
+
+                <div class="table-responsive mt-2">
+                    <table id="tbl_coderDiagnosis" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Diagnosis</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Year</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Change To Primary</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h3 class="card-title fs-16 text-primary">Previous History</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tbl_PreCoderdignosis" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Type</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Diagnosis</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Year</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            getCoderDiagnosis();
+
+            $("#coderdignosis_add").show();
+
+            addCoderDiagnosis();
+
+            getPreviousCoderDiagnosis();
+        });
+        //#endregion
+
+        //#region Load Coder Diagnosis
+        var getCoderDiagnosis = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetCoderDiagnosis", "CoderDiagnosis", new { area = "Documentation" })?appId=" + "@emr.appId",
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        var table;
+
+                        if ($.fn.dataTable.isDataTable('#tbl_coderDiagnosis')) {
+                            table = $('#tbl_coderDiagnosis').DataTable();
+                            table.clear();
+                            table.rows.add(response.message).draw();
+                        }
+                        else {
+                            BindDataTable(response.message);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Load Previous Coder Diagnosis
+        var getPreviousCoderDiagnosis = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreviousCoderDiagnosis", "CoderDiagnosis", new { area = "Documentation" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized) {
+                        var table;
+
+                        if ($.fn.dataTable.isDataTable('#tbl_PreCoderdignosis')) {
+                            table = $('#tbl_PreCoderdignosis').DataTable();
+                            table.clear();
+                            table.rows.add(response.message).draw();
+                        }
+                        else {
+                            BindPHDataTable(response.message);
+                        }
+                    }
+                    else {
+                        console.log("Access Denied!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_coderDiagnosis").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "codId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "cod_type"
+                    },
+                    {
+                        "mData": "diag_code"
+                    },
+                    {
+                        "mData": "diag_name",
+                        "className": 'text-wrap text-justify'
+                    },
+                    {
+                        "mData": "cod_notes",
+                        "className": " text-wrap text-justify"
+                    },
+                    {
+                        "mData": "cod_year"
+                    },
+                    {
+                        "mData": "codId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (codId, type, full, meta) {
+                            var cod_status = full.cod_status;
+                            var cod_type = full.cod_type;
+
+                            if (cod_status === "Active" && cod_type == "Secondary") {
+                                return '<a id=btn_Type_Diagnosis onclick="changeDiagnosisType(' + codId + ',' + "'" + cod_type + "'" + ')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-left-right" viewBox="0 0 16 16">  <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/></svg></a>';
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    },
+                    {
+                        "mData": "codId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (codId, type, full, meta) {
+                            var status = full.cod_status;
+                            var cod_type = full.cod_type;
+
+                            if (status === "Active" && cod_type == "Secondary") {
+                                return '<button type="button" onclick="editCoderDiagnosis(' + codId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    },
+                    {
+                        "mData": "codId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (codId, type, full, meta) {
+                            var status = full.cod_status;
+
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="deleteCoderDiagnosis(' + codId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="deleteCoderDiagnosis(' + codId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return '';
+                                        }
+                                    }
+                                    else {
+                                        return '<button type="button" onclick="deleteCoderDiagnosis(' + codId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                    }
+                                }
+                            }
+                            else {
+                                return '';
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Coder Diagnosis</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Coder Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Coder Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Coder Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Coder Diagnosis',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4]
+                        }
+                    }
+                ]
+            });
+
+            table.buttons().container().appendTo('#tbl_coderDiagnosis_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Previous Bind Datatable
+        var BindPHDataTable = function (response) {
+            var table = $("#tbl_PreCoderdignosis").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "codId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "render": function (data, type, full, meta) {
+                            if (type === 'display' || type === 'filter') {
+                                return moment(data).format('DD-MM-YYYY');
+                            }
+
+                            return moment(data).format('YYYY-MM-DD');
+                        }
+                    },
+                    {
+                        "mData": "doctor_Name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "cod_type"
+                    },
+                    {
+                        "mData": "diag_code"
+                    },
+                    {
+                        "mData": "diag_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "cod_notes",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "cod_year"
+                    },
+                    {
+                        "mData": "codId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (codId, type, full, meta) {
+                            var Action = '';
+
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_coddiagnosis  onclick="copyPrevious(' + codId + ',' + @emr.appId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                            }
+                            else {
+                                if ("@emr.set_emr_lock" == "NoLock") {
+                                    if ("@emr.app_ae_date" >= "@emr.today") {
+                                        Action += '<a id=btn_Copy_coddiagnosis  onclick="copyPrevious(' + codId + ',' + @emr.appId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                    }
+                                    else {
+                                        Action += ''
+                                    }
+                                }
+                                else {
+                                    Action += '<a id=btn_Copy_coddiagnosis  onclick="copyPrevious(' + codId + ',' + @emr.appId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                            }
+
+                            return Action;
+                        }
+                    },
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Previous Coder Diagnosis</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous Coder Diagnosis',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous Coder Diagnosis',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous Coder Diagnosis',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous Coder Diagnosis',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [1, 2, 3, 4, 5, 6, 7]
+                        }
+                    }
+                ]
+            });
+
+            table.buttons().container().appendTo('#tbl_PreCoderdignosis_wrapper .col-md-6:eq(0)');
+        };
+        //#endregion
+
+        //#region Add Coder Diagnosis
+        function addCoderDiagnosis() {
+            $('#coderdignosis_edit').hide();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("CreateCoderDiagnosis", "CoderDiagnosis", new { area = "Documentation" })",
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#coderdignosis_add").html(data);
+                    $("#coderdignosis_add").show();
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Coder Diagnosis : " + xhr.statusText);
+                }
+            });
+        }
+        //#endregion
+
+        //#region Edit Coder Diagnosis
+        function editCoderDiagnosis(codId) {
+            $('#coderdignosis_add').hide();
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("EditCoderDiagnosis", "CoderDiagnosis", new { area = "Documentation" })?codId=" + codId + "&appId=" + @emr.appId,
+                contentType: "application/json",
+                dataType: "html",
+                success: function (data) {
+                    $("#coderdignosis_edit").html(data);
+                    $("#coderdignosis_edit").show();
+                },
+                error: function (xhr) {
+                    console.log("Error while Adding Coder Diagnosis : " + xhr.statusText);
+                }
+            }).done(function () {
+                var dt = $('#tbl_PreCoderdignosis').DataTable();
+
+                dt.columns([8]).visible(false);
+            });
+        }
+        //#endregion
+
+        //#region Copy Coder Diagnosis
+        function copyPrevious(codId, cod_appId) {
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("CopyCoderDiagnosis", "CoderDiagnosis", new { area = "Documentation" })?codId=" + codId + "&cod_appId=" + @emr.appId,
+                dataType: 'json',
+                success: function (data) {
+                    if (data.isAuthorized) {
+                        if (data.success) {
+                            getCoderDiagnosis();
+                            getPreviousCoderDiagnosis();
+
+                            Swal.fire({
+                                title: "Success!",
+                                text: data.message,
+                                icon: "success",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                        else {
+                            Swal.fire({
+                                title: "Action Forbidden!",
+                                text: data.message,
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197"
+                            });
+                        }
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Access Denied!",
+                            text: "You do not have enough privileges to copy Coder Diagnosis!",
+                            icon: "error",
+                            showCancelButton: 0,
+                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    Swal.fire({
+                        title: "Error!",
+                        text: "Failed to Change Status! Please Refresh the Page & Try Again.",
+                        icon: "error",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Delete Coder Diagnosis
+        var deleteCoderDiagnosis = function (codId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this Diagnosis ?",
+                text: "The selected Coder Diagnosis will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteCoderDiagnosis", "CoderDiagnosis", new { area = "Documentation" })?codId=' + codId,
+                        type: "POST",
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    getCoderDiagnosis();
+
+                                    getPreviousCoderDiagnosis();
+
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "Coder Diagnosis Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "Failed to Delete Coder Diagnosis!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this Coder Diagnosis!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete Coder Diagnosis! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetCoderDiagnosis();
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Change To Primary
+        var changeDiagnosisType = function (codId, cod_type) {
+            cod_type = (cod_type == "Secondary") ? "Primary" : "Secondary";
+
+            Swal.fire({
+                title: "Are you sure you want to change this Type ?",
+                text: "The selected Coder Diagnosis Copied will be changed!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        type: 'POST',
+                        url: "@Url.Action("ChangeDiagnosisType", "CoderDiagnosis", new { area = "Documentation" })?codId=" + codId + "&cod_type=" + cod_type,
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    getCoderDiagnosis();
+
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: data.message,
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Action Forbidden!",
+                                        text: data.message,
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197"
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have enough privileges to Change Patient Diagnosis Type!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Change Status! Please Refresh the Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        //#endregion
+
+        //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+        //#endregion
+
+        //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+        //#endregion
+    </script>
+}

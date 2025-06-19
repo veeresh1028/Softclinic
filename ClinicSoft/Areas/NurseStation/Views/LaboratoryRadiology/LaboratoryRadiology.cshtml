@@ -1,0 +1,460 @@
+﻿@model BusinessEntities.NurseStation.LaboratoryRadiology
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div id="labrad_add">
+
+                </div>
+                <div id="labrad_edit">
+                    <form id="form_EditSample" class="needs-validation" autocomplete="off">
+                        @Html.AntiForgeryToken()
+                        <div class="row">
+                            <div class="col-sm-6 col-md-6 col-lg-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label text-black font-weight-semibold">
+                                        &nbsp;
+                                    </label>
+                                    <div class="btn-list btn-animation">
+                                        <button type="submit" class="btn btn-danger" id="btn_collected">Sample Collected</button>
+                                        <button class="btn btn-cyan ms-lg-2" type="button" id="btn_print_barcode">
+                                            <i class="fa fa-barcode"></i> Print Barcode
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_labrad" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"></th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Test ID</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Test Code</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Test Name</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Lab Status</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Created on</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Collected on</th>
+                                @*<th class="border-bottom-0 font-weight-semibold text-white">Received on</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Entered on</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Authenticated on</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Discarded on</th>*@
+                                <th class="border-bottom-0 font-weight-semibold text-white">Reason for Rejection</th>
+                                @*<th class="border-bottom-0 font-weight-semibold text-white">View Report</th>*@
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    //#region Page Load
+        var appdata = JSON.parse(localStorage.getItem("app"));
+        $(function () {
+            BindDataTable(null);
+            GetLaboratoryRadiology();
+        });
+    //#endregion Page Load
+    //#region Load LaboratoryRadiology
+    var GetLaboratoryRadiology = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllLaboratoryRadiology", "LaboratoryRadiology", new { area = "NurseStation" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_labrad')) {
+                            table = $('#tbl_labrad').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTable(response);
+                        }
+
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+            .done(function () {
+                resizedt();
+            });
+        }
+    //#endregion Load LaboratoryRadiology
+
+
+    //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_labrad").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "className": "select-checkbox text-center inbox-small-cells",
+                        'checkboxes': {
+                            'selectRow': true
+                        }
+                    },
+                    {
+                        "mData": "ptId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "ptId",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "pt_tr_code",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "pt_tr_name",
+                        "className": 'text-justify text-wrap'
+                    },
+                    {
+                        "mData": "pt_lab_status",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "pt_date_created",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY HH:mm:ss')
+                        }
+                    },
+                    {
+                        "mData": "pt_date_collected",
+                        "className": "text-left text-red"
+                    },
+                    //{
+                    //    "mData": "pt_date_received",
+                    //    "className": "text-left text-red"
+                    //},
+                    //{
+                    //    "mData": "pt_date_entered",
+                    //    "className": "text-left text-red"
+                    //},
+                    //{
+                    //    "mData": "pt_date_authenticated",
+                    //    "className": "text-left text-red"
+                    //},
+                    //{
+                    //    "mData": "pt_date_discarded",
+                    //    "className": "text-left text-green"
+                    //},
+                    {
+                        "mData": "pt_discard_reason",
+                        "className": 'text-left text-green',
+
+                    },
+                    //{
+                    //    "mData": "ptId",
+                    //    "className": "text-left"
+                    //},
+
+
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                select: {
+                    style: 'multi',
+                    selector: 'td:first-child'
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Laboratory Radiology',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3,4,5,6,7,8]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Laboratory Radiology',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Laboratory Radiology',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Laboratory Radiology',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_labrad_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Update Note  Button Click
+        $('#btn_collected').on('click', function (e) {
+             e.preventDefault();
+                var table = $("#tbl_labrad").DataTable();
+                var rows = $(table.$('input[type="checkbox"]').map(function () {
+                    return $(this).prop("checked") ? $(this).closest('tr') : null;
+                }));
+            if (rows.length > 0) {
+
+                $('#btn_collected').removeClass("btn btn-success");
+                $('#btn_collected').addClass("btn btn-success btn-loaders btn-icon");
+                $('#btn_collected').html("Updating the Record....");
+                $.each(rows, function (index, rowId) {
+                    var _data = table.row(rowId).data();
+
+                    var _dataInsert = {
+                        "ptId": _data.ptId,
+                        "pt_lab_status": "Collected",
+                        "pt_date_collected": "@emr.today",
+                        "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    }
+                    console.log(_dataInsert)
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("UpdatePatinetTreatmentCollection", "LaboratoryRadiology", new { area = "NurseStation" })",
+                        dataType: 'JSON',
+                        data: _dataInsert,
+                        success: function (data) {
+                            $('#vital_edit').hide();
+                            $('#btn_collected').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_collected').addClass("btn btn-success");
+                            $('#btn_collected').html("Sample Collected");
+                            if (data.isSuccess) {
+                                if (data.isInserted) {
+                                    var alertPlaceholder = document.getElementById("Alert");
+                                    function alert(e, t) {
+                                        var l = document.createElement("div");
+                                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                                    }
+                                    alert("<i class='fe fe-check-circle text-white'></i> Status Updated Successfully!", "success");
+                                    GetLaboratoryRadiology();
+                                }
+                                else {
+                                    let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                        "<div class='alert alert-warning' role='alert'>" +
+                                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                        "<strong>Warning.. Status Alredy Exists..</strong><br/>" +
+                                        "</div></div>";
+                                    $("#error").html(html);
+                                }
+                            }
+                            else {
+                                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                                    "<div class='alert alert-danger' role='alert'>" +
+                                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                    "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(data.message, function (index, value) {
+                                    html += "<li><small>" + value + "</small><li>";
+                                    var elem = $("#" + index);
+                                    if (elem.hasClass("select2-hidden-accessible")) {
+                                        $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                                    }
+                                    else {
+                                        $(elem).addClass(" is-invalid");
+                                    }
+
+                                    setTimeout(function () {
+                                        if (elem.hasClass("select2-hidden-accessible")) {
+                                            $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                        }
+                                        else {
+                                            $(elem).removeClass("is-invalid");
+                                        }
+                                    }, 5000);
+                                });
+                                html += "</ul></div></div>";
+                                $("#error").html(html);
+                            }
+                        },
+                        error: function (xhr) {
+                            $('#btn_collected').removeClass("btn btn-success btn-loaders btn-icon");
+                            $('#btn_collected').addClass("btn btn-success");
+                            $('#btn_collected').html("Sample Collected");
+                            Timeout();
+                        }
+                    });
+                });
+            }
+            else {
+                let html = "<div class='col-12 col-sm-12 col-md-12 d-flex justify-content-center'>" +
+                    "<div class='alert alert-danger' role='alert'>" +
+                    "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                    "<strong>Warning.. Select One Treatment..</strong><br/>" +
+                    "</div></div>";
+                $("#error").html(html);
+            }
+            });
+    //#endregion Update  Note Button Click
+
+    //#region Print Item BarCode
+        $('#btn_print_barcode').click(function () {
+            var table = $("#tbl_labrad").DataTable();
+            var rows = $(table.$('input[type="checkbox"]').map(function () {
+                return $(this).prop("checked") ? $(this).closest('tr') : null;
+            }));
+            if (rows.length > 0) {
+                Swal.fire({
+                    title: "Barcode Print",
+                    text: "Are you sure you want to Print Selected Item's Barcode",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                    }).then(function (t) {
+                        if (t.value) {
+                    $.each(rows, function (index, rowId) {
+                        var _data = table.row(rowId).data();
+                        var SendData = {
+                            "ptId": _data.ptId,
+
+                        }
+                        $.ajax({
+                            url: '@Url.Action("PrintBarcodeService", "LaboratoryRadiology", new { area = "NurseStation" })',
+                            type: "POST",
+                            dataType: "json",
+                            data: SendData,
+                            async: false,
+                            success: function (response) {
+                                if (response.isSuccess == true) {
+                                    if (response.data["status"] == "success") {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        return $.growl.notice({
+                                            title: "Success",
+                                            message: response.message
+                                        });
+                                    }
+                                    else {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        return $.growl.warning({
+                                            title: "Pending",
+                                            message: response.message
+                                        });
+                                    }
+                                }
+                                else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    return $.growl.error({
+                                        title: "Error",
+                                        message: response.message
+                                    });
+                                }
+                            },
+                            error: function (xhr) {
+                                console.log("Error : " + xhr.statusText);
+                            }
+                        });
+                    });
+                        }
+                });
+            }
+            else {
+                Swal.fire({
+                    title: "Alert!",
+                    text: "Please select at least one item to print!",
+                    icon: "info",
+                    showCancelButton: 0,
+                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                });
+            }
+        });
+    //#endregion
+
+    //#region Resize Datatable
+        function resizedt() {
+            setTimeout(function () {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }, 350);
+        }
+    //#endregion Resize Datatable
+
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+</script>
+

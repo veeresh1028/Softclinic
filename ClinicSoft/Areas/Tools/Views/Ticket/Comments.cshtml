@@ -1,0 +1,172 @@
+﻿@model BusinessEntities.Tools.TicketCommentsResponse
+
+<div class="modal-header py-3 px-4">
+    <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">Comments on Ticket</h5>
+    <button type="button" class="btn-close btnCloseCreate" data-bs-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="row">
+    @{
+        // Generate the image source URL in your Razor view
+        string imageUrl = "";
+        if (@Model.ticketCommentsList.Count > 0)
+        {
+            imageUrl = Url.Content("~/images/EMPLOYEE_PHOTOS/" + (string.IsNullOrEmpty(@Model.ticketCommentsList[0].emp_photo) ? "" : @Model.ticketCommentsList[0].emp_photo));
+        }
+        else
+        {
+            imageUrl = Url.Content("~/images/EMPLOYEE_PHOTOS/");
+        }
+        string ticket_code = (string.IsNullOrEmpty(@Model.ticket_code.ToString()) ? "0" : @Model.ticket_code.ToString());
+    }
+    @Html.AntiForgeryToken()
+    <div class="col-md-12">
+        <div class="card overflow-hidden">
+            <div class="tile tile-alt mb-0" id="messages-main" style="width:100% !important;">
+                <div class="ms-body" style="padding-left:0px !important;">
+                    <div class="chat-body-style" id="ChatBody" style="overflow: auto !important; min-height:300px !important;">
+                        <div id="chat-messages">
+                            @if (@Model.ticketCommentsList.Count > 0)
+                            {
+                                if (!string.IsNullOrEmpty(@Model.ticketCommentsList[0].tc_commnet))
+                                {
+                                    foreach (var dr in Model.ticketCommentsList)
+                                    {
+                                        if (dr.tc_source == "Admin")
+                                        {
+                                        <div class="message-feed media mt-0">
+                                            <div class="float-startpe-2">
+                                                <img src="~/images/EMPLOYEE_PHOTOS/VisionLogo.jpeg" alt="" class="avatar avatar-md brround">
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="mf-content">
+                                                    @dr.tc_commnet
+                                                </div><br />
+                                                <small class="mf-date pull-left"><i class="fa fa-clock-o"></i> @dr.tc_datecreated  (@dr.tc_commnetby) </small>
+                                            </div>
+                                        </div>
+                                        }
+                                        else
+                                        {
+                                        <div class="message-feed right">
+                                            <div class="float-end ps-2">
+                                                @if (!string.IsNullOrEmpty(dr.emp_photo))
+                                                {
+                                                    string _img = "~/images/EMPLOYEE_PHOTOS/" + dr.emp_photo;
+                                                    <img src='@Url.Content(_img)' alt="" class="avatar avatar-md brround">
+                                                }
+                                                else
+                                                {
+                                                    <img src="~/assets/images/users/10.jpg" alt="" class="avatar avatar-md brround">
+                                                }
+                                            </div>
+                                            <div class="media-body">
+                                                <div class="mf-content">
+                                                    @dr.tc_commnet                                                    
+                                                </div><br />
+                                                <small class="mf-date pull-right"><i class="fa fa-clock-o"></i> @dr.tc_datecreated  (@dr.tc_commnetby)</small>
+                                            </div>
+                                        </div>
+                                        }
+                                    }
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="msb-reply">
+                        <textarea id="tc_comment" placeholder="What's on your mind..." style="padding-right: 50px !important;" onkeyup="countChar(this)"></textarea>
+                        <button class="btn br-7" id="btn_send"><i class="fa fa-paper-plane-o text-muted"></i></button>
+                        <label id="lbl_count" class="text-sm-left">0 / 1000</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    //#region on Page Load
+    $(document).ready(function () {
+        setTimeout(function () {
+            var contentDiv = $("#ChatBody")[0];
+            contentDiv.scrollTop = contentDiv.scrollHeight;
+        }, 500);
+    });
+    //#endregion
+
+    //#region Count Comment Chracters
+    function countChar(val) {
+      var len = val.value.length;
+          if (len >= 1000) {
+            val.value = val.value.substring(0, 1000);
+          }
+          else {
+            $('#lbl_count').text(len + " / 1000" );
+          }
+    };
+    //#endregion
+
+    //#region Ticket Status Change
+    $('#btn_send').on('click', function (e) {
+        var comments = $('#tc_comment').val().trim();
+        if(comments != undefined && comments != null && comments !== '')
+        {
+            var _dataInsert = {
+                "tcId": 0,
+                "tc_ticketCode": '@ticket_code',
+                "tc_commnet": comments,
+                "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            }
+            $.ajax({
+            type: "POST",
+            url: "@Url.Action("InsertComment", "Ticket", new { area = "Tools" })",
+            dataType: "JSON",
+            data: _dataInsert,
+            success: function (data) {
+                if (!data.isInserted) {
+                        Swal.fire({
+                        title: "Error!",
+                        text: data.message,
+                        icon: "error",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                    });
+                }
+                else
+                {
+                    var imageSource = '@imageUrl';
+                    var chatMessages = $('#chat-messages');
+                    chatMessages.append('<div class="message-feed right">' +
+                        '<div class="float-end ps-2">' +
+                        '<img src="' + imageSource + '" alt="" class="avatar avatar-md brround">' + // Use the imageUrl variable
+                        '</div>' +
+                        '<div class="media-body">' +
+                        '<div class="mf-content">' + comments + '</div>' +
+                        '<small class="mf-date pull-right"><i class="fa fa-clock-o"></i> ' + data.comment.tc_datecreated + ' (' + data.comment.tc_commnetby + ')</small>' +
+                        '</div>' +
+                        '</div>');
+
+                    $('#tc_comment').val('');
+                }
+            },
+            error: function (xhr) {
+                    console.log(xhr);
+                    Swal.fire({
+                        title: "Error!",
+                        text: "Failed to Send Comment! Please refresh the Page and Try Again.",
+                        icon: "error",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                    })
+                }
+            }).done(function ()
+            {
+                setTimeout(function () {
+                    var contentDiv = $("#ChatBody")[0];
+                    contentDiv.scrollTop = contentDiv.scrollHeight;
+                }, 100);
+            });
+        }
+    });
+    //#endregion
+</script>

@@ -1,0 +1,217 @@
+﻿
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@model BusinessEntities.EMR.JustificationLetter
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+}
+
+<form id="form_SickLeaveDHA" autocomplete="off" name="SickLeaveDHA" ondrop="return false;" onpaste="return false;" oncut="return false;">
+    @Html.AntiForgeryToken()
+    <div class="row mt-2">
+       
+        <div class="col-sm-12 col-md-6 col-lg-6">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Notes&nbsp;<span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <i class="fe fe-calendar"></i>
+                        </div>
+                    </div>
+                    @Html.TextBoxFor(m => m.jl_date, new { @class = "form-control", @placeholder = "DD-MMMM-YYYY", @id = "jl_date" })
+                </div>
+                <div class="form-label mt-2"></div>
+                <div id="notes">
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-sm-12 col-md-6 col-lg-12 text-center">
+            <div class="btn-list btn-animation">
+                <button type="submit" class="btn btn-sm btn-success" id="btn_Insert_Justification">Add Justification</button>
+                <button type="button" class="btn btn-sm btn-outline-dark" id="btn_Reset_Justification">Reset</button>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    //#region Partial View Onload
+        $(function () {
+            if ("@emp_designation.ToString()" === "Super Administrator") {
+                    $("#btn_Insert_Justification").show();
+            }
+            else {
+                if ("@emr.set_emr_lock" == "NoLock") {
+                    $("#btn_Insert_Justification").show();
+
+                }
+                else {
+                    if ("@emr.app_ae_date" >= "@emr.today") {
+                        $("#btn_Insert_Justification").show();
+                    }
+                    else {
+                        $("#btn_Insert_Justification").hide();
+                    }
+                }
+            }
+            var icons = Quill.import('ui/icons');
+            icons['bold'] = '<i class="fa fa-bold" aria-hidden="true"><\/i>';
+            icons['italic'] = '<i class="fa fa-italic" aria-hidden="true"><\/i>';
+            icons['underline'] = '<i class="fa fa-underline" aria-hidden="true"><\/i>';
+            icons['strike'] = '<i class="fa fa-strikethrough" aria-hidden="true"><\/i>';
+            icons['list']['ordered'] = '<i class="fa fa-list-ol" aria-hidden="true"><\/i>';
+            icons['list']['bullet'] = '<i class="fa fa-list-ul" aria-hidden="true"><\/i>';
+
+            var toolbarOptions = [
+                [{
+                    'header': [1, 2, 3, 4, 5, 6, false]
+                }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{
+                    'list': 'ordered'
+                }, {
+                    'list': 'bullet'
+                }]
+
+            ];
+
+            quill = new Quill('#notes', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+            });
+            $('#jl_date').bootstrapdatepicker({
+                format: "dd-MM-yyyy",
+                viewMode: "date",
+                todayHighlight: true,
+                autoclose: true,
+                multidate: false,
+                multidateSeparator: "-"
+            });
+            $("#jl_date").bootstrapdatepicker("setDate", moment(new Date("@emr.today")).format("DD-MMMM-YYYY"));
+
+
+        });
+    //#endregion Partial View Onload
+
+
+
+    //#region Add  Click
+        $('#btn_Insert_Justification').on('click', function (e) {
+            e.preventDefault();
+            var isvalid = true;
+
+            if (quill.getText().trim().length == 0) {
+                $("#notes").attr("style", "border:1px solid red;");
+                error_timeout_quil($("#notes"));
+                isvalid = false;
+            }
+            if (isvalid) {
+                $('#btn_Insert_Justification').removeClass("btn btn-sm btn-success");
+                $('#btn_Insert_Justification').addClass("btn btn-sm btn-success btn-loaders btn-icon");
+                $('#btn_Insert_Justification').html("Saving the Record....");              
+                var _dateInsert = {
+                    "jlId": "0",
+                    "jl_appId": @emr.appId,
+                    "jl_date": $('#jl_date').val() ,
+                    "jl_note": quill.root.innerHTML,
+                    "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+                $.ajax({
+                    type: "Post",
+                    url: "@Url.Action("InsertJustificationLetter", "JustificationLetter", new {area = "EMR" })",
+                    dataType: 'JSON',
+                    data: _dateInsert,
+                    success: function (response) {
+                        $('#btn_Insert_Justification').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                        $('#btn_Insert_Justification').addClass("btn btn-sm btn-success");
+                        $('#btn_Insert_Justification').html("Add Justification");
+                        if (response.isSuccess) {
+                            if (response.isInserted) {
+                            var alertPlaceholder = document.getElementById("Alert");
+                            function alert(e, t) {
+                                var l = document.createElement("div");
+                                l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                            }
+                            alert("<i class='fe fe-check-circle text-white'></i> Justification Letter Saved Successfully!", "success");
+                            GetJustificationLetter();
+                            Timeout();
+                        }
+                        else {
+
+                            let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                                "<div class='alert alert-warning' role='alert'>" +
+                                "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                                "<strong>Warning..Justification Letter Alredy Exists..</strong><br/>" +
+                                "</div></div>";
+                            $("#Alert").html(html);
+                        }
+                        }
+                        else {
+                        let html = "<div class='col-12 col-sm-12 col-md-6 d-flex justify-content-center'>" +
+                        "<div class='alert alert-danger' role='alert'>" +
+                        "<button type='button' class='btn-close mr-negative-16' data-bs-dismiss='alert' aria-hidden='true' aria-label='Close'>×</button>" +
+                        "<strong>Validation Error.. Please correct before you submit the form!&nbsp;</strong><br/><ul>";
+                                $.each(response.message, function (index, value) {
+                            html += "<li><small>" + value + "</small><li>";
+                            var elem = $("#" + index);
+                            if (elem.hasClass("select2-hidden-accessible")) {
+                                $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                            }
+                            else {
+                                $(elem).addClass(" is-invalid");
+                            }
+
+                            setTimeout(function () {
+                                if (elem.hasClass("select2-hidden-accessible")) {
+                                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                                }
+                                else {
+                                    $(elem).removeClass("is-invalid");
+                                }
+                            }, 5000);
+                        });
+                        html += "</ul></div></div>";
+                        $("#error").html(html);
+                        }
+                    },
+                        error: function (xhr) {
+                            $('#btn_Insert_Justification').removeClass("btn btn-sm btn-success btn-loaders btn-icon");
+                            $('#btn_Insert_Justification').addClass("btn btn-sm btn-warning");
+                            $('#btn_Insert_Justification').html("Add Justification");
+                        Timeout();
+                    }
+                });
+            }
+
+        });
+    //#endregion Add Click
+
+    //#region Reset
+    $('#btn_Reset_Justification').on('click', function (e) {
+        e.preventDefault();
+        clearControls();
+    });
+    //#endregion Reset
+
+    //#region Clear Controls
+    var clearControls = function () {
+        quill.root.innerHTML = "";
+        $("#jl_date").bootstrapdatepicker("setDate", moment(new Date("@emr.today")).format("DD-MMMM-YYYY"));
+    }
+    //#endregion Clear Controls
+
+
+</script>
+

@@ -1,0 +1,115 @@
+﻿@model BusinessEntities.EMRForms.ReimbursementFormsMain
+@using BusinessEntities;
+
+@{
+    ViewBag.Title = "Reiumbursement Forms";
+
+    Layout = "~/Areas/Tab/Views/Shared/_Tab_Layout.cshtml";
+
+    EMRInfo tab = new EMRInfo();
+
+    if (TempData["emr_data"] == null)
+    {
+        Response.Redirect("/Tab/PatientConsents/PatientConsents");
+    }
+    else
+    {
+        tab = (EMRInfo)TempData["emr_data"];
+
+        TempData.Keep("emr_data");
+
+        TempData["appId"] = tab.appId;
+    }
+}
+
+@Html.Partial("~/Areas/Tab/Views/Shared/_Tab_PatientInfo.cshtml")
+
+<style type="text/css">
+    @@media (min-width: 768px) {
+        .sidebar-mini.sidenav-toggled .avatar-xl {
+            width: 10rem !important;
+            height: 4rem !important;
+        }
+    }
+</style>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="row me-0 ms-0 d-flex justify-content-center">
+            <div class="col-xl-6 col-lg-6 col-sm-6 col-md-8 pe-0 ps-0">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="form-group mb-2">
+                            <label class="form-label font-weight-semibold text-dark">Select Reiumbursement Form</label>
+                            @Html.DropDownListFor(m => m.SelectedOption, new SelectList(Model.SelectedOptionList, "id", "text"), "Please Select", new { @class = "form-select select2", @id = "uSelectedOption" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div id="selectedView"></div>
+    </div>
+</div>
+
+<!-- Modal Signature Pad -->
+<div class="modal fade" id="signature_pad" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" data-modal-from="invoice-list">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:750px;">
+        <div class="modal-content" id="signature_pad_body">
+        </div>
+    </div>
+</div>
+<!-- End Modal Signature Pad -->
+
+@section myScripts{
+    <script type="text/javascript">
+        //#region Page Load
+        $(function () {
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+
+            $("#uSelectedOption").select2({
+                placeholder: 'Select Any Form',
+                width: '100%',
+                minimumResultsForSearch: '',
+                maximumInputLength: 10,
+                escapeMarkup: function (markup) {
+                    return markup;
+                }
+            });
+        });
+        //#endregion
+
+        //#region On Selection
+        $("#uSelectedOption").on("select2:select", function () {
+            var selectedValue = $(this).val();
+
+            $("#spinner2").show();
+
+            $("#selectedView").html("");
+
+            if (selectedValue !== "") {
+                $.ajax({
+                    url: '/EMRForms/ReimbursementFormsMain/LoadView',
+                    type: 'GET',
+                    data: { viewName: selectedValue },
+                    success: function (data) {
+                        $("#selectedView").html(data);
+                    },
+                    error: function () {
+                        $("#selectedView").html("<p>Error loading view.</p>");
+                    },
+                    complete: function () {
+                        $("#spinner2").hide();
+                    }
+                });
+            }
+        });
+        //#endregion
+    </script>
+}

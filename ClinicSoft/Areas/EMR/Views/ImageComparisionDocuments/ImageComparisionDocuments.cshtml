@@ -1,0 +1,813 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="page-header">
+            <div class="page-leftheader">
+                <h4 class="page-title mb-0 text-primary">Image Comparision</h4>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div id="ImageComparisionDocuments_add">
+            </div>
+            <div id="ImageComparisionDocuments_edit">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 col-md-12 col-lg-6">
+            <div class="card p-5">
+                <div class="table-responsive">
+                    <table id="tbl_ImageComparisionDocuments_before" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Image</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center text-wrap">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-6">
+            <div class="card p-5">
+                <div class="table-responsive">
+                    <table id="tbl_ImageComparisionDocuments_after" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Image</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center text-wrap">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-12">
+            <div class="page-header">
+                <div class="page-leftheader">
+                    <h5 class="page-title mb-0 text-primary">Previous Image Comparision</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-6">
+            <div class="card p-5">
+                <div class="table-responsive">
+                    <table id="tbl_PrevImageComparisionDocuments_before" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Image</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center text-wrap">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-12 col-lg-6">
+            <div class="card p-5">
+                <div class="table-responsive">
+                    <table id="tbl_PrevImageComparisionDocuments_after" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center">Image</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center text-wrap">Notes</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white text-center"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal View Document -->
+<div class="modal fade" id="view_doc_modal" data-bs-backdrop="static" data-bs-keyboard="false" data-modal-from="patient" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="size">
+        <div class="modal-content shadow-lg" id="view_doc_modal_body">
+            <div class="modal-header py-3 px-4">
+                <h5 class="modal-title text-primary font-weight-semibold" id="exampleModalLongTitle">View(Image Comparision Documents)<strong class="text-secondary" id="pat_info"></strong></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+            </div>
+            <img id="image_display" src="" />
+        </div>
+    </div>
+</div>
+<!-- End Modal View Document-->
+@section myScripts{
+    <script>
+        //#region Page Load
+            $(function () {
+                GetImageComparisionDocumentsByIdInfo(@emr.appId, "EMR");
+                AddImageComparisionDocuments();
+                GetPrevImageComparisionDocumentsByIdInfo(@emr.appId,@emr.patId);
+            });
+        //#endregion
+
+        //#region Add ImageComparisionDocuments
+            function AddImageComparisionDocuments() {
+                $('#ImageComparisionDocuments_edit').hide();
+                var x = $("#ImageComparisionDocuments_add");
+                x.load("@Url.Action("CreateImageComparisionDocuments", "ImageComparisionDocuments", new { area = "EMR" })", function () {
+                    $("#ImageComparisionDocuments_add").show();
+                });
+            }
+        //#endregion
+
+        //#region Load ImageComparisionDocuments
+            var GetImageComparisionDocumentsByIdInfo = function (id) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetImageComparisionDocumentsById", "ImageComparisionDocuments", new { area = "EMR" })?id=" + id,
+                    dataType: 'json',
+                    success: function (response) {
+                        let before = [], after = [];
+                        if (response.isSuccess) {
+
+                            response.data.forEach(doc => {
+
+                                if (doc.imgc_type === "After") {
+                                    after.push(doc);
+                                }
+                                else if (doc.imgc_type === "Before") {
+                                    before.push(doc);
+                                }
+                            });
+
+                            var table_before;
+                            if ($.fn.dataTable.isDataTable('#tbl_ImageComparisionDocuments_before')) {
+                                table_before = $('#tbl_ImageComparisionDocuments_before').DataTable();
+                                table_before.clear();
+                                table_before.rows.add(before).draw();
+                            }
+                            else {
+                                BindDataTableImagebefore(before);
+                            }
+                            var table_after;
+                            if ($.fn.dataTable.isDataTable('#tbl_ImageComparisionDocuments_after')) {
+                                table_after = $('#tbl_ImageComparisionDocuments_after').DataTable();
+                                table_after.clear();
+                                table_after.rows.add(after).draw();
+                            }
+                            else {
+                                BindDataTableImageafter(after);
+                            }
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                    }
+                 });
+            }
+        //#endregion
+
+        //#region Bind Before DataTable
+            var BindDataTableImagebefore = function (response) {
+                console.log(response);
+                var table = $("#tbl_ImageComparisionDocuments_before").DataTable({
+                processing: true,
+                "pageLength": 5,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "imgc_image" },
+                    { "mData": "imgc_notes" },
+                    {
+                        data: "imgcId",
+                        className: "text-center",
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, row) {
+                            let image = row.imgc_image
+                            var html_links = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">' +
+                                `<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="view_doc('${image}')"><i class="fe fe-search text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;View</a>` +
+                                `<a class="dropdown-item text-dark fw-bold" href="${image}" download><i class="fe fe-download-cloud text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Download</a>` +
+                                '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="DeleteImageComparision(' + data + ')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>' +
+                                '</div>' +
+                                '</div>';
+
+                            return html_links;
+                        }
+                    }
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "className": "fs-13",
+                        "render": function (data) {
+                            var html = "";
+                            // Check if the data is a PDF file
+                            if (data.endsWith(".jpg") || data.endsWith(".jpeg") || data.endsWith(".png")) {
+                                // If it's an image data, directly embed it
+                                html = '<span class="avatar avatar-xxl" style="background-image: url(' + data + ');border: 2px solid #d7d7d7;"></span>';
+                            }
+                            else {
+                                // If it's neither a PDF nor an image, handle it accordingly (you might want to customize this part)
+                                html = '<span>Unknown file format</span>';
+                            }
+
+                            return '<div class="d-flex p-1 justify-content-center">' + html + '</div>';
+                        }
+                    },
+                    {
+                        "aTargets": [1],
+                        "className": "fs-13 text-wrap"
+
+                    },
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Document(s)</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Image Comparision Documents with imgcId = @emr.appId Remarks!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container()
+                .appendTo('#tbl_ImageComparisionDocuments_before_wrapper .col-md-6:eq(0)');
+
+            setTimeout(function () {
+                table.columns.adjust().draw();
+            }, 350);
+
+        }
+        //#endregion Bind DataTable
+
+        //#region Bind After DataTable
+            var BindDataTableImageafter = function (response) {
+                //console.log(response);
+
+                var table = $("#tbl_ImageComparisionDocuments_after").DataTable({
+                processing: true,
+                "pageLength": 5,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                    "aoColumns": [
+                    { "mData": "imgc_image" },
+                    { "mData": "imgc_notes" },
+                    { "mData": "imgcId" },
+
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "className": "fs-13",
+                        "render": function (data) {
+                            var html = "";
+                            // Check if the data is a PDF file
+                            if (data.endsWith(".jpg") || data.endsWith(".jpeg") || data.endsWith(".png")) {
+                                // If it's an image data, directly embed it
+                                html = '<span class="avatar avatar-xxl" style="background-image: url(' + data + ');border: 2px solid #d7d7d7;"></span>';
+                            }
+                            else {
+                                // If it's neither a PDF nor an image, handle it accordingly (you might want to customize this part)
+                                html = '<span>Unknown file format</span>';
+                            }
+
+                            return '<div class="d-flex p-1 justify-content-center">' + html + '</div>';
+                        }
+                    },
+                    {
+                        "aTargets": [1],
+                        "className": "fs-13 text-wrap"
+
+                    },
+                    {
+                        "aTargets": [2],
+                        "className": "text-center",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (data, type, row) {
+                            let image = row.imgc_image
+                            var html_links = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                                '<div class="dropdown-menu" style="min-width:auto">' +
+                                                    `<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="view_doc('${image}')"><i class="fe fe-search text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;View</a>` +
+                                                    `<a class="dropdown-item text-dark fw-bold" href="${image}" download><i class="fe fe-download-cloud text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Download</a>` +
+                                                    '<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="DeleteImageComparision(' + data + ')"><i class="fe fe-trash text-danger" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Delete</a>'+
+                                                '</div>' +
+                                            '</div>';
+
+                            return html_links;
+                    }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Document(s)</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Image Comparision Documents with imgcId = @emr.appId Remarks!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container()
+                .appendTo('#tbl_ImageComparisionDocuments_after_wrapper .col-md-6:eq(0)');
+
+            setTimeout(function () {
+                table.columns.adjust().draw();
+            }, 350);
+
+        }
+        //#endregion
+
+        //#region Delete Image Comparision Documents
+            var DeleteImageComparision = function (imgcId) {
+                Swal.fire({
+                    title: "Are you sure you want to delete this Document ?",
+                    text: "This action will delete this Document!",
+                    icon: "question",
+                    showCancelButton: !0,
+                    confirmButtonText: 'Yes! I Confirm',
+                    cancelButtonText: 'No! Cancel Please',
+                    confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+                }).then(function (t) {
+                    if (t.value) {
+                        $.ajax({
+                            url: '@Url.Action("DeleteImageComparisionDocuments", "ImageComparisionDocuments", new { area = "EMR" })?imgcId=' + imgcId,
+                            type: "GET",
+                            dataType: "JSON",
+                            success: function (data) {
+                                if (data.isAuthorized) {
+                                    if (data.success) {
+                                        Swal.fire({
+                                            title: "Success!",
+                                            text: "ImageComparision Documents is Deleted Successfully!",
+                                            icon: "success",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                        });
+                                         GetImageComparisionDocumentsByIdInfo(@emr.appId, "EMR");
+                                    }
+                                    else {
+                                        Swal.fire({
+                                            title: "Error!",
+                                            text: "Failed to Delete Remarks!",
+                                            icon: "error",
+                                            showCancelButton: 0,
+                                            confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                        });
+                                    }
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Access Denied!",
+                                        text: "You do not have enough privileges to delete this Remarks!",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+
+                            },
+                            error: function (xhr) {
+                                Swal.fire({
+                                    title: "Error!",
+                                    text: "Failed to Delete Remarks! Please refresh the page and try again.",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+       //#endregion
+
+        //#region View Doc Modal
+            var view_doc = function (path) {
+                $("#image_display").attr("src", path)
+                $("#view_doc_modal").modal("show");
+            };
+        //#endregion
+
+        //#region Load PrevImageComparisionDocuments
+        var GetPrevImageComparisionDocumentsByIdInfo = function (id, patId) {
+                $.ajax({
+                    type: "GET",
+                    url: "@Url.Action("GetPrevImageComparisionDocumentsById", "ImageComparisionDocuments", new { area = "EMR" })?id=" + id + "&patId=" + patId,
+                    dataType: 'json',
+                    success: function (response) {
+                        let before = [], after = [];
+                        if (response.isSuccess) {
+
+                            response.data.forEach(doc => {
+
+                                if (doc.imgc_type === "After") {
+                                    after.push(doc);
+                                }
+                                else if (doc.imgc_type === "Before") {
+                                    before.push(doc);
+                                }
+                            });
+
+                            var table_before;
+                            if ($.fn.dataTable.isDataTable('#tbl_PrevImageComparisionDocuments_before')) {
+                                table_before = $('#tbl_PrevImageComparisionDocuments_before').DataTable();
+                                table_before.clear();
+                                table_before.rows.add(before).draw();
+                            }
+                            else {
+                                PrevBindDataTableImagebefore(before);
+                            }
+                            var table_after;
+                            if ($.fn.dataTable.isDataTable('#tbl_PrevImageComparisionDocuments_after')) {
+                                table_after = $('#tbl_PrevImageComparisionDocuments_after').DataTable();
+                                table_after.clear();
+                                table_after.rows.add(after).draw();
+                            }
+                            else {
+                                PrevBindDataTableImageafter(after);
+                            }
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log("Error :" + xhr.statusText);
+                    }
+                 });
+            }
+        //#endregion
+
+        //#region Bind Before DataTable
+        var PrevBindDataTableImagebefore = function (response) {
+                console.log(response);
+            var table = $("#tbl_PrevImageComparisionDocuments_before").DataTable({
+                processing: true,
+                "pageLength": 5,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    { "mData": "imgc_image" },
+                    { "mData": "imgc_notes" },
+                    {
+                        data: "imgcId",
+                        className: "text-center",
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, row) {
+                            let image = row.imgc_image
+                            var html_links = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                '<div class="dropdown-menu" style="min-width:auto">' +
+                                `<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="view_doc('${image}')"><i class="fe fe-search text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;View</a>` +
+                                `<a class="dropdown-item text-dark fw-bold" href="${image}" download><i class="fe fe-download-cloud text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Download</a>` +
+                                '</div>' +
+                                '</div>';
+
+                            return html_links;
+                        }
+                    }
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "className": "fs-13",
+                        "render": function (data) {
+                            var html = "";
+                            // Check if the data is a PDF file
+                            if (data.endsWith(".jpg") || data.endsWith(".jpeg") || data.endsWith(".png")) {
+                                // If it's an image data, directly embed it
+                                html = '<span class="avatar avatar-xxl" style="background-image: url(' + data + ');border: 2px solid #d7d7d7;"></span>';
+                            }
+                            else {
+                                // If it's neither a PDF nor an image, handle it accordingly (you might want to customize this part)
+                                html = '<span>Unknown file format</span>';
+                            }
+
+                            return '<div class="d-flex p-1 justify-content-center">' + html + '</div>';
+                        }
+                    },
+                    {
+                        "aTargets": [1],
+                        "className": "fs-13 text-wrap"
+
+                    },
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Document(s)</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Image Comparision Documents with imgcId = @emr.appId Remarks!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container()
+                .appendTo('#tbl_PrevImageComparisionDocuments_before_wrapper .col-md-6:eq(0)');
+
+            setTimeout(function () {
+                table.columns.adjust().draw();
+            }, 350);
+
+        }
+        //#endregion Bind DataTable
+
+        //#region Bind After DataTable
+        var PrevBindDataTableImageafter = function (response) {
+                //console.log(response);
+
+                var table = $("#tbl_PrevImageComparisionDocuments_after").DataTable({
+                processing: true,
+                "pageLength": 5,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                    "aoColumns": [
+                    { "mData": "imgc_image" },
+                    { "mData": "imgc_notes" },
+                    { "mData": "imgcId" },
+
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "className": "fs-13",
+                        "render": function (data) {
+                            var html = "";
+                            // Check if the data is a PDF file
+                            if (data.endsWith(".jpg") || data.endsWith(".jpeg") || data.endsWith(".png")) {
+                                // If it's an image data, directly embed it
+                                html = '<span class="avatar avatar-xxl" style="background-image: url(' + data + ');border: 2px solid #d7d7d7;"></span>';
+                            }
+                            else {
+                                // If it's neither a PDF nor an image, handle it accordingly (you might want to customize this part)
+                                html = '<span>Unknown file format</span>';
+                            }
+
+                            return '<div class="d-flex p-1 justify-content-center">' + html + '</div>';
+                        }
+                    },
+                    {
+                        "aTargets": [1],
+                        "className": "fs-13 text-wrap"
+
+                    },
+                    {
+                        "aTargets": [2],
+                        "className": "text-center",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (data, type, row) {
+                            let image = row.imgc_image
+                            var html_links = '<div class="dropdown"><a type="button" class="" data-bs-toggle="dropdown"><i class="fe fe-more-vertical" style="font-size: 20px;"></i></a>' +
+                                                '<div class="dropdown-menu" style="min-width:auto">' +
+                                                    `<a class="dropdown-item text-dark fw-bold" href="javascript:void(0)" onclick="view_doc('${image}')"><i class="fe fe-search text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;View</a>` +
+                                                    `<a class="dropdown-item text-dark fw-bold" href="${image}" download><i class="fe fe-download-cloud text-dark" style="font-size: 15px;margin-right: 0.5rem;"></i>&nbsp;Download</a>` +
+                                                '</div>' +
+                                            '</div>';
+
+                            return html_links;
+                        }
+                    }
+                ],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search Document(s)</span>',
+                    lengthMenu: '_MENU_',
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                fixedColumns: true,
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to Excel!");
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to PDF!");
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Exported Image Comparision Documents with imgcId = @emr.appId to CSV!");
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Image Comparision Documents',
+                        exportOptions: {
+                            columns: [0, 1, 2]
+                        },
+                        action: function (e, dt, node, config) {
+                            $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, node, config);
+                            exportLogs("Employee Printed Image Comparision Documents with imgcId = @emr.appId Remarks!");
+                        }
+                    }
+                ]
+            });
+            table.buttons().container()
+                .appendTo('#tbl_PrevImageComparisionDocuments_after_wrapper .col-md-6:eq(0)');
+
+            setTimeout(function () {
+                table.columns.adjust().draw();
+            }, 350);
+
+        }
+        //#endregion
+    </script>
+}

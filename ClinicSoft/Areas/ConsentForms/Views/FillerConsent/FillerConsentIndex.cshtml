@@ -1,0 +1,107 @@
+﻿@using BusinessEntities;
+
+@{
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    if (ViewBag.Tab == "0")
+    {
+        ViewBag.Title = "Filler Consent";
+        Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+    }
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Filler Consent Form</h3>
+            </div>
+            <div class="card-body">
+                <div id="FillerConsent_add" style="display:none">
+                </div>
+                <div id="FillerConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="FillerConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    //#region Page Load
+    $(function () {
+        GetFillerConsentInfo();
+        FillerConsentPreviousHistory();
+
+    });
+    //#endregion
+
+    //#region Load GetFillerConsentInfo
+    var GetFillerConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetFillerConsentData", "FillerConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditFillerConsent();
+                        $("#FillerConsent_add").hide();
+                        $("#FillerConsent_edit").show();
+
+                    }
+                    else {
+                        $("#FillerConsent_add").show();
+                        $("#FillerConsent_edit").hide();
+                        AddFillerConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load FillerConsent
+
+    //#region Add FillerConsent
+    function AddFillerConsent() {
+        var x = $("#FillerConsent_add");
+        x.load("@Url.Action("CreateFillerConsent", "FillerConsent", new { area = "ConsentForms" })", function () {
+        });
+    }
+    //#endregion Add FillerConsent
+
+    //#region Update FillerConsent
+    function EditFillerConsent() {
+        var x = $("#FillerConsent_edit");
+        x.load("@Url.Action("UpdateFillerConsent", "FillerConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+        //#endregion Update FillerConsent
+
+    //#region Histroy of FillerConsent
+    function FillerConsentPreviousHistory() {
+        var x = $("#FillerConsent_history");
+        x.load("@Url.Action("FillerConsentPreviousHistory", "FillerConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+        });
+    }
+    //#endregion
+</script>

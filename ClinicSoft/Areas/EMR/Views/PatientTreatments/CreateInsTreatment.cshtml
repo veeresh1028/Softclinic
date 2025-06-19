@@ -1,0 +1,1436 @@
+﻿
+@model BusinessEntities.EMR.Cash_PatientTreat
+@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Create Insurance Treatments";
+}
+
+<style type="text/css">
+    #dtTable_AddInsTreatments_wrapper .dataTables_scroll .dataTables_scrollBody {
+        min-height: 100px;
+    }
+</style>
+
+<form id="form_Ins_Treatment" >
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="form-label">Treatments &amp; Procedures&nbsp;<span class="text-danger">*</span></label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_treatment" name="pt_treatment">
+                </select>
+                <input type="hidden" value="0" id="hi_pt_tr_code">
+                <input type="hidden" value="0" id="hi_pt_tr_name">
+                <input type="hidden" value="0" id="hi_isPackage">
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="form-group">
+                <label class="form-label">Notes&nbsp;</label>
+                <input class="form-control text-start" placeholder="Enter Notes" type="text" id="pt_notes" name="pt_notes" maxlength="250">
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Teeth&nbsp;</label>
+                <div class="form-group mb-3">
+                    <select class="form-control" id="pt_teeth" multiple="multiple">
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-2 d-none">
+            <div class="form-group mb-3">
+                <label class="form-label text-black">Surface&nbsp;</label>
+                <div class="form-group mb-3">
+                    <select class="form-control" id="pt_sur" multiple="multiple">
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Qty&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="1.00" id="pt_qty" name="pt_qty" oninput="validate(this,1000)">
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Session</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="1" id="pt_ses" name="pt_ses" oninput="validate(this,100)">
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Unit Price&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_uprice" name="pt_uprice" readonly="readonly" oninput="validate(this,100000)">
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Total&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_total" name="pt_total" oninput="validate(this,0)" readonly />
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group">
+                <label class="form-label">Discount</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_disc" name="pt_disc" oninput="validate(this,100000)">
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group">
+                <label class="form-label">Disc.Type</label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_disc_type" name="pt_disc_type">
+                    <option value="0">%</option>
+                    <option value="1" selected>Fixed</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">Disc. Value</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_disc_value" name="pt_disc_value" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+
+        <div class="col-md-2 d-none">
+            <div class="form-group">
+                <label class="form-label">Coupon</label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_coupon" name="pt_coupon">
+                </select>
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group">
+                <label class="form-label">Coupon Disc.</label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_coupon_disc" name="pt_coupon_disc" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group">
+                <label class="form-label">NET&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_net" name="pt_net" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group">
+                <label class="form-label">VAT %</label>
+                <select placeholder="Select Any" class="form-select select2 mb-2" id="pt_vat_type" name="pt_vat_type">
+                    <option value="0">0 %</option>
+                    <option value="5">5 %</option>
+                    <option value="Exempt">Exempt</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group mt-4">
+                <div class="custom-controls-stacked">
+                    <label class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input" name="rdoVATType" value="Inclusive" id="rdoVATIn">
+                        <span class="custom-control-label">Inclusive</span>
+                    </label>
+                    <label class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input" name="rdoVATType" value="Exclusive" id="rdoVATEx" checked="checked">
+                        <span class="custom-control-label">Exclusive</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-1 d-none">
+            <div class="form-group">
+                <label class="form-label">VAT&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_vat" name="pt_vat" oninput="validate(this,0)" readonly>
+                <input type="hidden" value="0" id="hi_pt_vat">
+                <input type="hidden" value="0" id="hi_pt_vat2">
+            </div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="form-group">
+                <label class="form-label">NET&nbsp;<span class="text-danger">*</span></label>
+                <input class="form-control text-end font-weight-semibold" placeholder="" type="text" value="0.00" id="pt_netvat" name="pt_netvat" oninput="validate(this,0)" readonly>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="btn-list">
+                <input type="hidden" id="pat_share" />
+                <input type="hidden" id="pat_net" />
+                <input type="hidden" id="allowed_limit" />
+                <span class="text-danger" id="error_msg"></span>
+                <button type="submit" class="btn btn-info" id="btnAddTreatment"><i class="fe fe-plus"></i> Select Treatment</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_Reset">Reset</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="card mt-2" id="listItems">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="min-height:unset;">
+            <table id="dtTable_AddInsTreatments" class="table table-striped table-bordered" style="width:100%">
+                <thead>
+                    <tr style="color: #fff !important; background-color: #5b73e8; border-color: #5b73e8;">
+                        <th class="border-bottom-0 font-weight-semibold text-white text-end">ID</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">CPT Code</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-wrap">Treatment &amp; Procedures</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white text-center">Type</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Qty</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Session</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Unit Price</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Total</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Disc</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Disc.Type</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Discount Value</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Coupon.Id</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Coupon</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Coup.Disc</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">VAT</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Patient Share</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">NET</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Tooth</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white">Surfaces</th>
+                        <th class="border-bottom-0 font-weight-semibold text-white"></th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th class="text-end fs-16 font-weight-bold" style="text-align: right !important;">Total :</th>
+                        <th></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                        <th class="text-end fs-15 font-weight-semibold"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row pb-6">
+    <div class="col-sm-12 col-md-12 text-center">
+        <button type="button" class="btn btn-success d-none" id="btnConfirmTreatment"><i class="fe fe-check-circle"></i> Confirm Treatment(s)</button>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var item_arr = [];
+
+    //#region Page Load
+    $(function () {
+        $("#listItems").hide();
+
+        $("#pt_treatment").select2({
+            placeholder: 'Select Treatment/Procedure',
+            width: '100%',
+            dropdownParent: $('#form_Ins_Treatment'),
+            minimumInputLength: 3,
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            ajax: {
+                url: '@Url.Action("SearchInsuranceTreatments", "PatientTreatments", new { area = "EMR" })',
+                dataType: 'json',
+                delay: 250,
+                data: function (query) {
+                    return {
+                        query: query.term,
+                        appId: '@emr.appId'
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $("#pt_vat_type").select2({
+            placeholder: 'Select VAT Type',
+            width: '100%',
+            dropdownParent: $('#form_Ins_Treatment')
+        });
+
+        $("#pt_disc_type").select2({
+            placeholder: 'Select Discount Type',
+            width: '100%',
+            dropdownParent: $('#form_Ins_Treatment')
+        });
+
+        $("#pt_coupon").select2({
+            placeholder: 'Select Coupon',
+            width: '100%',
+            dropdownParent: $('#form_Ins_Treatment')
+        });
+
+        $('#pt_teeth').SumoSelect({
+            placeholder: 'Select Tooth(s)',
+            captionFormat: '{0} Tooth(s) Selected',
+            captionFormatAllSelected: 'All {0} Tooth selected!',
+            csvDispCount: 3,
+            okCancelInMulti: true,
+            isClickAwayOk: true,
+            search: true,
+            searchText: 'Search here...',
+            selectAll: true,
+            dropdownParent: $('#form_Ins_Treatment'),
+        });
+
+        validation();
+    });
+    //#endregion
+
+    //#region Validation Initialisation
+    var validation = function () {
+        $('#pt_qty').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_ses').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+
+            if (String.fromCharCode(charCode).match(/[^0-9]/g))
+                return false;
+        });
+
+        $('#pt_uprice').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_total').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_disc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_disc_value').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_coupon_disc').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_net').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_vat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $('#pt_netvat').keypress(function (e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var inputValue = $(this).val() + String.fromCharCode(charCode);
+
+            if (String.fromCharCode(charCode).match(/[^0-9.]/g))
+                return false;
+
+            if (!/^\d*\.?\d{0,3}$/.test(inputValue) || inputValue.split('.').length > 2) {
+                return false;
+            }
+        });
+
+        $("#form_Ins_Treatment").validate({
+            focusInvalid: true,
+            rules:
+            {
+                "pt_treatment": {
+                    required: true
+                },
+                "pt_qty": {
+                    required: true,
+                    minlength: 1,
+                    min: 1,
+                    max: 1000
+                },
+                "pt_ses": {
+                    required: true,
+                    minlength: 1,
+                    min: 0,
+                    max: 100
+                },
+                "pt_uprice": {
+                    required: true,
+                    minlength: 1,
+                    min: 1,
+                    max: 100000
+                },
+                "pt_total": {
+                    required: true,
+                    minlength: 1,
+                    min: 1
+                },
+                "pt_disc": {
+                    required: true,
+                    minlength: 1,
+                    min: 0,
+                    max: 100000
+                },
+                "pt_disc_type": {
+                    required: true
+                },
+                "pt_disc_value": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "pt_coupon_disc": {
+                    required: true,
+                    minlength: 1,
+                    min: 0
+                },
+                "pt_net": {
+                    required: true,
+                    minlength: 1,
+                    min: 1
+                },
+                "pt_vat": {
+                    required: true,
+                    minlength: 1
+                },
+                "pt_netvat": {
+                    required: true,
+                    minlength: 1,
+                    min: 1
+                }
+            },
+            messages: {
+                "pt_treatment": {
+                    required: "Select Treatment"
+                },
+                "pt_qty": {
+                    required: "Enter Qty",
+                    minlength: "Give atleast 0",
+                    min: "Min. Qty is 1",
+                    max: "Max. Qty is 1000"
+                },
+                "pt_ses": {
+                    required: "Enter Session",
+                    minlength: "Min. 1 Degit",
+                    min: "Min. Value is 0",
+                    max: "Max. Value is 100"
+                },
+                "pt_uprice": {
+                    required: "Enter Unit Price",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1",
+                    max: "Max. Value is 100000"
+                },
+                "pt_total": {
+                    required: "Enter Total",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1"
+                },
+                "pt_disc": {
+                    required: "Enter Discount",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0",
+                    max: "Max. Value is 100000"
+                },
+                "pt_disc_type": {
+                    required: "Select Discount Type"
+                },
+                "pt_disc_value": {
+                    required: "Enter Discount Value",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "pt_coupon_disc": {
+                    required: "Enter Coupon Value",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 0"
+                },
+                "pt_net": {
+                    required: "Enter Net",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1"
+                },
+                "pt_vat": {
+                    required: "Enter VAT",
+                    minlength: "Give atleast 0"
+                },
+                "pt_netvat": {
+                    required: "Enter Net+VAT",
+                    minlength: "Give atleast 0",
+                    min: "Min. Value is 1"
+                }
+            },
+            highlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().addClass('error');
+                } else {
+                    elem.parent().addClass('has-error');
+                }
+                $(element).parent().addClass('has-error');
+            },
+            unhighlight: function (element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    $("#select2-" + elem.attr("id") + "-container").parent().removeClass('error');
+                } else {
+                    elem.removeClass('has-error');
+                }
+                $(element).parent().removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'text-danger fw-bold',
+            errorPlacement: function (error, element) {
+                var elem = $(element);
+                if (elem.hasClass("select2-hidden-accessible")) {
+                    element = $("#select2-" + elem.attr("id") + "-container").parent();
+                    error.insertAfter(element);
+                } else {
+                    error.insertAfter(element);
+                }
+                if (element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+        $('#pt_treatment').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_vat_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_qty').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_ses').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_uprice').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_total').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_disc').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_disc_type').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_disc_value').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_coupon').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_coupon_disc').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_net').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_vat').on('change', function () {
+            $(this).trigger('blur');
+        });
+
+        $('#pt_netvat').on('change', function () {
+            $(this).trigger('blur');
+        });
+    }
+    //#endregion
+
+    //#region Validate Max value for Controls
+    var validate = function (e, max) {
+        var t = e.value;
+        var j = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
+        e.value = (max == 0) ? j : ((j >= max) ? max : j);
+    }
+    //#endregion
+
+    //#region Treatment Select Event
+    $('#pt_treatment').on('select2:select', function (e) {
+        var data = e.params.data;
+        var isPackage = 0;
+
+        if (data.text.toLowerCase().includes("package")) { isPackage = 1; }
+
+        $.ajax({
+            url: '@Url.Action("SelectTreatment", "Invoice", new { area = "Invoice" })?trId=' + data.id + "&appId=" + @Model.pt_appId + "&isPackage=" + isPackage ,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $("#hi_pt_tr_code").val(response["tr_values"].tr_code);
+                $("#hi_pt_tr_name").val(response["tr_values"].tr_name);
+                $("#hi_isPackage").val(isPackage);
+                $("#pt_qty").val("1.00");
+                $("#pt_ses").val("1");
+                $("#pt_uprice").val(response["tr_values"].tr_price);
+                $("#pt_disc").val(response["tr_values"].tr_disc);
+                $("#hi_pt_vat").val(response["tr_values"].tr_vat);
+                $("#hi_pt_vat2").val(response["tr_values"].tr_vat2);
+
+                var type = response["tr_values"].tr_disc_type;
+
+                if (type == "%") {
+                    type = 0;
+                }
+                else {
+                    type = 1;
+                }
+
+                $('#pt_disc_type').val(type).trigger('change');
+
+                $('#pt_vat_type').val(response["tr_values"].tr_vat).trigger('change');                
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        }).done(function () {
+            calculation();
+        });
+    });
+    //#endregion
+
+    //#region Change & Load Events
+    // Coupon Change Event
+    $('#pt_coupon').on('select2:select', function (e) {
+        calculation();
+    });
+
+    // VAT Type Change Event
+    $('#pt_vat_type').on('select2:select', function (e) {
+        calculation();
+    });
+
+    // VAT Inclusive/Exclusive Event
+    $('input[type=radio][name=rdoVATType]').change(function () {
+        calculation();
+    });
+
+    // Discount Type Change Event
+    $('#pt_disc_type').on('select2:select', function (e) {
+        $('#pt_coupon').val(0).trigger('change');
+        $('#pt_coupon_disc').val("0.00");
+
+        calculation();
+    });
+
+    // Load Coupons
+    var load_coupons = function (data) {
+        $('#pt_coupon').empty();
+
+        if (data.length > 0) {
+            var newOption1 = new Option("Select Coupons", 0, true, true);
+            $('#pt_coupon').append(newOption1).trigger('change');
+
+            $.each(data, function (j) {
+                var val = data[j].disc_name + " - " + data[j].disc_float + "%";
+                var newOption = new Option(val, data[j].discId, false, false);
+
+                $('#pt_coupon').append(newOption).trigger('change');
+            });
+        }
+    }
+
+    // Calculation for Treatments
+    var calculation = function () {
+        var pt_qty = $("#pt_qty").val();
+        var pt_uprice = $("#pt_uprice").val();
+
+        var pt_total = parseFloat(pt_qty) * parseFloat(pt_uprice);
+        $("#pt_total").val(pt_total);
+
+        var coupon_value = 0;
+        var pt_disc_value = 0;
+
+        if (parseInt($("#pt_coupon").val()) > 0) {
+            $("#pt_disc").val(pt_disc_value);
+
+            var coupon_name = $("#pt_coupon option:selected").text();
+            var coupon_arr = coupon_name.split("-");
+            var coupon_per = coupon_arr[1].trim().replace("%", "");
+            coupon_value = (parseFloat(pt_total) * parseFloat(coupon_per)) / 100;
+        }
+        else {
+            var pt_disc = $("#pt_disc").val();
+
+            if (parseInt($("#pt_disc_type").val()) == 1) {
+                pt_disc_value = parseFloat(pt_disc);
+            }
+            else if (parseInt($("#pt_disc_type").val()) == 0) {
+                pt_disc_value = (parseFloat(pt_total) * parseFloat(pt_disc)) / 100;
+            }
+        }
+
+        $("#pt_disc_value").val(pt_disc_value);
+        $("#pt_coupon_disc").val(coupon_value);
+
+        var pt_net = parseFloat(pt_total) - (parseFloat(pt_disc_value) + parseFloat(coupon_value));
+        $("#pt_net").val(pt_net);
+
+        var pt_vat = 0;
+
+        //if ($("#pt_vat_type").val() == "5") {
+        //    pt_vat = (parseFloat(pt_net) * 5) / 100;
+        //}
+
+        //if (pt_vat > 0) {
+        //    var rdoVAT = $("input[name='rdoVATType']:checked").val();
+
+        //    if (rdoVAT === "Inclusive") {
+        //        pt_net = parseFloat(pt_net) - parseFloat(pt_vat);
+        //        $("#pt_net").val(pt_net);
+        //    }
+        //}
+
+        $("#pt_vat").val(pt_vat);
+
+        var pt_netvat = parseFloat(pt_net) + parseFloat(pt_vat);
+        $("#pt_netvat").val(pt_netvat);
+
+        if (!(pt_disc_value == 0 && pt_total == 0)) {
+            if (pt_disc_value >= pt_total) {
+                $("#error_msg").html("Discount should be less than Total Amount");
+                $("#pt_total").attr("style", "border:1px solid red;color:red;");
+                $("#pt_disc_value").attr("style", "border:1px solid red;color:red;");
+            }
+            else {
+                $("#error_msg").html("");
+                $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                $("#pt_disc_value").attr("style", "border:1px solid #ecebf1;color:#728096;");
+
+                if (!(coupon_value == 0 && pt_total == 0)) {
+                    if (coupon_value >= pt_total) {
+                        $("#pt_total").attr("style", "border:1px solid red;color:red;");
+                        $("#pt_coupon_disc").attr("style", "border:1px solid red;color:red;");
+                        $("#error_msg").html("Coupon Discount should be less than Total Amount");
+                    }
+                    else {
+                        $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#pt_coupon_disc").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                        $("#error_msg").html("");
+                    }
+                }
+                else {
+                    $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    $("#pt_coupon_disc").attr("style", "border:1px solid #ecebf1;color:#728096;");
+                    $("#error_msg").html("");
+                }
+            }
+        }
+        else {
+            $("#error_msg").html("");
+            $("#pt_total").attr("style", "border:1px solid #ecebf1;color:#728096;");
+            $("#pt_disc_value").attr("style", "border:1px solid #ecebf1;color:#728096;");
+        }
+    }
+    //#endregion
+
+    //#region Bind Temporary Array
+    // Add Treatment To List
+    $('#btnAddTreatment').on('click', function (e) {
+        e.preventDefault();
+
+        if ($("#form_Ins_Treatment").valid()) {
+            var exists = false;
+
+            if (item_arr.length > 0) {
+                exists = item_arr.some(function (check) {
+                    return check.ptId == $("#pt_treatment").val();
+                });
+            }
+
+            if (exists) {
+                var data = $("#hi_pt_tr_name").val();
+                data = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+
+                Swal.fire({
+                    title: "Item Exists!",
+                    text: data + ", Already Exists in list. Please delete existing & Add again.",
+                    icon: "warning",
+                    showCancelButton: 0,
+                    confirmButtonText: 'OK',
+                    confirmButtonClass: "btn btn-success mt-2",
+                    buttonsStyling: !1
+                });
+            }
+            else {
+                $("#cashtreat").hide();
+
+                $("#listItems").show();
+
+                bindTreatment();
+
+                clearData();
+
+                $("#btnConfirmTreatment").removeClass("d-none");
+            }
+        }
+        else {
+            $('.modal-body').animate({
+                scrollTop: ($('.has-error').offset().top - 300)
+            }, 2000);
+        }
+    });
+
+    // Bind Treatments
+    var bindTreatment = function () {
+        load_patient_share("@Model.pt_appId", $("#pt_treatment").val(), parseFloat($("#pt_qty").val()), parseFloat($("#pt_uprice").val()), parseFloat($("#pt_disc_value").val()));
+
+        var pt_vat = 0;
+
+        if ($("#pt_vat_type").val() == "5") {
+            pt_vat = (parseFloat($("#pat_share").val()) * 5) / 100;
+        }
+
+        $("#pt_vat").val(pt_vat.toFixed(2));
+
+        var data = {
+            "ptId": $("#pt_treatment").val(),
+            "pt_appId": @Model.pt_appId,
+            "pt_tr_code": $("#hi_pt_tr_code").val(),
+            "pt_tr_name": $("#hi_pt_tr_name").val(),
+            "pt_vat_type": $("#pt_vat_type").val(),
+            "pt_qty": parseFloat($("#pt_qty").val()).toFixed(2),
+            "pt_ses": parseFloat($("#pt_ses").val()),
+            "pt_uprice": parseFloat($("#pt_uprice").val()).toFixed(2),
+            "pt_total": parseFloat($("#pt_total").val()).toFixed(2),
+            "pt_disc": parseFloat($("#pt_disc").val()).toFixed(2),
+            "pt_disc_type": $("#pt_disc_type option:selected").text(),
+            "pt_disc_value": parseFloat($("#pt_disc_value").val()).toFixed(2),
+            "pt_coupon": $("#pt_coupon").val(),
+            "pt_coupon_value": $("#pt_coupon option:selected").text(),
+            "pt_coupon_disc": parseFloat($("#pt_coupon_disc").val()).toFixed(2),
+            "pt_net": parseFloat($("#pat_net").val()).toFixed(2),
+            "pt_vat": parseFloat($("#pt_vat").val()).toFixed(2),
+            "pt_netvat": parseFloat($("#pat_net").val()).toFixed(2),
+            "pt_teeth": "",
+            "pt_sur": "",
+            "pt_notes": $("#pt_notes").val().trim(),
+            "pt_type": "Insurance",
+            "pt_share": parseFloat($("#pat_share").val()).toFixed(2),
+            "isAllowed": $("#allowed_limit").val(),
+            "isPackage": "0"
+        }
+
+        item_arr.push(data);
+
+        getInsTreatmentItems(item_arr);
+
+        if ("@emp_designation.ToString()" === "Super Administrator") {
+            $("#btnConfirmTreatment").removeClass("d-none");
+        }
+        else {
+            if ("@emr.set_emr_lock" != "NoLock") {
+                console.log("@emr.app_ae_date");
+                console.log("@emr.today");
+
+                if ("@emr.app_ae_date" >= "@emr.today") {
+                    $("#btnConfirmTreatment").removeClass("d-none");
+                }
+                else {
+                    console.log("EMR Locked!");
+                }
+            }
+            else {
+                $("#btnConfirmTreatment").removeClass("d-none");
+            }
+        }
+    }
+
+    // Load Treatments
+    var getInsTreatmentItems = function (response) {
+        if (response != null && response != undefined) {
+            var table;
+            if ($.fn.dataTable.isDataTable('#dtTable_AddInsTreatments')) {
+                table = $('#dtTable_AddInsTreatments').DataTable();
+                table.clear();
+                table.rows.add(response).draw();
+            }
+            else {
+                BindDataTableIns(response);
+            }
+        }
+    }
+
+    // Bind Treatments to DataTable
+    var BindDataTableIns = function (response) {
+        var numberRenderer1 = $.fn.dataTable.render.number(',', '.', 2,).display;
+
+        var table = $("#dtTable_AddInsTreatments").DataTable({
+            processing: true,
+            paging: false,
+            ordering: false,
+            info: false,
+            "searching": false,
+            "retrieve": true,
+            lengthChange: false,
+            "aaData": response,
+            "aoColumns": [
+                { "mData": "ptId" },
+                { "mData": "pt_tr_code" },
+                { "mData": "pt_tr_name" },
+                { "mData": "pt_vat_type" },
+                { "mData": "pt_qty" },
+                { "mData": "pt_ses" },
+                { "mData": "pt_uprice" },
+                { "mData": "pt_total" },
+                { "mData": "pt_disc" },
+                { "mData": "pt_disc_type" },
+                { "mData": "pt_disc_value" },
+                { "mData": "pt_coupon" },
+                { "mData": "pt_coupon_value" },
+                { "mData": "pt_coupon_disc", "visible": false },
+                { "mData": "pt_net", "visible": false },
+                { "mData": "pt_vat", "visible": false },
+                { "mData": "pt_share" },
+                { "mData": "pt_netvat" },
+                { "mData": "pt_teeth", "visible": false },
+                { "mData": "pt_sur", "visible": false },
+                { "mData": "ptId" }
+            ],
+            "aoColumnDefs": [
+                {
+                    "aTargets": [0],
+                    "visible": false
+                },
+                {
+                    "aTargets": [2],
+                    "className": "fs-13 text-nowrap",
+                    "render": function (data, type, full, meta) {
+                        if (full.isPackage == 1) {
+                            var val = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+
+                            return val + '<span class="pull-right"><span class="badge bg-danger"> <small class="fs-9">PACKAGE <small></span></span>';
+                        }
+                        else {
+                            var val = (data.length >= 75) ? (data.substring(0, 75) + "...") : data;
+
+                            return val;
+                        }
+                    }
+                },
+                {
+                    "aTargets": [3],
+                    "visible": false,
+                    "className": "fs-13 text-center",
+                    "render": function (data) {
+                        var val = (data === "0") ? "0% VAT" : ((data === "5") ? "5% VAT" : "Exempt");
+
+                        return val;
+                    }
+                },
+                {
+                    "aTargets": [4],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [5],
+                    "className": "fs-13 text-end"
+                },
+                {
+                    "aTargets": [6],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [7],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [8],
+                    "className": "fs-13 text-end",
+                    "visible": false,
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [9],
+                    "visible": false
+                },
+                {
+                    "aTargets": [10],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [11],
+                    "visible": false
+                },
+                {
+                    "aTargets": [12],
+                    "visible": false
+                },
+                {
+                    "aTargets": [13],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [14],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [15],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [16],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [17],
+                    "className": "fs-13 text-end",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [18],
+                    "className": "fs-13 text-center"
+                },
+                {
+                    "aTargets": [19],
+                    "className": "fs-13 text-center",
+                    "render": $.fn.dataTable.render.number(',', '.', 2)
+                },
+                {
+                    "aTargets": [20],
+                    "className": "fs-13 text-center dt-delete",
+                    "render": function (data) {
+                        var html = "<i class='fe fe-trash text-danger curpointer' id='remove-item' style='font-size: 15px;'></i>";
+
+                        return html;
+                    }
+                }
+            ],
+            scrollX: true,
+            scrollY: 500,
+            scrollCollapse: true,
+            fixedColumns: true,
+            fixedHeader: {
+                header: true,
+                footer: true
+            },
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+
+                total_qty = api.column(4).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(4).footer()).html(numberRenderer1(total_qty.toFixed(2)));
+
+                total_ses = api.column(5).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(5).footer()).html(total_ses);
+
+                total_unitprice = api.column(6).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(6).footer()).html(numberRenderer1(total_unitprice.toFixed(2)));
+
+                total_invtotal = api.column(7).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(7).footer()).html(numberRenderer1(total_invtotal.toFixed(2)));
+                $("#lbl_inv_total").html(numberRenderer1(total_invtotal.toFixed(2)));
+
+                total_disc = api.column(8).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(8).footer()).html(numberRenderer1(total_disc.toFixed(2)));
+
+                total_disc_val = api.column(10).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(10).footer()).html(numberRenderer1(total_disc_val.toFixed(2)));
+
+                total_coupon_val = api.column(13).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(13).footer()).html(numberRenderer1(total_coupon_val.toFixed(2)));
+                $("#lbl_inv_disc").html(numberRenderer1((total_coupon_val + total_disc_val).toFixed(2)));
+
+                total_net = api.column(14).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(14).footer()).html(numberRenderer1(total_net.toFixed(2)));
+                $("#lbl_inv_net").html(numberRenderer1(total_net.toFixed(2)));
+
+                total_vat = api.column(15).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(15).footer()).html(numberRenderer1(total_vat.toFixed(2)));
+                $("#lbl_inv_vat").html(numberRenderer1(total_vat.toFixed(2)));
+
+                total_netvat = api.column(16).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(16).footer()).html(numberRenderer1(total_netvat.toFixed(2)));
+                $("#lbl_inv_netvat").html(numberRenderer1(total_netvat.toFixed(2)));
+
+                total_share = api.column(17).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                $(api.column(17).footer()).html(numberRenderer1(total_share.toFixed(2)));
+            }
+        });
+
+        table.on('click', '#remove-item', function (e) {
+            var row = $(this).parents('tr');
+            var data_row = table.row($(this).closest('tr')).data();
+
+            Swal.fire({
+                title: "Are you sure you want to remove this Treatment From the List ?",
+                text: "This action will remove this Treatment from Selection!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2",
+                cancelButtonClass: "btn btn-danger ms-2 mt-2",
+                buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    item_arr = $.grep(item_arr, function (n, i) {
+                        return (n.ptId != data_row.ptId);
+                    });
+
+                    if ($(row).hasClass('child')) {
+                        table.row($(row).prev('tr')).remove().draw();
+                    }
+                    else {
+                        table.row(row).remove().draw();
+                    }
+
+                    Swal.fire({
+                        title: "Success!",
+                        text: "Treatment Deleted Successfully!",
+                        icon: "success",
+                        showCancelButton: 0,
+                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                    });
+
+                    if (item_arr.length == 0) {
+                        $("#btnConfirmTreatment").addClass("d-none");
+                    }
+                }
+            });
+        });
+
+        resizedt();
+    }
+    //#endregion
+
+    //#region Load Patient Share
+    var load_patient_share = function (appId, ptId, qty, uprice, disc) {
+        $.ajax({
+            url: '@Url.Action("GetPatientShare", "PatientTreatments", new { area = "EMR" })?appId=' + appId+'&ptId='+ptId+"&qty="+qty +"&uprice="+uprice+"&disc="+disc,
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: function (response) {
+                $("#pat_share").val(response.share);
+                $("#pat_net").val(response.net);
+                $("#allowed_limit").val(response.allowed_limit);
+            },
+            error: function (xhr) {
+                console.log("Failed to Load Patient Share! Error Message : " + xhr.statusText);
+            }
+        });;
+    }
+    //#endregion
+
+    //#region Focus In/Out Events
+    $("#pt_qty").focusin(function () {
+        localStorage.setItem("temp_qty", $(this).val());
+    });
+
+    $("#pt_qty").focusout(function () {
+        var val = parseFloat($(this).val());
+
+        if (val >= 1) {
+            localStorage.removeItem("temp_qty");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_qty"));
+            localStorage.removeItem("temp_qty");
+        }
+    });
+
+    $("#pt_ses").focusin(function () {
+        localStorage.setItem("temp_ses", $(this).val());
+    });
+
+    $("#pt_ses").focusout(function () {
+        var val = parseFloat($(this).val());
+
+        if (val >= 1) {
+            localStorage.removeItem("temp_ses");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_ses"));
+            localStorage.removeItem("temp_ses");
+        }
+    });
+
+    $("#pt_uprice").focusin(function () {
+        localStorage.setItem("temp_uprice", $(this).val());
+    });
+
+    $("#pt_uprice").focusout(function () {
+        var val = parseFloat($(this).val());
+
+        if (val >= 0) {
+            localStorage.removeItem("temp_uprice");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_uprice"));
+            localStorage.removeItem("temp_uprice");
+        }
+    });
+
+    $("#pt_disc").focusin(function () {
+        localStorage.setItem("temp_disc", $(this).val());
+    });
+
+    $("#pt_disc").focusout(function () {
+        var val = parseFloat($(this).val());
+
+        if (val >= 0) {
+            localStorage.removeItem("temp_disc");
+            $('#pt_coupon').val(0).trigger('change');
+            $('#pt_coupon_disc').val("0.00");
+            calculation();
+        }
+        else {
+            $(this).val(localStorage.getItem("temp_disc"));
+            localStorage.removeItem("temp_disc");
+        }
+    });
+    //#endregion
+
+    //#region Confirm Treatment
+    $('#btnConfirmTreatment').on('click', function (e) {
+        e.preventDefault();
+
+        if (item_arr.length > 0) {
+            var _items = {
+                treatment_items: item_arr,
+            }
+
+            $.ajax({
+                url: '@Url.Action("InsertInsPatientTreatments", "PatientTreatments", new { area = "EMR" })',
+                type: "POST",
+                dataType: "json",
+                data: _items,
+                async: false,
+                success: function (data) {
+                    var alertPlaceholder = document.getElementById("errorInsCreate");
+
+                    function alert(e, t) {
+                        var l = document.createElement("div");
+                        l.innerHTML = '<div class="alert alert-' + t + ' alert-dismissible" role="alert">' + e +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="Close">x</button></div>', alertPlaceholder.append(l)
+                    }
+
+                    if (data.isSuccess) {
+                        $("#hiInvId").val(data.invId);
+
+                        alert("<i class='fe fe-check-circle text-white'></i> " + data.message + "", "success");
+
+                        getInsTreatments();
+
+                        getPreviousInsTreatments();
+
+                        item_arr.length = 0;
+
+                        $("#listItems").hide();
+
+                        $("#cashtreat").show();
+
+                        $("#btnConfirmTreatment").addClass("d-none");
+                    }
+                    else {
+                        if (data.invId == -1) {
+                            alert("<i class='fe fe-alert-triangle text-white'></i> " + data.message + "", "warning");
+                        }
+                        else {
+                            alert("<i class='fe fe-minus-circle text-white'></i> " + data.message + "!", "danger");
+                        }
+                    }
+
+                    Timeout();
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            });
+        }
+    });
+    //#endregion
+
+    //#region Clear Items
+    // Reset Click
+    $('#btn_Reset').on('click', function (e) {
+        e.preventDefault();
+
+        clearData();
+
+        $("#lbl_inv_total").html("0.00");
+        $("#lbl_inv_disc").html("0.00");
+        $("#lbl_inv_net").html("0.00");
+        $("#lbl_inv_vat").html("0.00");
+        $("#lbl_inv_netvat").html("0.00");
+
+        if (item_arr.length > 0) {
+            $('#btnConfirmTreatment').removeClass("d-none");
+        }
+        else {
+            $('#btnConfirmTreatment').addClass("d-none");
+        }
+    });
+
+    // Clear Data
+    var clearData = function () {
+        $("#pt_treatment").empty();
+        $('#pt_vat_type').val("0").trigger('change');
+        $("#rdoVATEx").prop("checked", true);
+        $("#pt_notes").val("");
+        $("#pt_qty").val("1.00");
+        $("#pt_ses").val("1");
+        $("#pt_uprice").val("0.00");
+        $("#pt_total").val("0.00");
+        $("#pt_disc").val("0.00");
+        $('#pt_disc_type').val(1).trigger('change');
+        $("#pt_disc_value").val("0.00");
+        $("#pt_coupon").empty();
+        $("#pt_coupon_disc").val("0.00");
+        $("#pt_net").val("0.00");
+        $("#pt_vat").val("0.00");
+        $("#pt_netvat").val("0.00");
+        $("#hi_pt_tr_code").val("0");
+        $("#hi_pt_tr_name").val("0");
+        $("#hi_isPackage").val("0");
+        $("#hi_pt_vat").val("0");
+        $("#hi_pt_vat2").val("0");
+    }
+    //#endregion
+
+    //#region Alert Timeout
+    function Timeout() {
+        window.setTimeout(function () {
+            $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 4200);
+    }
+    //#endregion
+</script>

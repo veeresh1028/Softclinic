@@ -1,0 +1,108 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "CoreFinalFormIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Core Final Form
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="CoreFinalForm_add" style="display:none">
+                </div>
+                <div id="CoreFinalForm_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="CoreFinalForm_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        GetCoreFinalFormInfo();
+       CoreFinalFormPreviousHistory();
+
+    });
+    //#endregion Page Load
+
+    //#region Load GetCoreFinalFormInfo
+    var GetCoreFinalFormInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetCoreFinalFormData", "CoreFinalForm", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditCoreFinalForm();
+                        $("#CoreFinalForm_add").hide();
+                        $("#CoreFinalForm_edit").show();
+
+                    }
+                    else {
+                        $("#CoreFinalForm_add").show();
+                        $("#CoreFinalForm_edit").hide();
+                        AddCoreFinalForm();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load CoreFinalForm
+
+    //#region Add CoreFinalForm
+    function AddCoreFinalForm() {
+        var x = $("#CoreFinalForm_add");
+        x.load("@Url.Action("CreateCoreFinalForm", "CoreFinalForm", new { area = "ConsentForms" })", function () {
+      });
+    }
+    //#endregion Add CoreFinalForm
+
+    //#region Update CoreFinalForm
+    function EditCoreFinalForm() {
+        var x = $("#CoreFinalForm_edit");
+        x.load("@Url.Action("UpdateCoreFinalForm", "CoreFinalForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion Update CoreFinalForm
+
+    //#region History of CoreFinalForm
+    function CoreFinalFormPreviousHistory() {
+        var x = $("#CoreFinalForm_history");
+        x.load("@Url.Action("CoreFinalFormPreviousHistory", "CoreFinalForm", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion History of CoreFinalForm
+
+
+</script>

@@ -1,0 +1,618 @@
+﻿@using System.Linq;
+@using System.Security.Claims;
+@using BusinessEntities;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+    ViewBag.Title = "Index";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+<div class="row">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="col-12 col-sm-12 col-md-12 d-flex justify-content-center">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Error!&nbsp;</strong>@TempData["ErrorMessage"]
+            </div>
+        </div>
+    }
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 col-lg-12 mb-4 font-weight-semibold">
+                        <span class='badge bg-danger'>Required</span>
+                        <span class="text-info" style="font-size:smaller">Please Fill atlest One Entry</span>
+                    </div>
+                </div>
+                <div id="hpi_add" style="display:none">
+                    @*@Html.Action("CreateHistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })*@
+                </div>
+                <div id="hpi_edit">
+
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_HPI" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #3C457D; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Location</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Quality</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Severity</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Duration</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Timing</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Context</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Modifying Factor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Symptoms</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Others</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Edit</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div>
+                    <h4 class="page-title mb-0 text-primary">
+                        Previous History
+                    </h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_PreHPI" class="table table-striped table-bordered text-nowrap resize-table" style="width: 100%; cursor: pointer;">
+                        <thead>
+                            <tr style="color: #fff !important; background-color: #808080; border-color: #3C457D; ">
+                                <th class="border-bottom-0 font-weight-semibold text-white">#</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Date</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Doctor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Location</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Quality</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Severity</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Duration</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Timing</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Context</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Modifying Factor</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Symptoms</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Others</th>
+                                <th class="border-bottom-0 font-weight-semibold text-white">Action</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section myScripts{
+    <script>
+    //#region Page Load
+        $(function () {
+            GetHPI();
+            GetPreviousHPI();
+            AddHPI(0);
+            $("#hpi_add").show();
+
+        });
+    //#endregion Page Load
+
+    //#region Load HPI
+        var GetHPI = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllHPI", "HistoryofPresentIllness", new { area = "NurseStation" })?appId=" + "@emr.appId",
+                success: function (response) {
+
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_HPI')) {
+                            table = $('#tbl_HPI').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTable(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();
+                });
+        }
+    //#endregion Load HPI
+
+    //#region Load PreviousHPI
+        var GetPreviousHPI = function () {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPreviousHPI", "HistoryofPresentIllness", new { area = "NurseStation" })?appId=" + "@emr.appId" + "&patId=" + @emr.patId,
+                success: function (response) {
+                    if (response.isAuthorized != false) {
+                        var table;
+                        if ($.fn.dataTable.isDataTable('#tbl_PreHPI')) {
+                            table = $('#tbl_PreHPI').DataTable();
+                            table.clear();
+                            table.rows.add(response).draw();
+                        }
+                        else {
+                            console.log(response);
+                            BindDataTableP(response);
+                        }
+                    }
+                    else {
+                        console.log("You are not Authorized!");
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                }
+            })
+                .done(function () {
+                    resizedt();
+                });
+        }
+    //#endregion Load PreviousHPI
+
+    //#region Bind Datatable
+        var BindDataTable = function (response) {
+            var table = $("#tbl_HPI").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "hpiId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "hpi_loc",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_qua",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "hpi_sev",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_dur",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_tim",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_con",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_mod",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_sym",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_other",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpiId",
+                        "className": 'btn-edit text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (hpiId, type, full, meta) {
+                            var status = full.hpi_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                     return '<button type="button"  onclick="EditHPI(' + hpiId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        return '<button type="button"  onclick="EditHPI(' + hpiId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+
+                                    }
+                                    else {
+                                         if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button"  onclick="EditHPI(' + hpiId + ')" class="btn btn-sm btn-outline-primary">Edit</button>';
+                                        }
+                                        else {
+                                             return ''
+                                        }
+                                    }
+
+                                }
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        "mData": "hpiId",
+                        "className": 'btn-delete text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (hpiId, type, full, meta) {
+                            var status = full.hpi_status;
+                            if (status === "Active") {
+                                if ("@emp_designation.ToString()" === "Super Administrator") {
+                                    return '<button type="button" onclick="DeleteHPI(' + hpiId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+
+                                        return '<button type="button" onclick="DeleteHPI(' + hpiId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+
+                                        }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            return '<button type="button" onclick="DeleteHPI(' + hpiId + ')" class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        }
+                                        else {
+                                            return ''
+                                            }
+                                    }
+                                }
+
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'History of Present Illness',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'History of Present Illness',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'History of Present Illness',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'History of Present Illness',
+                        footer: 'true',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_HPI_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Bind Datatable
+
+    //#region Previous Bind Datatable
+        var BindDataTableP = function (response) {
+            var table = $("#tbl_PreHPI").DataTable({
+                fixedHeader: {
+                    header: true,
+                    footer: true
+                },
+                processing: true,
+                "deferRender": true,
+                "pageLength": 100,
+                "retrieve": true,
+                lengthChange: true,
+                "aaData": response,
+                "aoColumns": [
+                    {
+                        "mData": "hpiId",
+                        "orderable": false,
+                        "searchable": false,
+                        "className": "text-center",
+                        "render": function (data, type, row, meta) {
+                            let _index = (meta.row) + 1;
+                            if (_index >= 10) {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>" + _index + "</a>";
+                            }
+                            else {
+                                return "<a href='javascript:void(0)' class='fs-13 font-weight-bold'>0" + _index + "</a>";
+                            }
+                        }
+                    },
+                    {
+                        "mData": "app_fdate",
+                        "className": "text-left",
+                        "render": function (data) {
+                            return moment(data).format('DD-MM-YYYY')
+                        }
+                    },
+                    {
+                        "mData": "doctor_name",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_loc",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_qua",
+                        "className": 'text-left',
+
+                    },
+                    {
+                        "mData": "hpi_sev",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_dur",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_tim",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_con",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_mod",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_sym",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpi_other",
+                        "className": "text-left"
+                    },
+                    {
+                        "mData": "hpiId",
+                        "className": 'btn-view text-center',
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (hpiId, type, full, meta) {
+                            var Action = '';
+                            //Copy Data
+                            if ("@emp_designation.ToString()" === "Super Administrator") {
+                                Action += '<a id=btn_Copy_HPI  onclick="AddHPI(' + hpiId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                }
+                                else {
+                                    if ("@emr.set_emr_lock" == "NoLock") {
+                                        Action += '<a id=btn_Copy_HPI  onclick="AddHPI(' + hpiId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+
+                                    }
+                                    else {
+                                        if ("@emr.app_ae_date" >= "@emr.today") {
+                                            Action += '<a id=btn_Copy_HPI  onclick="AddHPI(' + hpiId + ')"><i class="fa fa-lg fa-copy" ></i></a>';
+                                        }
+                                        else {
+                                            Action += ''
+                                            }
+                                    }
+                                }
+
+                                return Action;
+                            }
+                    },
+
+                ],
+                order: [[0, 'asc']],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '<span class="text-primary font-weight-semi-bold">Search By Code/Tittle</span>',
+                    lengthMenu: '_MENU_',
+                    scrollX: "100%",
+                },
+                scrollX: true,
+                scrollY: 500,
+                scrollCollapse: true,
+                buttons: [
+                    {
+                        extend: 'excel',
+                        title: 'Previous HPI',
+                        className: "btn btn-primary btn-warning",
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Previous HPI',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        title: 'Previous HPI',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Previous HPI',
+                        footer: 'true',
+                        className: 'oldbutton',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                        }
+                    }
+                ]
+            });
+            table.buttons().container().appendTo('#tbl_PreHPI_wrapper .col-md-6:eq(0)');
+        };
+    //#endregion Previous Bind Datatable
+
+    //#region Add HPI
+        function AddHPI( hpiId) {
+            $('#hpi_edit').hide();
+            var x = $("#hpi_add");
+            x.load("@Url.Action("CreateHistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })?hpiId=" + hpiId, function () {
+                $("#hpi_add").show();
+            });
+        }
+    //#endregion Add HPI
+
+     //#region Edit HPI
+        function EditHPI(hpiId) {
+            $('#hpi_add').hide();
+            var x = $("#hpi_edit");
+            x.load("@Url.Action("EditHistoryofPresentIllness", "HistoryofPresentIllness", new { area = "NurseStation" })?hpiId=" + hpiId + "&appId=" + @emr.appId, function () {
+            $("#hpi_edit").show();
+            });
+
+            //hide the Copy Data
+            var dt = $('#tbl_PreHPI').DataTable();
+            dt.columns([12]).visible(false);
+        }
+    //#endregion Edit HPI
+
+
+
+    //#region Delete HPI
+        var DeleteHPI = function (hpiId) {
+            Swal.fire({
+                title: "Are you sure you want to delete this HPI ?",
+                text: "The selected HPI will be deleted!",
+                icon: "question",
+                showCancelButton: !0,
+                confirmButtonText: 'Yes! I Confirm',
+                cancelButtonText: 'No! Cancel Please',
+                confirmButtonClass: "btn btn-success mt-2", cancelButtonClass: "btn btn-danger ms-2 mt-2", buttonsStyling: !1
+            }).then(function (t) {
+                if (t.value) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteHPI", "HistoryofPresentIllness", new { area = "NurseStation" })?hpiId=' + hpiId,
+                        type: "POST",
+                        dataType: 'JSON',
+                        success: function (data) {
+                            if (data.isAuthorized) {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Success!",
+                                        text: "HPI Deleted Successfully!",
+                                        icon: "success",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60"
+                                    });
+                                    GetHPI();
+                                }
+                                else {
+                                    Swal.fire({
+                                        title: "Error!",
+                                        text: "You Can't Change the status! Already exist an active HPI",
+                                        icon: "error",
+                                        showCancelButton: 0,
+                                        confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                    });
+                                }
+                            }
+                            else {
+                                Swal.fire({
+                                    title: "Access Denied!",
+                                    text: "You do not have Enough Privileges to Delete this HPI!",
+                                    icon: "error",
+                                    showCancelButton: 0,
+                                    confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: "Error!",
+                                text: "Failed to Delete HPI! Please Refresh The Page & Try Again.",
+                                icon: "error",
+                                showCancelButton: 0,
+                                confirmButtonColor: "#0bb197", cancelButtonColor: "#ff3d60",
+                            });
+                            GetHPI();
+                        }
+                    });
+                }
+            });
+        }
+    //#endregion Delete HPI
+
+    //#region Resize Datatable
+    function resizedt() {
+        setTimeout(function () {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }, 350);
+    }
+    //#endregion Resize Datatable
+    //#region Alert Timeout
+        function Timeout() {
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 4200);
+        }
+    //#endregion Alert Timeout
+
+
+
+    </script>
+}

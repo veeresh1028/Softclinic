@@ -1,0 +1,108 @@
+﻿@using BusinessEntities;
+@using System.Linq;
+@using System.Security.Claims;
+@{
+    var claims = ClaimsPrincipal.Current.Identities.First().Claims.ToList();
+    var emp_designation = claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).SingleOrDefault();
+    EMRInfo emr = (EMRInfo)TempData["emr_data"];
+    TempData.Keep("emr_data");
+
+    ViewBag.Title = "MinorsPsychotherapyConsentIndex";
+    Layout = "~/Areas/EMR/Views/Shared/_EMR_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Minors Psychotherapy Consent Form
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="MinorsPsychotherapyConsent_add" style="display:none">
+                </div>
+                <div id="MinorsPsychotherapyConsent_edit">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">PREVIOUS HISTORY</h3>
+            </div>
+            <div class="card-body">
+                <div id="MinorsPsychotherapyConsent_history">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    //#region Page Load
+    $(function () {
+        GetMinorsPsychotherapyConsentInfo();
+        MinorsPsychotherapyConsentPreviousHistory();
+
+    });
+    //#endregion Page Load
+
+    //#region Load GetMinorsPsychotherapyConsentInfo
+    var GetMinorsPsychotherapyConsentInfo = function () {
+        $.ajax({
+            type: "GET",
+            url: "@Url.Action("GetMinorsPsychotherapyConsentData", "MinorsPsychotherapyConsent", new { area = "ConsentForms" })?appId=" + "@emr.appId",
+            success: function (response) {
+                if (response.isAuthorized != false) {
+                    if (response.length > 0) {
+                        EditMinorsPsychotherapyConsent();
+                        $("#MinorsPsychotherapyConsent_add").hide();
+                        $("#MinorsPsychotherapyConsent_edit").show();
+
+                    }
+                    else {
+                        $("#MinorsPsychotherapyConsent_add").show();
+                        $("#MinorsPsychotherapyConsent_edit").hide();
+                        AddMinorsPsychotherapyConsent();
+                    }
+                }
+                else {
+                    console.log("You are not Authorized!");
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            }
+        })
+    }
+    //#endregion Load MinorsPsychotherapyConsent
+
+    //#region Add MinorsPsychotherapyConsent
+    function AddMinorsPsychotherapyConsent() {
+        var x = $("#MinorsPsychotherapyConsent_add");
+        x.load("@Url.Action("CreateMinorsPsychotherapyConsent", "MinorsPsychotherapyConsent", new { area = "ConsentForms" })", function () {
+      });
+    }
+    //#endregion Add MinorsPsychotherapyConsent
+
+    //#region Update MinorsPsychotherapyConsent
+    function EditMinorsPsychotherapyConsent() {
+        var x = $("#MinorsPsychotherapyConsent_edit");
+        x.load("@Url.Action("UpdateMinorsPsychotherapyConsent", "MinorsPsychotherapyConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion Update MinorsPsychotherapyConsent
+
+    //#region History of MinorsPsychotherapyConsent
+    function MinorsPsychotherapyConsentPreviousHistory() {
+        var x = $("#MinorsPsychotherapyConsent_history");
+        x.load("@Url.Action("MinorsPsychotherapyConsentPreviousHistory", "MinorsPsychotherapyConsent", new { area = "ConsentForms" })?appId=" + @emr.appId, function () {
+      });
+    }
+    //#endregion History of MinorsPsychotherapyConsent
+
+
+</script>
